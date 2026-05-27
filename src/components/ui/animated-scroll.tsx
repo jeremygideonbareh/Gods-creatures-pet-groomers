@@ -457,10 +457,10 @@ export default function ScrollAdventure() {
                         }}
                       />
                       {!page.rightBgImage && (
-                        <div className="absolute inset-0 bg-black/70" />
+                        <div className="absolute inset-0 bg-black/70 pointer-events-none" />
                       )}
                       {page.rightBgImage && (
-                        <div className="absolute inset-0 bg-black/30" />
+                        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
                       )}
                       {idx === 4 ? (
                         <div className="flex flex-col w-full h-full">
