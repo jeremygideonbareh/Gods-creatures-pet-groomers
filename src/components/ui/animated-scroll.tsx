@@ -157,14 +157,22 @@ const pages: Page[] = [
   },
 ];
 
+function getScrollableAncestor(el: HTMLElement | null): HTMLElement | null {
+  if (!el) return null;
+  const overflow = getComputedStyle(el).overflowY;
+  if ((overflow === "auto" || overflow === "scroll") && el.scrollHeight > el.clientHeight) {
+    return el;
+  }
+  return el.parentElement ? getScrollableAncestor(el.parentElement) : null;
+}
+
 export default function ScrollAdventure() {
   const [currentPage, setCurrentPage] = useState(1);
   const [bookingOpen, setBookingOpen] = useState(false);
   const numOfPages = pages.length;
   const animTime = 1000;
   const scrolling = useRef(false);
-  const touchStartY = useRef(0);
-  const touchEndY = useRef(0);
+  const touchEv = useRef<{ startY: number; scrollable: HTMLElement | null; scrollTop: number }>({ startY: 0, scrollable: null, scrollTop: 0 });
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const navigateUp = useCallback(() => {
@@ -179,6 +187,14 @@ export default function ScrollAdventure() {
     (e: WheelEvent) => {
       if (scrolling.current) return;
       if (Math.abs(e.deltaY) < 50) return;
+      const scrollable = getScrollableAncestor(e.target as HTMLElement);
+      if (scrollable) {
+        const atTop = scrollable.scrollTop <= 0;
+        const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+        if ((e.deltaY > 0 && !atBottom) || (e.deltaY < 0 && !atTop)) {
+          return;
+        }
+      }
       scrolling.current = true;
       if (e.deltaY > 0) {
         navigateDown();
@@ -207,14 +223,27 @@ export default function ScrollAdventure() {
   );
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
+    const target = e.target as HTMLElement;
+    touchEv.current = {
+      startY: e.touches[0].clientY,
+      scrollable: getScrollableAncestor(target),
+      scrollTop: getScrollableAncestor(target)?.scrollTop ?? 0,
+    };
   }, []);
 
   const handleTouchEnd = useCallback(
     (e: TouchEvent) => {
       if (scrolling.current) return;
-      touchEndY.current = e.changedTouches[0].clientY;
-      const diff = touchStartY.current - touchEndY.current;
+      const endY = e.changedTouches[0].clientY;
+      const diff = touchEv.current.startY - endY;
+      const scrollable = touchEv.current.scrollable;
+      if (scrollable) {
+        const scrolled = Math.abs(scrollable.scrollTop - touchEv.current.scrollTop);
+        if (scrolled > 5) return;
+        const atTop = scrollable.scrollTop <= 0;
+        const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+        if ((diff > 0 && !atBottom) || (diff < 0 && !atTop)) return;
+      }
       if (Math.abs(diff) > 50) {
         scrolling.current = true;
         if (diff > 0) {
