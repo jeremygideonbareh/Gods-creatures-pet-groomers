@@ -18,11 +18,12 @@ interface Page {
 }
 
 const BRAND_PINK = "#d0999a";
+const BASE = import.meta.env.BASE_URL;
 
 const pages: Page[] = [
   {
     leftBgImage: null,
-    leftVideo: "/herosectionvideo.mp4",
+    leftVideo: `${BASE}herosectionvideo.mp4`,
     rightBgImage: null,
     leftContent: null,
     rightContent: {

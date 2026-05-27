@@ -2,11 +2,13 @@
 
 import { motion } from "motion/react";
 
+const BASE = import.meta.env.BASE_URL;
+
 const images = [
-  "/review-image1.png",
-  "/review-image2.png",
-  "/review-image3.png",
-  "/reviewimage5.jpeg",
+  `${BASE}review-image1.png`,
+  `${BASE}review-image2.png`,
+  `${BASE}review-image3.png`,
+  `${BASE}reviewimage5.jpeg`,
 ];
 
 const duplicatedImages = [...images, ...images];
