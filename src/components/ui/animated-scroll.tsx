@@ -176,11 +176,22 @@ export default function ScrollAdventure() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const navigateUp = useCallback(() => {
-    if (currentPage > 1) setCurrentPage((p) => p - 1);
+    if (currentPage > 1) {
+      const prev = currentPage - 1;
+      setCurrentPage(prev);
+      if (prev === 1) {
+        heroVideoRef.current?.play().catch(() => {});
+      }
+    }
   }, [currentPage]);
 
   const navigateDown = useCallback(() => {
-    if (currentPage < numOfPages) setCurrentPage((p) => p + 1);
+    if (currentPage < numOfPages) {
+      if (currentPage === 1) {
+        heroVideoRef.current?.pause();
+      }
+      setCurrentPage((p) => p + 1);
+    }
   }, [currentPage, numOfPages]);
 
   const handleWheel = useCallback(
@@ -270,20 +281,15 @@ export default function ScrollAdventure() {
     };
   }, [handleWheel, handleKeyDown, handleTouchStart, handleTouchEnd]);
 
-  useEffect(() => {
-    const video = heroVideoRef.current;
-    if (!video) return;
-    if (currentPage === 1) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [currentPage]);
-
   const goToPage = useCallback(
     (page: number) => {
       if (scrolling.current || page === currentPage) return;
       scrolling.current = true;
+      if (page === 1) {
+        heroVideoRef.current?.play().catch(() => {});
+      } else if (currentPage === 1) {
+        heroVideoRef.current?.pause();
+      }
       setCurrentPage(page);
       setTimeout(() => (scrolling.current = false), animTime);
     },
