@@ -103,19 +103,19 @@ export function FeatureCarousel() {
 
   return (
     <div className="w-full max-w-7xl mx-auto md:p-8">
-      <div className="relative overflow-hidden rounded-[2.5rem] lg:rounded-[4rem] flex flex-col lg:flex-row min-h-[400px] lg:aspect-video border border-border/40">
+      <div className="relative overflow-hidden rounded-none md:rounded-[2.5rem] lg:rounded-[4rem] flex flex-col lg:flex-row min-h-[300px] lg:aspect-video border border-border/40">
         <div
-          className="w-full lg:w-[40%] min-h-[350px] md:min-h-[450px] lg:h-full relative z-30 flex flex-col items-start justify-center overflow-hidden px-8 md:px-16 lg:pl-16"
+          className="w-full lg:w-[40%] min-h-[180px] md:min-h-[350px] lg:h-full relative z-30 flex flex-col items-start justify-center overflow-hidden px-6 md:px-16 lg:pl-16"
           style={{ backgroundColor: BRAND_PINK }}
         >
           <div
-            className="absolute inset-x-0 top-0 h-12 md:h-20 lg:h-16 bg-gradient-to-b z-40"
+            className="absolute inset-x-0 top-0 h-8 md:h-20 lg:h-16 bg-gradient-to-b z-40"
             style={{
               background: `linear-gradient(to bottom, ${BRAND_PINK}, ${BRAND_PINK}80, transparent)`,
             }}
           />
           <div
-            className="absolute inset-x-0 bottom-0 h-12 md:h-20 lg:h-16 bg-gradient-to-t z-40"
+            className="absolute inset-x-0 bottom-0 h-8 md:h-20 lg:h-16 bg-gradient-to-t z-40"
             style={{
               background: `linear-gradient(to top, ${BRAND_PINK}, ${BRAND_PINK}80, transparent)`,
             }}
@@ -154,7 +154,7 @@ export function FeatureCarousel() {
                     onMouseEnter={() => setIsPaused(true)}
                     onMouseLeave={() => setIsPaused(false)}
                     className={cn(
-                      "relative flex items-center gap-4 px-6 md:px-10 lg:px-8 py-3.5 md:py-5 lg:py-4 rounded-full transition-all duration-700 text-left group border",
+                      "relative flex items-center gap-3 md:gap-4 px-4 md:px-10 lg:px-8 py-2 md:py-5 lg:py-4 rounded-full transition-all duration-700 text-left group border",
                       isActive
                         ? "bg-white z-10"
                         : "bg-transparent text-white/60 border-white/20 hover:border-white/40 hover:text-white"
@@ -167,10 +167,10 @@ export function FeatureCarousel() {
                       )}
                       style={isActive ? { color: BRAND_PINK } : { color: "rgba(255,255,255,0.4)" }}
                     >
-                      <feature.icon size={18} strokeWidth={2} />
+                      <feature.icon size={16} strokeWidth={2} />
                     </div>
 
-                    <span className="font-normal text-sm md:text-[15px] tracking-tight whitespace-nowrap uppercase">
+                    <span className="font-normal text-[11px] md:text-[15px] tracking-tight whitespace-nowrap uppercase">
                       {feature.label}
                     </span>
                   </button>
@@ -180,8 +180,8 @@ export function FeatureCarousel() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-[350px] md:min-h-[450px] lg:h-full relative bg-secondary/30 flex items-center justify-center py-10 md:py-16 lg:py-12 px-4 md:px-8 lg:px-8 overflow-hidden border-t lg:border-t-0 lg:border-l border-border/20">
-          <div className="relative w-full max-w-[360px] aspect-[3/4] flex items-center justify-center">
+        <div className="flex-1 min-h-[220px] md:min-h-[450px] lg:h-full relative bg-secondary/30 flex items-center justify-center py-4 md:py-16 lg:py-12 px-4 md:px-8 lg:px-8 overflow-hidden border-t lg:border-t-0 lg:border-l border-border/20">
+          <div className="relative w-full max-w-[280px] md:max-w-[360px] aspect-[4/5] md:aspect-[3/4] flex items-center justify-center">
             {FEATURES.map((feature, index) => {
               const status = getCardStatus(index);
               const isActive = status === "active";
@@ -206,7 +206,7 @@ export function FeatureCarousel() {
                     damping: 25,
                     mass: 0.8,
                   }}
-                  className="absolute inset-0 rounded-[2rem] md:rounded-[2.8rem] overflow-hidden border-4 md:border-8 border-background bg-background origin-center"
+                  className="absolute inset-0 rounded-2xl md:rounded-[2.8rem] overflow-hidden border-2 md:border-8 border-background bg-background origin-center"
                 >
                   <img
                     src={feature.image}
@@ -225,7 +225,7 @@ export function FeatureCarousel() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute inset-x-0 bottom-0 p-10 pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end pointer-events-none"
+                        className="absolute inset-x-0 bottom-0 p-4 md:p-10 pt-12 md:pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end pointer-events-none"
                       >
                         <div
                           className="text-white px-4 py-1.5 rounded-full text-[11px] font-normal uppercase tracking-[0.2em] w-fit shadow-lg mb-3 border border-white/30"
@@ -233,7 +233,7 @@ export function FeatureCarousel() {
                         >
                           {index + 1} • {feature.label}
                         </div>
-                        <p className="text-white font-normal text-xl md:text-2xl leading-tight drop-shadow-md tracking-tight">
+                        <p className="text-white font-normal text-sm md:text-2xl leading-tight drop-shadow-md tracking-tight">
                           {feature.description}
                         </p>
                       </motion.div>
@@ -241,28 +241,28 @@ export function FeatureCarousel() {
                   </AnimatePresence>
 
                   {/* Nav arrows */}
-                  <div className="absolute z-30 flex items-center justify-between px-3 inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="absolute z-30 flex items-center justify-between px-2 md:px-3 inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
                     <button
                       onClick={() => setStep((s) => s - 1)}
-                      className="w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
+                      className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
                       style={{ color: BRAND_PINK }}
                       aria-label="Previous service"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={16} />
                     </button>
                     <button
                       onClick={() => setStep((s) => s + 1)}
-                      className="w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
+                      className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
                       style={{ color: BRAND_PINK }}
                       aria-label="Next service"
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={16} />
                     </button>
                   </div>
 
                   <div
                     className={cn(
-                      "absolute top-8 left-8 flex items-center gap-3 transition-opacity duration-300",
+                      "absolute top-4 md:top-8 left-4 md:left-8 flex items-center gap-2 md:gap-3 transition-opacity duration-300",
                       isActive ? "opacity-100" : "opacity-0"
                     )}
                   >

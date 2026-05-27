@@ -165,6 +165,7 @@ export default function ScrollAdventure() {
   const scrolling = useRef(false);
   const touchStartY = useRef(0);
   const touchEndY = useRef(0);
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const navigateUp = useCallback(() => {
     if (currentPage > 1) setCurrentPage((p) => p - 1);
@@ -240,6 +241,16 @@ export default function ScrollAdventure() {
     };
   }, [handleWheel, handleKeyDown, handleTouchStart, handleTouchEnd]);
 
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    if (currentPage === 1) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [currentPage]);
+
   const goToPage = useCallback(
     (page: number) => {
       if (scrolling.current || page === currentPage) return;
@@ -309,6 +320,7 @@ export default function ScrollAdventure() {
               {page.leftVideo ? (
                 <div className="absolute inset-0">
                   <video
+                    ref={(el) => { if (idx === 1) heroVideoRef.current = el; }}
                     className="absolute inset-0 w-full h-full object-cover"
                     src={page.leftVideo}
                     autoPlay
@@ -343,11 +355,14 @@ export default function ScrollAdventure() {
                 </div>
               ) : idx === 3 ? (
                 <div className="absolute inset-0 overflow-y-auto bg-black">
-                  <div className="hidden md:flex items-center justify-center pt-6 pb-2">
-                    <h2 className="text-xl md:text-3xl uppercase font-bold text-white drop-shadow-lg">
+                  <div className="flex items-center justify-center pt-4 md:pt-6 pb-1 md:pb-2">
+                    <h2 className="text-lg md:text-3xl uppercase font-bold text-white drop-shadow-lg text-center px-4">
                       Our Signature Services
                     </h2>
                   </div>
+                  <p className="text-white/70 text-xs md:hidden text-center px-4 pb-2 -mt-1">
+                    Expertly crafted using the finest imported products.
+                  </p>
                   <div className="w-full">
                     <FeatureCarousel />
                   </div>
