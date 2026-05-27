@@ -358,6 +358,7 @@ export default function ScrollAdventure() {
                     ref={(el) => { if (idx === 1) heroVideoRef.current = el; }}
                     className="absolute inset-0 w-full h-full object-cover"
                     src={page.leftVideo}
+                    poster={`${BASE}hero-poster.jpg`}
                     autoPlay
                     loop
                     muted
