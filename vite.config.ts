@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  base: '/Gods-creatures-pet-groomers/',
+  base: '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

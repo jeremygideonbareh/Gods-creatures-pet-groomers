@@ -1,10 +1,34 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
+import { ApolloProvider } from "@apollo/client/react";
+import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
+import "./index.css";
+import App from "./App.tsx";
 
-createRoot(document.getElementById('root')!).render(
+const httpLink = createHttpLink({ uri: NHOST_GRAPHQL_URL });
+
+const authLink = setContext(async (_, { headers }) => {
+  const session = nhost.getUserSession();
+  const token = session?.accessToken;
+  return {
+    headers: {
+      ...headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  };
+});
+
+const apolloClient = new ApolloClient({
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
+});
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ApolloProvider client={apolloClient}>
+      <App />
+    </ApolloProvider>
   </StrictMode>,
-)
+);

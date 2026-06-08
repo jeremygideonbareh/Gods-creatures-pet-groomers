@@ -1,8 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { gql } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+
+const CREATE_BOOKING = gql`
+  mutation CreateBooking(
+    $customer_name: String!
+    $email: String!
+    $phone: String!
+    $service: String!
+    $preferred_date: String!
+    $notes: String!
+    $advance_paid: numeric!
+    $transaction_id: String!
+  ) {
+    insert_bookings_one(
+      object: {
+        customer_name: $customer_name
+        email: $email
+        phone: $phone
+        service: $service
+        preferred_date: $preferred_date
+        notes: $notes
+        advance_paid: $advance_paid
+        transaction_id: $transaction_id
+      }
+    ) {
+      id
+      customer_name
+    }
+  }
+`;
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -13,9 +44,25 @@ const BRAND_PINK = "#d0999a";
 
 export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [step, setStep] = useState<"info" | "form">("info");
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const serviceRef = useRef<HTMLSelectElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  const transactionIdRef = useRef<HTMLInputElement>(null);
+
+  const [createBooking] = useMutation(CREATE_BOOKING);
 
   useEffect(() => {
-    if (!isOpen) setStep("info");
+    if (!isOpen) {
+      setStep("info");
+      setSubmitStatus("idle");
+      setErrorMessage("");
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -26,12 +73,67 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(
-      "🎉 Woohoo! Your request has been sent. We'll get back to you with sweet treats and a confirmed slot! 🐾"
-    );
-    onClose();
+    setErrorMessage("");
+
+    const transactionId = transactionIdRef.current?.value.trim();
+    if (!transactionId) {
+      setErrorMessage("Please enter the UPI Transaction ID to confirm your ₹500 advance payment.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    setSubmitStatus("loading");
+
+    try {
+      const result = await createBooking({
+        variables: {
+          customer_name: nameRef.current?.value || "",
+          email: emailRef.current?.value || "",
+          phone: phoneRef.current?.value || "",
+          service: serviceRef.current?.value || "",
+          preferred_date: dateRef.current?.value || "",
+          notes: notesRef.current?.value || "",
+          advance_paid: 500,
+          transaction_id: transactionId,
+        },
+      });
+
+      if (result.error) {
+        const msg = result.error.message.toLowerCase();
+        if (
+          msg.includes("unique constraint") ||
+          msg.includes("unique_transaction_id")
+        ) {
+          setErrorMessage(
+            "This UPI Reference Number has already been used. Please check your details or contact support.",
+          );
+        } else {
+          setErrorMessage("Unable to process booking. Please try again.");
+        }
+        setSubmitStatus("error");
+        return;
+      }
+
+      setSubmitStatus("success");
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      if (
+        msg.includes("unique constraint") ||
+        msg.includes("unique_transaction_id")
+      ) {
+        setErrorMessage(
+          "This UPI Reference Number has already been used. Please check your details or contact support.",
+        );
+      } else {
+        setErrorMessage("Unable to process booking. Please try again.");
+      }
+      setSubmitStatus("error");
+    }
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -63,7 +165,17 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
               <X size={18} />
             </button>
 
-            {step === "info" ? (
+            {submitStatus === "success" ? (
+              <div className="text-center py-8">
+                <p className="text-4xl mb-4">🎉</p>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Woohoo!
+                </h2>
+                <p className="text-white/80">
+                  Your request has been sent. We'll get back to you with a confirmed slot!
+                </p>
+              </div>
+            ) : step === "info" ? (
               <>
                 <h2 className="text-2xl font-bold text-white text-center mb-2">
                   🐾 Book a Session
@@ -108,23 +220,29 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                 </div>
                 <form onSubmit={handleFormSubmit} className="space-y-3">
                   <input
+                    ref={nameRef}
                     type="text"
                     placeholder="Your name *"
                     required
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
                   <input
+                    ref={emailRef}
                     type="email"
                     placeholder="Email address *"
                     required
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
                   <input
+                    ref={phoneRef}
                     type="tel"
                     placeholder="Phone number"
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
-                  <select className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60">
+                  <select
+                    ref={serviceRef}
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60"
+                  >
                     <option className="bg-[#d0999a] text-white">
                       Select service
                     </option>
@@ -142,21 +260,46 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     </option>
                   </select>
                   <input
+                    ref={dateRef}
                     type="text"
                     placeholder="Preferred date (e.g., Monday 10am)"
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
                   <textarea
+                    ref={notesRef}
                     rows={2}
                     placeholder="Tell us about your pet (breed, special notes...)"
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 resize-none"
                   />
+                  <div className="bg-white/15 rounded-xl p-3 space-y-2">
+                    <p className="text-white font-semibold text-sm">
+                      💳 Advance Payment (₹500)
+                    </p>
+                    <p className="text-white/60 text-xs">
+                      A ₹500 advance is required to secure your grooming slot. Pay via UPI and enter the reference below.
+                    </p>
+                    <input
+                      ref={transactionIdRef}
+                      type="text"
+                      placeholder="UPI Reference No. / Transaction ID *"
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                    />
+                  </div>
+                  {submitStatus === "error" && (
+                    <p className="text-red-200 text-sm text-center bg-red-500/20 rounded-lg p-2">
+                      {errorMessage}
+                    </p>
+                  )}
                   <button
                     type="submit"
-                    className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02]"
+                    disabled={submitStatus === "loading"}
+                    className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ color: BRAND_PINK }}
                   >
-                    ✉️ send request
+                    {submitStatus === "loading"
+                      ? "⏳ Sending..."
+                      : "✉️ send request"}
                   </button>
                 </form>
                 <p className="text-white/60 text-xs text-center mt-3">
