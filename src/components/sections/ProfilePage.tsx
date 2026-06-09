@@ -1,58 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ArrowLeft, Loader2, Plus, PawPrint } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens } from "@/config/site-content";
+import { GET_USER_PETS, INSERT_PET } from "@/lib/graphql";
 
 const BRAND_PINK = designTokens.brandPink;
-
-const GET_MY_PETS = gql`
-  query GetMyPets {
-    pets(order_by: { created_at: desc }) {
-      id
-      pet_name
-      species
-      breed
-      age
-      weight
-      coat_condition
-      medical_history
-      behavioral_notes
-      vet_contact
-      created_at
-    }
-  }
-`;
-
-const CREATE_PET = gql`
-  mutation CreatePet(
-    $pet_name: String!
-    $species: String!
-    $breed: String
-    $age: Int
-    $weight: numeric
-    $coat_condition: String
-    $medical_history: String
-    $behavioral_notes: String
-    $vet_contact: String
-  ) {
-    insert_pets_one(object: {
-      pet_name: $pet_name
-      species: $species
-      breed: $breed
-      age: $age
-      weight: $weight
-      coat_condition: $coat_condition
-      medical_history: $medical_history
-      behavioral_notes: $behavioral_notes
-      vet_contact: $vet_contact
-    }) {
-      id
-    }
-  }
-`;
 
 function AddPetForm({ onDone }: { onDone: () => void }) {
   const nameRef = useRef<HTMLInputElement>(null);
@@ -65,8 +19,8 @@ function AddPetForm({ onDone }: { onDone: () => void }) {
   const behaviorRef = useRef<HTMLTextAreaElement>(null);
   const vetRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
-  const [createPet, { loading }] = useMutation(CREATE_PET, {
-    refetchQueries: [{ query: GET_MY_PETS }],
+  const [createPet, { loading }] = useMutation(INSERT_PET, {
+    refetchQueries: [{ query: GET_USER_PETS }],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,11 +29,11 @@ function AddPetForm({ onDone }: { onDone: () => void }) {
     try {
       const { error: mutationError } = await createPet({
         variables: {
-          pet_name: nameRef.current?.value || "",
+          name: nameRef.current?.value || "",
           species: speciesRef.current?.value || "",
           breed: breedRef.current?.value || null,
-          age: ageRef.current?.value ? parseInt(ageRef.current.value, 10) : null,
-          weight: weightRef.current?.value ? parseFloat(weightRef.current.value) : null,
+          age_years: ageRef.current?.value ? parseInt(ageRef.current.value, 10) : null,
+          weight_kg: weightRef.current?.value ? parseFloat(weightRef.current.value) : null,
           coat_condition: coatRef.current?.value || null,
           medical_history: medicalRef.current?.value || null,
           behavioral_notes: behaviorRef.current?.value || null,
@@ -146,11 +100,11 @@ function AddPetForm({ onDone }: { onDone: () => void }) {
 
 interface Pet {
   id: number;
-  pet_name: string;
+  name: string;
   species: string;
   breed: string | null;
-  age: number | null;
-  weight: number | null;
+  age_years: number | null;
+  weight_kg: number | null;
   coat_condition: string | null;
   medical_history: string | null;
   behavioral_notes: string | null;
@@ -166,7 +120,7 @@ export function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const { data, loading, error } = useQuery<PetsData>(GET_MY_PETS, { skip: !user });
+  const { data, loading, error } = useQuery<PetsData>(GET_USER_PETS, { skip: !user });
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
@@ -222,13 +176,13 @@ export function ProfilePage() {
                 <div key={pet.id} className="bg-white/15 rounded-2xl p-4 md:p-5 border border-white/20">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-white font-semibold">{pet.pet_name}</h3>
+                      <h3 className="text-white font-semibold">{pet.name}</h3>
                       <p className="text-white/50 text-xs">{pet.species}{pet.breed ? ` • ${pet.breed}` : ""}</p>
                     </div>
-                    <span className="text-white/30 text-xs">{pet.age ?? "—"} yrs</span>
+                    <span className="text-white/30 text-xs">{pet.age_years ?? "—"} yrs</span>
                   </div>
                   <div className="space-y-1 text-xs text-white/60">
-                    {pet.weight != null && <p>⚖️ {pet.weight} kg</p>}
+                    {pet.weight_kg != null && <p>⚖️ {pet.weight_kg} kg</p>}
                     {pet.coat_condition && <p>🧥 {pet.coat_condition}</p>}
                     {pet.medical_history && <p>💊 {pet.medical_history}</p>}
                     {pet.behavioral_notes && <p>🧠 {pet.behavioral_notes}</p>}

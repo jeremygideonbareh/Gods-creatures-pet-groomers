@@ -1,48 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens } from "@/config/site-content";
 import ContentEditor from "@/components/sections/ContentEditor";
+import { GET_ADMIN_BOOKINGS, UPDATE_BOOKING_STATUS } from "@/lib/graphql";
 
 const BRAND_PINK = designTokens.brandPink;
-
-const GET_ALL_BOOKINGS = gql`
-  query GetAllBookings {
-    bookings(order_by: { created_at: desc }) {
-      id
-      customer_name
-      email
-      phone
-      service
-      preferred_date
-      notes
-      advance_paid
-      transaction_id
-      status
-      created_at
-      pet {
-        pet_name
-        species
-        breed
-      }
-    }
-  }
-`;
-
-const UPDATE_STATUS = gql`
-  mutation UpdateBookingStatus($id: uuid!, $status: String!) {
-    update_bookings_by_pk(
-      pk_columns: { id: $id }
-      _set: { status: $status }
-    ) {
-      id
-      status
-    }
-  }
-`;
 
 const statusBadge: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pending_verification: {
@@ -74,7 +39,8 @@ interface Booking {
   transaction_id: string;
   status: string;
   created_at: string;
-  pet: { pet_name: string; species: string; breed: string | null } | null;
+  pet: { name: string; breed: string | null } | null;
+  user: { email: string } | null;
 }
 
 interface BookingsData {
@@ -86,9 +52,9 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const [adminTab, setAdminTab] = useState<"bookings" | "content">("bookings");
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const { data, loading, error } = useQuery<BookingsData>(GET_ALL_BOOKINGS, { skip: adminTab !== "bookings" });
-  const [updateStatus] = useMutation(UPDATE_STATUS, {
-    refetchQueries: [{ query: GET_ALL_BOOKINGS }],
+  const { data, loading, error } = useQuery<BookingsData>(GET_ADMIN_BOOKINGS, { skip: adminTab !== "bookings" });
+  const [updateStatus] = useMutation(UPDATE_BOOKING_STATUS, {
+    refetchQueries: [{ query: GET_ADMIN_BOOKINGS }],
   });
 
   useEffect(() => {
@@ -205,12 +171,13 @@ export function AdminDashboard() {
                         </div>
                         <p className="text-white/50 text-xs">
                           {booking.email}
+                          {booking.user?.email ? ` • user: ${booking.user.email}` : ""}
                           {booking.phone ? ` • ${booking.phone}` : ""}
                         </p>
                         <p className="text-white/60 text-xs mt-1">
                           {booking.service}
                           {booking.preferred_date ? ` • ${booking.preferred_date}` : ""}
-                          {pet ? ` • ${pet.pet_name} (${pet.species})` : ""}
+                          {pet ? ` • ${pet.name}${pet.breed ? ` (${pet.breed})` : ""}` : ""}
                         </p>
                         {booking.notes && <p className="text-white/40 text-[10px] mt-0.5">📝 {booking.notes}</p>}
                         <p className="text-white/30 text-[10px] mt-0.5">

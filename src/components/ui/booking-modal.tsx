@@ -6,17 +6,7 @@ import { X, Loader2 } from "lucide-react";
 import { designTokens } from "@/config/site-content";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
-
-const GET_MY_PETS = gql`
-  query GetMyPetsForBooking {
-    pets {
-      id
-      pet_name
-      species
-      breed
-    }
-  }
-`;
+import { GET_USER_PETS } from "@/lib/graphql";
 
 const CREATE_BOOKING = gql`
   mutation CreateBooking(
@@ -96,7 +86,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const { user } = useAuth();
   const { content } = useSiteContent();
   const booking = content.booking;
-  const { data: petData } = useQuery<{ pets: { id: number; pet_name: string; species: string; breed: string }[] }>(GET_MY_PETS, { skip: !user });
+  const { data: petData } = useQuery<{ pets: { id: number; name: string; species: string; breed: string | null }[] }>(GET_USER_PETS, { skip: !user });
   const pets = petData?.pets || [];
 
   const [createBooking] = useMutation(CREATE_BOOKING);
@@ -436,9 +426,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                           <option value="" className="bg-[#d0999a] text-white">
                             Select your pet
                           </option>
-                          {pets.map((pet: { id: number; pet_name: string; species: string; breed: string }) => (
+                          {pets.map((pet: { id: number; name: string; species: string; breed: string | null }) => (
                             <option key={pet.id} value={pet.id} className="bg-[#d0999a] text-white">
-                              {pet.pet_name} ({pet.species}{pet.breed ? ` - ${pet.breed}` : ""})
+                              {pet.name} ({pet.species}{pet.breed ? ` - ${pet.breed}` : ""})
                             </option>
                           ))}
                         </select>

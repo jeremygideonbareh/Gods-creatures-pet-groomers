@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { GET_SITE_CONTENT } from "@/lib/graphql";
 
 export interface WhyChooseUsCard {
   icon: string;
@@ -117,14 +118,7 @@ const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   design_tokens: "designTokens",
 };
 
-export const GET_ALL_SITE_CONTENT = gql`
-  query GetAllSiteContent {
-    site_content {
-      section
-      content
-    }
-  }
-`;
+export { GET_SITE_CONTENT as GET_ALL_SITE_CONTENT };
 
 export const UPSERT_SITE_CONTENT = gql`
   mutation UpsertSiteContent($section: String!, $content: jsonb!) {
