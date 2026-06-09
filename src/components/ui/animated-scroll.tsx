@@ -59,7 +59,8 @@ export default function ScrollAdventure() {
   };
 
   const handleLogout = async () => {
-    await nhost.auth.signOut({});
+    // @ts-expect-error Nhost v4 type expects SignOutRequest but no-args avoids payload errors
+    await nhost.auth.signOut();
     navigate("/");
   };
 

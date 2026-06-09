@@ -15,7 +15,8 @@ export function UserMenu() {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await nhost.auth.signOut({});
+    // @ts-expect-error Nhost v4 type expects SignOutRequest but no-args avoids payload errors
+    await nhost.auth.signOut();
     setMenuOpen(false);
     navigate("/");
   };
