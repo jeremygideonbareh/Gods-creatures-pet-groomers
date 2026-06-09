@@ -1,8 +1,11 @@
-import { whyChooseUs, pageBackgrounds, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
 export function WhyChooseUsSection() {
+  const { content } = useSiteContent();
+  const { whyChooseUs, pageBackgrounds } = content;
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
       <div className="relative w-full md:w-1/2 min-h-screen overflow-hidden">

@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { hero } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 interface HeroSectionProps {
   onBookClick: () => void;
@@ -9,6 +9,8 @@ interface HeroSectionProps {
 const BASE = import.meta.env.BASE_URL;
 
 export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
+  const { content } = useSiteContent();
+  const hero = content.hero;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <video

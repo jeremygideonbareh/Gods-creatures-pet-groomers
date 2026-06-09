@@ -1,4 +1,5 @@
-import { bookingSection, pageBackgrounds, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 interface BookingSectionProps {
   onBookClick: () => void;
@@ -7,6 +8,9 @@ interface BookingSectionProps {
 const BRAND_PINK = designTokens.brandPink;
 
 export function BookingSection({ onBookClick }: BookingSectionProps) {
+  const { content } = useSiteContent();
+  const booking = content.booking;
+  const pageBackgrounds = content.pageBackgrounds;
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
       <div className="relative w-full md:w-1/2 min-h-[30vh] md:min-h-screen overflow-hidden">
@@ -19,17 +23,17 @@ export function BookingSection({ onBookClick }: BookingSectionProps) {
       <div className="relative w-full md:w-1/2 min-h-[70vh] md:min-h-screen overflow-hidden">
         <div className="flex flex-col items-center justify-center min-h-[70vh] md:min-h-screen text-white px-6 md:px-8 py-6 md:py-8">
           <h2 className="text-xl md:text-3xl uppercase mb-4 md:mb-6 text-center font-bold drop-shadow-lg">
-            {bookingSection.heading}
+            {booking.heading}
           </h2>
           <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-white/20 w-full max-w-sm">
             <p className="text-white/90 text-sm flex items-center gap-2">
-              <span>{bookingSection.locationIcon}</span> {bookingSection.location}
+              <span>{booking.locationIcon}</span> {booking.location}
             </p>
             <p className="text-white/90 text-sm flex items-center gap-2 mt-2">
-              <span>{bookingSection.hoursIcon}</span> {bookingSection.hours}
+              <span>{booking.hoursIcon}</span> {booking.hours}
             </p>
             <p className="text-white/90 text-sm flex items-center gap-2 mt-2">
-              <span>{bookingSection.phoneIcon}</span> {bookingSection.phone}
+              <span>{booking.phoneIcon}</span> {booking.phone}
             </p>
           </div>
           <button
@@ -37,10 +41,10 @@ export function BookingSection({ onBookClick }: BookingSectionProps) {
             className="mt-4 md:mt-6 px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base md:text-lg uppercase tracking-wider transition-transform hover:scale-105"
             style={{ backgroundColor: BRAND_PINK }}
           >
-            {bookingSection.ctaIcon} {bookingSection.cta}
+            {booking.ctaIcon} {booking.cta}
           </button>
           <p className="text-white/60 text-xs mt-3">
-            {bookingSection.subtitle}
+            {booking.subtitle}
           </p>
         </div>
       </div>

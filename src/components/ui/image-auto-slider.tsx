@@ -1,15 +1,14 @@
 "use client";
 
 import { motion } from "motion/react";
-import { reviews } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BASE = import.meta.env.BASE_URL;
 
-const images = reviews.images.map((img) => `${BASE}${img}`);
-
-const duplicatedImages = [...images, ...images];
-
 export function ImageAutoSlider() {
+  const { content } = useSiteContent();
+  const images = content.reviews.images.map((img) => `${BASE}${img}`);
+  const duplicatedImages = [...images, ...images];
   return (
     <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
       <div

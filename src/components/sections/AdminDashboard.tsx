@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens } from "@/config/site-content";
+import ContentEditor from "@/components/sections/ContentEditor";
 
 const BRAND_PINK = designTokens.brandPink;
 
@@ -83,8 +84,9 @@ interface BookingsData {
 export function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [adminTab, setAdminTab] = useState<"bookings" | "content">("bookings");
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const { data, loading, error } = useQuery<BookingsData>(GET_ALL_BOOKINGS);
+  const { data, loading, error } = useQuery<BookingsData>(GET_ALL_BOOKINGS, { skip: adminTab !== "bookings" });
   const [updateStatus] = useMutation(UPDATE_STATUS, {
     refetchQueries: [{ query: GET_ALL_BOOKINGS }],
   });
@@ -129,7 +131,34 @@ export function AdminDashboard() {
           <ArrowLeft size={18} /> Back to Home
         </button>
 
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setAdminTab("bookings")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              adminTab === "bookings"
+                ? "bg-white text-pink-700"
+                : "bg-white/20 text-white hover:bg-white/30"
+            }`}
+          >
+            📋 Bookings
+          </button>
+          <button
+            onClick={() => setAdminTab("content")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              adminTab === "content"
+                ? "bg-white text-pink-700"
+                : "bg-white/20 text-white hover:bg-white/30"
+            }`}
+          >
+            <FileText size={16} /> Content
+          </button>
+        </div>
+
         <div className="bg-white/20 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/30">
+          {adminTab === "content" ? (
+            <ContentEditor />
+          ) : (
+            <>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
@@ -209,6 +238,8 @@ export function AdminDashboard() {
                 );
               })}
             </div>
+          )}
+            </>
           )}
         </div>
       </div>

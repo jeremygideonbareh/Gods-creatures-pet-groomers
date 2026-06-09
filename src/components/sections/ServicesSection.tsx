@@ -1,7 +1,9 @@
 import FeatureCarousel from "@/components/ui/feature-carousel";
-import { services } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 export function ServicesSection() {
+  const { content } = useSiteContent();
+  const services = content.services;
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center">
       <div className="flex items-center justify-center pt-6 md:pt-8 pb-1 md:pb-2">

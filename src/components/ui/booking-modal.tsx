@@ -3,7 +3,8 @@ import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2 } from "lucide-react";
-import { bookingSection, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 
 const GET_MY_PETS = gql`
@@ -93,6 +94,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const petRef = useRef<HTMLSelectElement>(null);
 
   const { user } = useAuth();
+  const { content } = useSiteContent();
+  const booking = content.booking;
   const { data: petData } = useQuery<{ pets: { id: number; pet_name: string; species: string; breed: string }[] }>(GET_MY_PETS, { skip: !user });
   const pets = petData?.pets || [];
 
@@ -276,13 +279,13 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   aria-live="polite"
                 >
                   <p className="text-4xl mb-4">
-                    {bookingSection.successEmoji}
+                    {booking.successEmoji}
                   </p>
                   <h2 className="text-2xl font-bold text-white mb-2">
-                    {bookingSection.successTitle}
+                    {booking.successTitle}
                   </h2>
                   <p className="text-white/80">
-                    {bookingSection.successMessage}
+                    {booking.successMessage}
                   </p>
                 </motion.div>
               ) : step === "info" ? (
@@ -294,17 +297,17 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   transition={springTransition}
                 >
                   <h2 className="text-2xl font-bold text-white text-center mb-2">
-                    🐾 {bookingSection.modalTitle}
+                    🐾 {booking.modalTitle}
                   </h2>
                   <p className="text-white/80 text-center mb-6">
-                    {bookingSection.modalSubtitle}
+                    {booking.modalSubtitle}
                   </p>
                   <div className="bg-white/20 rounded-xl p-4 mb-6 text-center">
                     <p className="text-white font-semibold">
-                      {bookingSection.bookingFeeLabel}
+                      {booking.bookingFeeLabel}
                     </p>
                     <p className="text-white/70 text-sm">
-                      {bookingSection.bookingFeeDetail}
+                      {booking.bookingFeeDetail}
                     </p>
                   </div>
                   <button
@@ -312,10 +315,10 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02]"
                     style={{ color: BRAND_PINK }}
                   >
-                    📅 {bookingSection.proceedCta}
+                    📅 {booking.proceedCta}
                   </button>
                   <p className="text-white/60 text-xs text-center mt-4">
-                    {bookingSection.questionsCta}
+                    {booking.questionsCta}
                   </p>
                 </motion.div>
               ) : (
@@ -327,16 +330,16 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   transition={springTransition}
                 >
                   <h2 className="text-2xl font-bold text-white text-center mb-2">
-                    🐾 {bookingSection.formTitle}
+                    🐾 {booking.formTitle}
                   </h2>
                   <p className="text-white/80 text-center mb-4">
-                    {bookingSection.formSubtitle}
+                    {booking.formSubtitle}
                   </p>
                   <div className="bg-white/20 rounded-xl p-3 mb-4 text-center">
                     <p className="text-white text-sm">
-                      {bookingSection.bookingFeeLabel}{" "}
+                      {booking.bookingFeeLabel}{" "}
                       <span className="text-white/70">
-                        — {bookingSection.bookingFeeDetail.toLowerCase()}
+                        — {booking.bookingFeeDetail.toLowerCase()}
                       </span>
                     </p>
                   </div>
@@ -469,10 +472,10 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     </div>
                     <div className="bg-white/15 rounded-xl p-3 space-y-2">
                       <p className="text-white font-semibold text-sm">
-                        💳 {bookingSection.advancePaymentTitle}
+                        💳 {booking.advancePaymentTitle}
                       </p>
                       <p className="text-white/60 text-xs">
-                        {bookingSection.advancePaymentDetail}
+                        {booking.advancePaymentDetail}
                       </p>
                       <div>
                         <label htmlFor="booking-transaction" className="sr-only">
@@ -482,14 +485,14 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                           id="booking-transaction"
                           ref={transactionIdRef}
                           type="text"
-                          placeholder={bookingSection.upiPlaceholder}
+                          placeholder={booking.upiPlaceholder}
                           required
                           maxLength={50}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                         />
                       </div>
                       <p className="text-white/50 text-[10px] leading-tight">
-                        💡 {bookingSection.upiTooltip}
+                        💡 {booking.upiTooltip}
                       </p>
                     </div>
                     {submitStatus === "error" && (
@@ -509,10 +512,10 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                       {submitStatus === "loading" ? (
                         <>
                           <Loader2 size={20} className="animate-spin" />
-                          <span>{bookingSection.submittingLabel}</span>
+                          <span>{booking.submittingLabel}</span>
                         </>
                       ) : (
-                        <>✉️ {bookingSection.submitLabel}</>
+                        <>✉️ {booking.submitLabel}</>
                       )}
                     </button>
                   </form>

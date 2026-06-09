@@ -1,7 +1,9 @@
 import ImageAutoSlider from "@/components/ui/image-auto-slider";
-import { reviews, pageBackgrounds } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 export function ReviewsSection() {
+  const { content } = useSiteContent();
+  const { reviews, pageBackgrounds } = content;
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
       <div className="relative w-full md:w-1/2 min-h-[30vh] md:min-h-screen overflow-hidden">

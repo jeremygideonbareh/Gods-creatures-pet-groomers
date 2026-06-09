@@ -11,7 +11,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { services, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const iconMap: Record<string, React.ElementType> = {
   Bath,
@@ -19,11 +20,6 @@ const iconMap: Record<string, React.ElementType> = {
   Smile,
   PawPrint,
 };
-
-const FEATURES = services.items.map((item) => ({
-  ...item,
-  Icon: iconMap[item.icon] || Bath,
-}));
 
 const AUTO_PLAY_INTERVAL = 3000;
 const ITEM_HEIGHT = 65;
@@ -38,16 +34,21 @@ const BRAND_PINK = designTokens.brandPink;
 export function FeatureCarousel() {
   const [step, setStep] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const { content } = useSiteContent();
+  const features = content.services.items.map((item) => ({
+    ...item,
+    Icon: iconMap[item.icon] || Bath,
+  }));
 
   const currentIndex =
-    ((step % FEATURES.length) + FEATURES.length) % FEATURES.length;
+    ((step % features.length) + features.length) % features.length;
 
   const nextStep = useCallback(() => {
     setStep((prev) => prev + 1);
   }, []);
 
   const handleChipClick = (index: number) => {
-    const diff = (index - currentIndex + FEATURES.length) % FEATURES.length;
+    const diff = (index - currentIndex + features.length) % features.length;
     if (diff > 0) setStep((s) => s + diff);
   };
 
@@ -74,7 +75,7 @@ export function FeatureCarousel() {
 
   const getCardStatus = (index: number) => {
     const diff = index - currentIndex;
-    const len = FEATURES.length;
+    const len = features.length;
 
     let normalizedDiff = diff;
     if (diff > len / 2) normalizedDiff -= len;
@@ -106,12 +107,12 @@ export function FeatureCarousel() {
             }}
           />
           <div className="relative w-full h-full flex items-center justify-center lg:justify-start z-20 py-2 md:py-8">
-            {FEATURES.map((feature, index) => {
+            {features.map((feature, index) => {
               const isActive = index === currentIndex;
               const distance = index - currentIndex;
               const wrappedDistance = wrap(
-                -(FEATURES.length / 2),
-                FEATURES.length / 2,
+                -(features.length / 2),
+                features.length / 2,
                 distance
               );
 
@@ -175,7 +176,7 @@ export function FeatureCarousel() {
 
         <div className="flex-1 min-h-0 relative bg-secondary/30 flex items-center justify-center py-1 md:py-16 lg:py-12 px-1.5 md:px-8 lg:px-8 overflow-hidden border-t lg:border-t-0 lg:border-l border-border/20">
           <div className="relative w-full max-w-[170px] xs:max-w-[200px] md:max-w-[360px] aspect-[3/4] md:aspect-[3/4] flex items-center justify-center">
-            {FEATURES.map((feature, index) => {
+            {features.map((feature, index) => {
               const status = getCardStatus(index);
               const isActive = status === "active";
               const isPrev = status === "prev";
