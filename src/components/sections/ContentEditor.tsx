@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, Save, Plus, Trash2 } from "lucide-react";
 import { useSiteContent } from "@/context/SiteContentContext";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 import type {
   SectionKey,
   WhyChooseUsCard,
@@ -108,7 +109,7 @@ export function ContentEditor() {
             <Field label="Subtitle" value={heroForm.subtitle} onChange={(v) => setHeroForm({ ...heroForm, subtitle: v })} textarea />
             <Field label="CTA Button Text" value={heroForm.cta} onChange={(v) => setHeroForm({ ...heroForm, cta: v })} />
             <Field label="Video filename" value={heroForm.video} onChange={(v) => setHeroForm({ ...heroForm, video: v })} />
-            <Field label="Poster filename" value={heroForm.poster} onChange={(v) => setHeroForm({ ...heroForm, poster: v })} />
+            <ImageDropzone label="Poster Image" value={heroForm.poster} onChange={(v) => setHeroForm({ ...heroForm, poster: v })} />
           </div>
         )}
 
@@ -198,24 +199,22 @@ export function ContentEditor() {
               <Plus size={16} /> Add Testimonial
             </button>
             <div className="border-t border-white/10 pt-4 mt-4">
-              <p className="text-white/60 text-xs uppercase tracking-wider font-semibold mb-2">Review Images (filenames)</p>
+              <p className="text-white/60 text-xs uppercase tracking-wider font-semibold mb-2">Review Images</p>
               {reviewsForm.images.map((img, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <input
-                    value={img}
-                    onChange={(e) => {
+                <div key={i} className="flex gap-2 mb-2 items-start">
+                  <div className="flex-1">
+                    <ImageDropzone value={img} onChange={(v) => {
                       const images = [...reviewsForm.images];
-                      images[i] = e.target.value;
+                      images[i] = v;
                       setReviewsForm({ ...reviewsForm, images });
-                    }}
-                    className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50"
-                  />
+                    }} />
+                  </div>
                   <button
                     onClick={() => {
                       const images = reviewsForm.images.filter((_, idx) => idx !== i);
                       setReviewsForm({ ...reviewsForm, images });
                     }}
-                    className="p-2 text-red-300 hover:text-red-200"
+                    className="p-2 mt-1 text-red-300 hover:text-red-200 shrink-0"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -267,9 +266,9 @@ export function ContentEditor() {
 
         {tab === "page_backgrounds" && (
           <div className="space-y-4">
-            <Field label="Why Choose Us (image URL)" value={bgForm.whyChooseUs} onChange={(v) => setBgForm({ ...bgForm, whyChooseUs: v })} />
-            <Field label="Reviews (image URL)" value={bgForm.reviews} onChange={(v) => setBgForm({ ...bgForm, reviews: v })} />
-            <Field label="Booking (image URL)" value={bgForm.booking} onChange={(v) => setBgForm({ ...bgForm, booking: v })} />
+            <ImageDropzone label="Why Choose Us Background" value={bgForm.whyChooseUs} onChange={(v) => setBgForm({ ...bgForm, whyChooseUs: v })} />
+            <ImageDropzone label="Reviews Background" value={bgForm.reviews} onChange={(v) => setBgForm({ ...bgForm, reviews: v })} />
+            <ImageDropzone label="Booking Background" value={bgForm.booking} onChange={(v) => setBgForm({ ...bgForm, booking: v })} />
           </div>
         )}
       </div>
@@ -380,6 +379,7 @@ function ServiceItemEditor({
           <input placeholder="Icon name (Bath/Scissors/Smile/PawPrint)" value={item.icon} onChange={(e) => onChange({ ...item, icon: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
           <input placeholder="Image URL" value={item.image} onChange={(e) => onChange({ ...item, image: e.target.value })} className="flex-[2] px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         </div>
+        <ImageDropzone label="Service Image" value={item.image} onChange={(v) => onChange({ ...item, image: v })} />
         <textarea placeholder="Description" value={item.description} onChange={(e) => onChange({ ...item, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
       </div>
     </div>
@@ -392,9 +392,9 @@ function TestimonialEditor({
   onChange,
   onDelete,
 }: {
-  testimonial: Testimonial;
+  testimonial: Testimonial & { image?: string };
   index: number;
-  onChange: (t: Testimonial) => void;
+  onChange: (t: Testimonial & { image?: string }) => void;
   onDelete: () => void;
 }) {
   return (
@@ -409,6 +409,7 @@ function TestimonialEditor({
           <input placeholder="Author" value={testimonial.author} onChange={(e) => onChange({ ...testimonial, author: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
           <input placeholder="Tag" value={testimonial.tag} onChange={(e) => onChange({ ...testimonial, tag: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         </div>
+        <ImageDropzone label="Avatar Image" value={testimonial.image ?? ""} onChange={(v) => onChange({ ...testimonial, image: v })} />
         <input placeholder="Short text" value={testimonial.text} onChange={(e) => onChange({ ...testimonial, text: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         <textarea placeholder="Long text" value={testimonial.textLong} onChange={(e) => onChange({ ...testimonial, textLong: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
       </div>
