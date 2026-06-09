@@ -17,22 +17,39 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
       if (mode === "signin") {
-        await nhost.auth.signInEmailPassword({ email, password });
+        const res = await nhost.auth.signInEmailPassword({ email, password });
+        if (!res.body.session) {
+          setError("Check your email for the verification link before signing in.");
+          setLoading(false);
+          return;
+        }
       } else {
-        await nhost.auth.signUpEmailPassword({ email, password });
+        const res = await nhost.auth.signUpEmailPassword({ email, password });
+        if (!res.body.session) {
+          setSuccess("Account created! Check your email for the verification link, then sign in.");
+          setMode("signin");
+          setLoading(false);
+          return;
+        }
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      console.error("Auth error:", err);
+      const bodyMsg = err && typeof err === "object" && "body" in err
+        ? (err as { body: { message?: string } }).body?.message
+        : null;
+      setError(bodyMsg || (err instanceof Error ? err.message : "An unexpected error occurred."));
       setLoading(false);
     }
   };
@@ -114,6 +131,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {error && (
                 <p role="alert" className="text-red-200 text-sm text-center bg-red-500/20 rounded-lg p-2">
                   {error}
+                </p>
+              )}
+              {success && (
+                <p className="text-green-200 text-sm text-center bg-green-500/20 rounded-lg p-2">
+                  {success}
                 </p>
               )}
 
