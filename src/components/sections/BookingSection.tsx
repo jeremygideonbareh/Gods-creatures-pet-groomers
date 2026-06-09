@@ -9,15 +9,15 @@ const BRAND_PINK = designTokens.brandPink;
 export function BookingSection({ onBookClick }: BookingSectionProps) {
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
-      <div className="relative w-full md:w-1/2 h-[30%] md:h-full overflow-hidden">
+      <div className="relative w-full md:w-1/2 min-h-[30vh] md:min-h-screen overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${pageBackgrounds.booking})` }}
         />
         <div className="absolute inset-0 bg-black/30" />
       </div>
-      <div className="relative w-full md:w-1/2 h-[70%] md:h-full overflow-hidden">
-        <div className="flex flex-col items-center justify-center h-full text-white px-6 md:px-8 py-6 md:py-8">
+      <div className="relative w-full md:w-1/2 min-h-[70vh] md:min-h-screen overflow-hidden">
+        <div className="flex flex-col items-center justify-center min-h-[70vh] md:min-h-screen text-white px-6 md:px-8 py-6 md:py-8">
           <h2 className="text-xl md:text-3xl uppercase mb-4 md:mb-6 text-center font-bold drop-shadow-lg">
             {bookingSection.heading}
           </h2>

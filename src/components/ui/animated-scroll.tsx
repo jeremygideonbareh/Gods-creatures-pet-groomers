@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { gql } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import BookingModal from "@/components/ui/booking-modal";
 import AuthModal from "@/components/ui/AuthModal";
+import AddPetModal from "@/components/ui/AddPetModal";
 import UserMenu from "@/components/ui/UserMenu";
 import { useAuth } from "@/context/AuthContext";
 import HeroSection from "@/components/sections/HeroSection";
@@ -9,19 +12,44 @@ import ServicesSection from "@/components/sections/ServicesSection";
 import ReviewsSection from "@/components/sections/ReviewsSection";
 import BookingSection from "@/components/sections/BookingSection";
 
+const COUNT_MY_PETS = gql`
+  query CountMyPetsAfterLogin {
+    pets_aggregate {
+      aggregate { count }
+    }
+  }
+`;
+
 export default function ScrollAdventure() {
   const { user } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [showPetForm, setShowPetForm] = useState(false);
   const bookingIntentRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const apolloClient = useApolloClient();
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setAuthOpen(false);
     if (bookingIntentRef.current) {
       bookingIntentRef.current = false;
       setBookingOpen(true);
+      return;
+    }
+    try {
+      const { data } = await apolloClient.query<{
+        pets_aggregate: { aggregate: { count: number } };
+      }>({
+        query: COUNT_MY_PETS,
+        fetchPolicy: "network-only",
+      });
+      const count = data?.pets_aggregate?.aggregate?.count ?? 0;
+      if (count === 0) {
+        setShowPetForm(true);
+      }
+    } catch {
+      // silently ignore
     }
   };
 
@@ -109,6 +137,11 @@ export default function ScrollAdventure() {
       <BookingModal
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
+      />
+
+      <AddPetModal
+        isOpen={showPetForm}
+        onClose={() => setShowPetForm(false)}
       />
     </div>
   );
