@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BookingModal from "@/components/ui/booking-modal";
 import UserMenu from "@/components/ui/UserMenu";
 import HeroSection from "@/components/sections/HeroSection";
@@ -10,9 +10,27 @@ import BookingSection from "@/components/sections/BookingSection";
 export default function ScrollAdventure() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    const sections = rootRef.current?.querySelectorAll(".fade-section");
+    sections?.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="bg-black select-none">
+    <div ref={rootRef} className="bg-black select-none">
       <style>{`
         @keyframes liquidFlow {
           0% { background-position: 0% 50%; }
@@ -44,19 +62,19 @@ export default function ScrollAdventure() {
         <HeroSection setBookingOpen={setBookingOpen} heroVideoRef={heroVideoRef} />
       </section>
 
-      <section id="why-choose-us">
+      <section id="why-choose-us" className="fade-section">
         <WhyChooseUsSection />
       </section>
 
-      <section id="services">
+      <section id="services" className="fade-section">
         <ServicesSection />
       </section>
 
-      <section id="reviews">
+      <section id="reviews" className="fade-section">
         <ReviewsSection />
       </section>
 
-      <section id="booking">
+      <section id="booking" className="fade-section">
         <BookingSection setBookingOpen={setBookingOpen} />
       </section>
 
