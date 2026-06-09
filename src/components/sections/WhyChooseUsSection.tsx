@@ -5,7 +5,7 @@ const BRAND_PINK = designTokens.brandPink;
 export function WhyChooseUsSection() {
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
-      <div className="relative w-full md:w-1/2 h-full overflow-hidden">
+      <div className="relative w-full md:w-1/2 min-h-screen overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -13,7 +13,7 @@ export function WhyChooseUsSection() {
           }}
         />
         <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 flex flex-col items-center justify-center h-full text-white p-6 md:p-8">
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-white p-6 md:p-8">
           <h2 className="text-xl md:text-3xl uppercase mb-3 md:mb-4 text-center font-bold drop-shadow-lg">
             {whyChooseUs.heading}
           </h2>

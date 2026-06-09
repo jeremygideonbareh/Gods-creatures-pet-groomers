@@ -4,16 +4,16 @@ import { reviews, pageBackgrounds } from "@/config/site-content";
 export function ReviewsSection() {
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
-      <div className="relative w-full md:w-1/2 h-[30%] md:h-full overflow-hidden">
+      <div className="relative w-full md:w-1/2 min-h-[30vh] md:min-h-screen overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${pageBackgrounds.reviews})` }}
         />
         <div className="absolute inset-0 bg-black/30" />
       </div>
-      <div className="relative w-full md:w-1/2 h-[70%] md:h-full overflow-hidden">
-        <div className="flex flex-col w-full h-full">
-          <div className="flex-[35%] flex flex-col items-center justify-center px-4 md:px-8 pt-4 md:pt-6 pb-2">
+      <div className="relative w-full md:w-1/2 min-h-[70vh] md:min-h-screen overflow-hidden">
+        <div className="flex flex-col w-full min-h-screen">
+          <div className="flex flex-col items-center justify-center px-4 md:px-8 pt-4 md:pt-6 pb-2">
             <h2 className="text-lg md:text-2xl uppercase mb-2 text-center font-bold drop-shadow-lg">
               {reviews.heading}
             </h2>
@@ -41,7 +41,7 @@ export function ReviewsSection() {
               ))}
             </div>
           </div>
-          <div className="flex-[65%] overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-[200px]">
             <ImageAutoSlider />
           </div>
         </div>
