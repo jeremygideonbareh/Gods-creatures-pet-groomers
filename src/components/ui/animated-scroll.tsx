@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useApolloClient } from "@apollo/client/react";
+import { Shield } from "lucide-react";
 import BookingModal from "@/components/ui/booking-modal";
 import AuthModal from "@/components/ui/AuthModal";
 import AddPetModal from "@/components/ui/AddPetModal";
 import UserMenu from "@/components/ui/UserMenu";
 import { useAuth } from "@/context/AuthContext";
+import { adminEmail } from "@/config/site-content";
 import HeroSection from "@/components/sections/HeroSection";
 import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
 import ServicesSection from "@/components/sections/ServicesSection";
@@ -22,6 +25,7 @@ const COUNT_MY_PETS = gql`
 
 export default function ScrollAdventure() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [showPetForm, setShowPetForm] = useState(false);
@@ -107,6 +111,18 @@ export default function ScrollAdventure() {
       <div className="fixed top-4 right-4 z-50">
         <UserMenu />
       </div>
+
+      {user?.email === adminEmail && (
+        <div className="fixed top-4 left-4 z-50">
+          <button
+            onClick={() => navigate("/admin")}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 hover:border-white/50 transition-all"
+          >
+            <Shield size={16} />
+            Admin Panel
+          </button>
+        </div>
+      )}
 
       <section id="hero">
         <HeroSection onBookClick={handleBookClick} heroVideoRef={heroVideoRef} />

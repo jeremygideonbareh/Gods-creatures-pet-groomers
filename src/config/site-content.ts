@@ -1,3 +1,5 @@
+export const adminEmail = "cloudlyconfusing@gmail.com";
+
 export const designTokens = {
   brandPink: "#d0999a",
   darkPink: "#c48a8b",
