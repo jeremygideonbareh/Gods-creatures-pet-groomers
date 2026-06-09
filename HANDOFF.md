@@ -94,6 +94,7 @@ repo root/
 │   ├── components/
 │   │   ├── ui/
 │   │   │   ├── animated-scroll.tsx   # MAIN: full-page scrollable layout, all 5 sections, fade-in transitions
+│   │   │   ├── ImageDropzone.tsx     # Drag & drop image uploader with Nhost storage integration
 │   │   │   ├── feature-carousel.tsx  # Services carousel (4 services, auto-play, spring animations)
 │   │   │   ├── image-auto-slider.tsx # Infinite auto-scroll review image slider
 │   │   │   ├── booking-modal.tsx     # 2-step booking modal (info -> form -> Nhost GraphQL mutation)
@@ -385,6 +386,34 @@ mutation CreateBooking($customer_name: String!, $email: String!, $phone: String!
   - "Sign Out" -> calls `nhost.auth.signOut({})`, navigates to `/`
 - Dropdown closes on click outside (overlay div)
 
+### `ImageDropzone.tsx` — Nhost Storage Uploader
+
+**Purpose:** Reusable drag-and-drop image upload component integrated with Nhost v4 storage.
+
+**Features:**
+- Drag & drop zone with glassmorphism dashed-border styling
+- Click to browse for files (accepts `image/*`)
+- Validates file is an image before uploading
+- Uploads to `cms-images` bucket via `nhost.storage.uploadFiles()`
+- Constructs the public URL: `https://{subdomain}.storage.{region}.nhost.run/v1/files/{fileId}`
+- Shows preview thumbnail with "Replace" and "Delete" overlay on hover
+- Loading spinner during upload
+- Returns the public URL string via `onChange` callback
+
+**Props:**
+| Prop | Type | Description |
+|------|------|-------------|
+| `value` | `string` | Current image URL (empty string if none) |
+| `onChange` | `(url: string) => void` | Called with the public URL after upload |
+| `label?` | `string` | Optional label shown above the dropzone |
+
+**Integrated in ContentEditor:**
+- Hero section (poster image)
+- Service items (service image)
+- Testimonials (avatar image)
+- Review gallery images
+- Page backgrounds (3 background image URLs)
+
 ### `ErrorBoundary.tsx` — Error Boundary
 
 **Purpose:** Catches React rendering errors and displays a fallback UI with the error message and a "Try Again" button. Wraps `ApolloProvider` in `main.tsx`.
@@ -574,7 +603,24 @@ mutation UpdateBookingStatus($id: uuid!, $status: String!) {
 
 **Save flow:** Clicking "Save Changes" calls `updateSection()` on the context, which triggers `UPSERT_SITE_CONTENT` mutation. Green "Saved!" indicator appears for 2s.
 
+**ImageDropzone integration:** Each section that uses images now has drag-and-drop upload capability:
+- **Hero tab** — poster image uses ImageDropzone
+- **Services tab** — each service item has an ImageDropzone for its image URL
+- **Reviews tab** — each testimonial has an ImageDropzone for avatar; review gallery uses ImageDropzone for each image
+- **Backgrounds tab** — all 3 background URLs use ImageDropzone
+- ImageDropzone uploads to Nhost storage via `nhost.storage.uploadFiles()` and constructs the public URL
+
 **States:** Loading spinner (while context is fetching), saving spinner, saved confirmation.
+
+### Array Management (Add/Remove)
+
+All array-based sections support dynamic mutation:
+- **Cards** (Why Choose Us) — add new empty card, delete any card
+- **Service Items** — add new service template, delete any service
+- **Testimonials** — add new testimonial template, delete any testimonial
+- **Review Images** — add new empty image slot, delete any image
+
+Array operations use immutable patterns (`[...spread]`, `.filter()`) on local state. The full data (including added/removed items) is saved atomically via `UPSERT_SITE_CONTENT` when "Save Changes" is clicked.
 
 ### Database Table
 
@@ -1031,6 +1077,23 @@ These are needed because `.env` is not deployed to Cloudflare.
 19. **Added conditional Admin Panel button** — fixed top-left in animated-scroll.tsx, glassmorphism styling, Shield icon, only visible when `user?.email === adminEmail`
 20. **Build verification** — `tsc -b && vite build` passes with zero errors
 
+### Session Summary (June 10, 2026)
+
+**Phase 13: CMS Upgrade — ImageDropzone + Array Management**
+1. **Created `src/components/ui/ImageDropzone.tsx`** — reusable drag-and-drop image upload component with Nhost v4 storage integration:
+   - Uploads to `cms-images` bucket via `nhost.storage.uploadFiles()`
+   - Constructs public URL pattern `https://{subdomain}.storage.{region}.nhost.run/v1/files/{fileId}`
+   - Glassmorphism dashed-border dropzone with hover states
+   - Thumbnail preview with Replace/Delete overlay
+   - Loading spinner during upload, image type validation
+2. **Integrated ImageDropzone into ContentEditor.tsx:**
+   - **Hero tab** — poster image field replaced with ImageDropzone
+   - **Services tab** — each ServiceItemEditor has an ImageDropzone for the image URL
+   - **Reviews tab** — TestimonialEditor has an ImageDropzone for avatar; review gallery uses ImageDropzone per image
+   - **Backgrounds tab** — all 3 background URL fields replaced with ImageDropzone
+3. **Array management improvements** — Cards, Services, Testimonials, and Review Images sections all support add new items (with empty template) and delete any item. Mutations use immutable patterns and save atomically via UPSERT_SITE_CONTENT.
+4. **Build verification** — `tsc -b && vite build` passes with zero errors
+
 ---
 
 ## Known Issues & Roadmap
@@ -1087,4 +1150,4 @@ These are needed because `.env` is not deployed to Cloudflare.
 
 ---
 
-*Last updated: June 10, 2026 (session 8)*
+*Last updated: June 10, 2026 (session 9)*
