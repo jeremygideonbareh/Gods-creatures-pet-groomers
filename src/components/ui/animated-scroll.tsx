@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useApolloClient } from "@apollo/client/react";
-import { Shield } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
+import { nhost } from "@/lib/nhost";
 import BookingModal from "@/components/ui/booking-modal";
 import AuthModal from "@/components/ui/AuthModal";
 import AddPetModal from "@/components/ui/AddPetModal";
@@ -57,6 +58,11 @@ export default function ScrollAdventure() {
     }
   };
 
+  const handleLogout = async () => {
+    await nhost.auth.signOut({});
+    navigate("/");
+  };
+
   const handleBookClick = () => {
     if (user) {
       setBookingOpen(true);
@@ -108,8 +114,18 @@ export default function ScrollAdventure() {
         }
       `}</style>
 
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <UserMenu />
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 hover:border-red-300/50 transition-all"
+            aria-label="Sign Out"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Log Out</span>
+          </button>
+        )}
       </div>
 
       {user?.email === adminEmail && (

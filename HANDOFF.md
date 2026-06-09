@@ -11,21 +11,24 @@
 8. [Auth System](#auth-system)
 9. [Pet Profiles (ProfilePage)](#pet-profiles-profilepage)
 10. [Admin Dashboard](#admin-dashboard)
-11. [Data Layer (nhost.ts)](#data-layer-nhostts)
-12. [Apollo Client Setup](#apollo-client-setup)
-13. [Scroll System](#scroll-system)
-14. [ErrorBoundary](#errorboundary)
-15. [Configuration (site-content.ts)](#configuration-site-contentts)
-16. [Deployment](#deployment)
-17. [Environment Variables & Secrets](#environment-variables--secrets)
-18. [Migration Log](#migration-log)
-19. [Known Issues & Roadmap](#known-issues--roadmap)
+11. [Content Editor (CMS)](#content-editor-cms)
+12. [Centralized GraphQL (graphql.ts)](#centralized-graphql-graphqlts)
+13. [Data Layer (nhost.ts)](#data-layer-nhostts)
+14. [Apollo Client Setup](#apollo-client-setup)
+15. [Scroll System](#scroll-system)
+16. [ErrorBoundary](#errorboundary)
+17. [Configuration (site-content.ts)](#configuration-site-contentts)
+18. [Database Schema & RLS (nhost-setup.sql)](#database-schema--rls-nhost-setupsql)
+19. [Deployment](#deployment)
+20. [Environment Variables & Secrets](#environment-variables--secrets)
+21. [Migration Log](#migration-log)
+22. [Known Issues & Roadmap](#known-issues--roadmap)
 
 ---
 
 ## Project Overview
 
-A modern single-page React app for **Gods Creatures Pet Groomers**, a luxury pet grooming salon based in **Malki, Shillong**. Built as a full-viewport snap-scroll experience with video hero, animated service carousel, review slider, user authentication (Nhost), pet profile management, admin dashboard, and a 2-step booking modal wired to Nhost/Hasura GraphQL via Apollo Client.
+A modern single-page React app for **Gods Creatures Pet Groomers**, a luxury pet grooming salon based in **Malki, Shillong**. Built as a normal scrolling page with IntersectionObserver fade-in transitions, video hero, animated service carousel, review slider, user authentication (Nhost), pet profile management, admin dashboard with DB-backed content editor, and a 2-step booking modal wired to Nhost/Hasura GraphQL via Apollo Client.
 
 | Field | Value |
 |---|---|
@@ -43,7 +46,8 @@ The GitHub repo at `jeremygideonbareh/Gods-creatures-pet-groomers` **is the Reac
 
 ```
 repo root (GitHub) =
-  ├── .env                     # Nhost credentials + admin email (VITE_NHOST_SUBDOMAIN, VITE_NHOST_REGION, VITE_ADMIN_EMAIL)
+  ├── .env                     # Nhost credentials + admin email
+  ├── nhost-setup.sql          # SQL for site_content table, helpers & RLS policies
   ├── wrangler.toml            # Cloudflare Pages config
   ├── index.html               # Vite entry HTML (CSP meta tag added)
   ├── package.json             # Dependencies + scripts
@@ -53,9 +57,9 @@ repo root (GitHub) =
   ├── src/                     # Application source
   │   ├── components/          # React components
   │   ├── config/              # Site content & design tokens
-  │   ├── context/             # React contexts (AuthContext)
-  │   ├── hooks/               # Custom hooks (useSnapScroll)
-  │   ├── lib/                 # Utilities (nhost, utils)
+  │   ├── context/             # React contexts (AuthContext, SiteContentContext)
+  │   ├── hooks/               # Custom hooks
+  │   ├── lib/                 # Utilities (nhost, utils, graphql, content-service)
   │   └── ...                  # App.tsx, main.tsx, index.css
   └── public/                  # Static assets (video, images)
 ```
@@ -76,8 +80,9 @@ This local folder contains extra files NOT in the repo:
 
 ```
 repo root/
-├── .env                          # Nhost credentials + admin email (VITE_NHOST_SUBDOMAIN, VITE_NHOST_REGION, VITE_ADMIN_EMAIL)
-├── wrangler.toml                 # Cloudflare Pages config (name, pages_build_output_dir)
+├── .env                          # Nhost credentials + admin email
+├── nhost-setup.sql               # SQL setup (site_content table, RLS, current_user_id helper)
+├── wrangler.toml                 # Cloudflare Pages config
 ├── public/
 │   ├── herosectionvideo.mp4      # Hero background video (looping, muted)
 │   ├── hero-poster.jpg           # Poster shown while video loads
@@ -88,11 +93,12 @@ repo root/
 ├── src/
 │   ├── components/
 │   │   ├── ui/
-│   │   │   ├── animated-scroll.tsx   # MAIN: full-page snap scroll, all 5 pages, video, overlays
+│   │   │   ├── animated-scroll.tsx   # MAIN: full-page scrollable layout, all 5 sections, fade-in transitions
 │   │   │   ├── feature-carousel.tsx  # Services carousel (4 services, auto-play, spring animations)
 │   │   │   ├── image-auto-slider.tsx # Infinite auto-scroll review image slider
 │   │   │   ├── booking-modal.tsx     # 2-step booking modal (info -> form -> Nhost GraphQL mutation)
-│   │   │   ├── AuthModal.tsx         # Sign In / Sign Up modal (Nhost email/password auth)
+│   │   │   ├── AuthModal.tsx         # Sign In / Sign Up modal (Nhost email/password auth + pet fields on signup)
+│   │   │   ├── AddPetModal.tsx       # Post-login pet creation prompt when user has no pets
 │   │   │   └── UserMenu.tsx          # Top-right nav dropdown (Sign In button / user menu)
 │   │   ├── sections/
 │   │   │   ├── HeroSection.tsx       # Page 1: hero video + overlay + CTA
@@ -101,18 +107,22 @@ repo root/
 │   │   │   ├── ReviewsSection.tsx    # Page 4: testimonials + image slider
 │   │   │   ├── BookingSection.tsx    # Page 5: location info + booking CTA
 │   │   │   ├── ProfilePage.tsx       # /profile: customer pet management dashboard
-│   │   │   └── AdminDashboard.tsx    # /admin: protected booking management dashboard
+│   │   │   ├── AdminDashboard.tsx    # /admin: protected booking mgmt dashboard + ContentEditor tab
+│   │   │   └── ContentEditor.tsx     # Tabbed CMS editor for site content (6 tabs)
 │   │   └── ErrorBoundary.tsx         # React error boundary with retry button
 │   ├── config/
-│   │   └── site-content.ts          # ALL hardcoded content + design tokens
+│   │   └── site-content.ts          # ALL hardcoded content + design tokens + adminEmail
 │   ├── context/
-│   │   └── AuthContext.tsx           # Auth state provider (Nhost v4 session listener)
+│   │   ├── AuthContext.tsx           # Auth state provider (Nhost v4 session listener)
+│   │   └── SiteContentContext.tsx    # Site content provider (fetches from Hasura, exposes updateSection)
 │   ├── hooks/
-│   │   └── use-snap-scroll.ts       # Extracted snap-scroll logic (wheel, touch, keyboard)
+│   │   └── use-snap-scroll.ts       # Deprecated — kept for reference, no longer used
 │   ├── lib/
-│   │   ├── nhost.ts                 # Data layer — Nhost client + GraphQL URL export
+│   │   ├── nhost.ts                 # Nhost client + GraphQL URL export
+│   │   ├── graphql.ts               # Centralized gql definitions (pets, bookings, site_content)
+│   │   ├── content-service.ts       # Site content types, DB-to-UI mapper, re-exports from graphql.ts
 │   │   └── utils.ts                 # cn() helper (clsx + tailwind-merge)
-│   ├── App.tsx                      # Root: BrowserRouter + Routes + AuthProvider
+│   ├── App.tsx                      # Root: BrowserRouter + Routes + AuthProvider + SiteContentProvider
 │   ├── main.tsx                     # Entry point: ApolloProvider + ErrorBoundary + auth link
 │   └── index.css                    # Tailwind CSS 4 + theme tokens (pink palette)
 ├── index.html                       # Vite entry with CSP meta tag
@@ -140,20 +150,36 @@ repo root/
 │     ├── Route "/admin"    -> AdminDashboard                   │
 │     └── Route "*"         -> Navigate to "/"                  │
 │                                                               │
+│   SiteContentProvider (SiteContentContext.tsx)                 │
+│     └── Fetches site_content on mount via apolloClient.query() │
+│         -> exposes { content, loading, updateSection }        │
+│                                                               │
 │   AuthProvider (AuthContext.tsx)                               │
 │     └── Listens to nhost.sessionStorage.onChange()             │
 │         -> exposes { user, loading }                          │
 │                                                               │
 │   ScrollAdventure (animated-scroll.tsx)                       │
 │     ├── <UserMenu />                    (top-right corner)    │
-│     ├── Page 1: HeroSection             (video background)    │
-│     ├── Page 2: WhyChooseUsSection      (4 glass cards)       │
-│     ├── Page 3: ServicesSection         (FeatureCarousel)     │
-│     ├── Page 4: ReviewsSection          (testimonials + imgs) │
-│     ├── Page 5: BookingSection          (location + CTA)      │
-│     └── BookingModal                                       │
-│           └── useMutation(CREATE_BOOKING)                  │
-│               -> insert_bookings_one                       │
+│     ├── <AdminPanelButton />            (top-left, conditional)│
+│     ├── Section 1: HeroSection          (video background)    │
+│     ├── Section 2: WhyChooseUsSection   (4 glass cards)       │
+│     ├── Section 3: ServicesSection      (FeatureCarousel)     │
+│     ├── Section 4: ReviewsSection       (testimonials + imgs) │
+│     ├── Section 5: BookingSection       (location + CTA)      │
+│     ├── AuthModal                    (signin/signup/reset)    │
+│     ├── BookingModal                 (2-step booking flow)    │
+│     └── AddPetModal                  (after login if 0 pets)  │
+│                                                               │
+│   ProfilePage (/profile)                                     │
+│     └── useQuery(GET_USER_PETS) + useMutation(INSERT_PET)    │
+│                                                               │
+│   AdminDashboard (/admin)                                     │
+│     ├── Tab: Bookings                                         │
+│     │   └── useQuery(GET_ADMIN_BOOKINGS)                      │
+│     │       useMutation(UPDATE_BOOKING_STATUS)                │
+│     └── Tab: Content                                          │
+│         └── <ContentEditor />                                 │
+│             └── useSiteContent().updateSection()              │
 │                                                               │
 │   main.tsx (ApolloProvider + ErrorBoundary)                   │
 │     └── ApolloClient                                          │
@@ -169,22 +195,25 @@ repo root/
 │                     Nhost (Hasura GraphQL)                    │
 │                                                               │
 │  Auth: email/password sign-in, sign-up, session management    │
-│  GraphQL: bookings + pets tables via Apollo Client            │
+│  GraphQL: bookings + pets + site_content tables               │
 │                                                               │
 │  Tables:                                                      │
 │    bookings: id, customer_name, email, phone, service,        │
 │              preferred_date, notes, advance_paid,              │
 │              transaction_id (UNIQUE), status, created_at,      │
-│              user_id (FK), pet_id (FK)                        │
+│              user_id (FK -> users), pet_id (FK -> pets)       │
 │                                                               │
-│    pets: id, pet_name, species, breed, age, weight,           │
+│    pets: id, name, species, breed, age_years, weight_kg,      │
 │          coat_condition, medical_history, behavioral_notes,    │
-│          vet_contact, user_id (FK), created_at                 │
+│          vet_contact, user_id (FK -> users), created_at       │
+│                                                               │
+│    site_content: id (UUID), section (UNIQUE), content (JSONB),│
+│                  updated_at                                   │
 │                                                               │
 │    users: managed by Nhost Auth (id, email, displayName, etc) │
 │                                                               │
-│  RLS: user_id auto-injected from JWT claims                   │
-│  Admin: VITE_ADMIN_EMAIL env var (default admin@godscreatures.com)│
+│  RLS: user_id auto-injected from JWT claims via current_user_id()  │
+│  Admin: user.email === adminEmail ("cloudlyconfusing@gmail.com")  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -239,15 +268,26 @@ repo root/
 | `md:` (768px) | Side-by-side 50/50 layout, larger text |
 | `lg:` (1024px) | Larger cards, full feature carousel |
 
+### Glassmorphism Pattern
+```
+.bg-white/15-20 backdrop-blur-xl rounded-3xl border border-white/20-30
+```
+Used across modals, cards, nav, and admin panels.
+
 ---
 
 ## Component Breakdown
 
 ### `animated-scroll.tsx` — Main Container
 
-**Purpose:** Full-viewport snap-scroll interface with 5 pages. Renders UserMenu in top-right corner.
+**Purpose:** Normal-scroll landing page with IntersectionObserver fade-in transitions for 5 sections. Renders UserMenu (top-right), Admin Panel button (top-left, conditional on admin email), AuthModal, BookingModal, and AddPetModal.
 
-**Pages (now extracted into section components in `src/components/sections/`):**
+**Key differences from earlier snap-scroll version:**
+- No snap-scroll behavior — replaced with normal vertical scrolling
+- `.fade-section` elements start invisible (`opacity-0 translate-y-8`) and fade in via IntersectionObserver when they enter the viewport
+- `visible` class triggers `opacity-100 translate-y-0` + smooth CSS transition
+
+**Pages (section components in `src/components/sections/`):**
 | # | Section | Component | Content |
 |---|---------|-----------|---------|
 | 1 | Hero | HeroSection | Video + overlay + heading + "Book Appointment" CTA |
@@ -256,11 +296,16 @@ repo root/
 | 4 | Reviews | ReviewsSection | 2 review cards + ImageAutoSlider |
 | 5 | Book Now | BookingSection | Location card + "Book a Session" CTA |
 
-**UserMenu:** Absolute positioned at `top-4 right-4 z-50`, renders Sign In button or user dropdown.
+**UserMenu:** Fixed at `top-4 right-4 z-50`, renders Sign In button or user dropdown.
 
-**Navigation methods:** Wheel (50px delta), touch swipe (50px delta), arrow keys, dot nav, chevron buttons. 1s lockout via `scrolling.current` ref.
+**Admin Panel button:** Fixed at `top-4 left-4 z-50`, only visible when `user?.email === adminEmail`. Uses glassmorphism styling matching UserMenu. Navigates to `/admin`.
 
-**Scroll logic** extracted into `src/hooks/use-snap-scroll.ts` — handles wheel events, touch events, keyboard events, inner scrollable element detection.
+**Modals hosted here:**
+- `AuthModal` — sign in / sign up / password reset
+- `BookingModal` — 2-step booking flow
+- `AddPetModal` — shown after login if user has 0 pets
+
+**Pet prompt after sign-in:** On auth success, queries `pets_aggregate` count. If count is 0, opens AddPetModal.
 
 ### `feature-carousel.tsx` — Services Carousel (287 lines)
 
@@ -280,7 +325,7 @@ repo root/
 1. Info step — ₹500 booking fee disclaimer
 2. Form step — name, email, phone, service select, preferred date, notes, advance payment section (UPI Reference Number)
 
-**Pet Selector (auth-aware):** When user is logged in, a pet dropdown appears after the service selector. Fetches pets via `GetMyPetsForBooking` query. Selected `pet_id` is passed in the mutation.
+**Pet Selector (auth-aware):** When user is logged in, a pet dropdown appears after the service selector. Fetches pets via `GET_USER_PETS` from `src/lib/graphql.ts`. Selected `pet_id` is passed in the mutation.
 
 **Form Fields:** All use `useRef` (not state) for performance — no re-renders on keystroke.
 
@@ -294,20 +339,51 @@ repo root/
 - Generic: fallback message
 - Loading guard: Escape key and overlay click blocked during submission
 
-**GraphQL Mutation:**
+**GraphQL Mutation (inline — not centralized):**
 ```graphql
 mutation CreateBooking($customer_name: String!, $email: String!, $phone: String!,
   $service: String!, $preferred_date: String!, $notes: String!,
   $advance_paid: numeric!, $transaction_id: String!, $pet_id: Int) {
-  insert_bookings_one(object: {
-    customer_name: $customer_name, email: $email, phone: $phone,
-    service: $service, preferred_date: $preferred_date, notes: $notes,
-    advance_paid: $advance_paid, transaction_id: $transaction_id, pet_id: $pet_id
-  }) { id, customer_name }
+  insert_bookings_one(object: { ... }) { id, customer_name }
 }
 ```
 
 **States:** Closed, Open (info), Open (form), Submitting (spinner + disabled), Success (auto-close 1.5s), Error (form stays visible).
+
+### `AuthModal.tsx` — Authentication Modal
+
+**Purpose:** Glassmorphism modal with three modes:
+- **Sign In** — email + password, show/hide toggle, "Forgot password?" link
+- **Sign Up** — email + password + **pet details section** (name, species, breed, age, weight, coat, medical, behavioral, vet)
+- **Password Reset** — email-only form with "Send Reset Link"
+
+**Nhost v4 API calls:**
+- Sign in: `nhost.auth.signInEmailPassword({ email, password })`
+- Sign up: `nhost.auth.signUpEmailPassword({ email, password })` — if pet name provided, also calls `CREATE_PET` mutation via `apolloClient.mutate()`
+- Reset: `nhost.auth.sendPasswordResetEmail({ email })`
+
+**Error handling:** Maps Nhost error codes to user-friendly messages (unverified-user, invalid-email-password, signup-disabled, user-already-exists).
+
+**Signup without session (email verification):** Shows green success banner, switches to sign-in mode.
+
+**Modal resets all pet fields on close** via `useEffect` cleanup.
+
+### `AddPetModal.tsx` — Post-Login Pet Form
+
+**Purpose:** Triggered after sign-in when user has zero pets. Full pet creation form with all fields. Has "Skip" button to dismiss.
+
+**Uses `apolloClient.mutate()` directly (no useMutation hook)** since it's outside the standard query lifecycle.
+
+**Fields:** Pet name (required), species, breed, age, weight, coat condition, medical history, behavioral notes, vet contact.
+
+### `UserMenu.tsx` — Auth-Aware User Menu
+
+**Purpose:** Top-right corner navigation.
+- **Not logged in:** Shows "Sign In" button -> opens AuthModal
+- **Logged in:** Shows user email (truncated) + dropdown with:
+  - "My Profile" -> navigates to `/profile`
+  - "Sign Out" -> calls `nhost.auth.signOut({})`, navigates to `/`
+- Dropdown closes on click outside (overlay div)
 
 ### `ErrorBoundary.tsx` — Error Boundary
 
@@ -319,12 +395,12 @@ mutation CreateBooking($customer_name: String!, $email: String!, $phone: String!
 
 | Path | Component | Auth Required | Behavior |
 |------|-----------|---------------|----------|
-| `/` | ScrollAdventure (animated-scroll) | No | Main landing page with 5 snap-scroll sections |
+| `/` | ScrollAdventure (animated-scroll) | No | Main landing page with 5 scrollable sections |
 | `/profile` | ProfilePage | Yes | Redirects to `/` if `!user` after auth loads |
 | `/admin` | AdminDashboard | Admin email only | Redirects to `/` if `!user`; access denied if not admin |
 | `*` | — | No | Catch-all redirects to `/` via `<Navigate>` |
 
-Implemented via `react-router-dom` v7 `BrowserRouter` in `App.tsx`. AuthProvider wraps all routes.
+Implemented via `react-router-dom` v7 `BrowserRouter` in `App.tsx`. AuthProvider and SiteContentProvider wrap all routes.
 
 ---
 
@@ -343,36 +419,17 @@ Uses **Nhost v4** (`@nhost/nhost-js`) for email/password authentication. No depr
   2. Subscribes to session changes via `nhost.sessionStorage.onChange(callback)`
 - Exposes `{ user: { id, email, displayName } | null, loading: boolean }`
 
-### AuthModal (`src/components/ui/AuthModal.tsx`)
+### Auth Flow
 
-- Glassmorphism modal matching the pink design system
-- Two modes: **Sign In** / **Sign Up** (toggle link at bottom)
-- Fields: email, password (show/hide toggle)
-- Nhost v4 API calls:
-  - Sign in: `nhost.auth.signInEmailPassword({ email, password })`
-  - Sign up: `nhost.auth.signUpEmailPassword({ email, password })`
-- Error handling with specific messages:
-  - `unverified-user`: "Email not verified yet. Check your inbox..."
-  - `invalid-email-password`: "Invalid email or password."
-  - `signup-disabled`: "New account registration is currently disabled."
-  - `user-already-exists`: "An account with this email already exists."
-- Signup with no session (email verification required): shows green success banner, switches to sign-in mode
-- Scroll lock on open
-- Loading state during API calls
-- **Password reset flow:** "Forgot password?" link below password field in sign-in mode. Switches to reset mode with email-only form and "Send Reset Link" button. Uses `nhost.auth.sendPasswordResetEmail({ email })`. "Back to sign in" link to return.
-
-### UserMenu (`src/components/ui/UserMenu.tsx`)
-
-- Rendered in `animated-scroll.tsx` top-right corner
-- **Not logged in:** Shows "Sign In" button -> opens AuthModal
-- **Logged in:** Shows user email (truncated) + dropdown with:
-  - "My Profile" -> navigates to `/profile`
-  - "Sign Out" -> calls `nhost.auth.signOut({})`, navigates to `/`
-- Dropdown closes on click outside (overlay div)
+1. **Guest clicks "Sign In"** (UserMenu) or "Book Appointment" (triggers auth check)
+2. **If not logged in + booking intent:** AuthModal opens; on success, booking modal opens
+3. **If not logged in + no booking intent:** AuthModal opens; on success, checks pet count; if 0 pets, AddPetModal opens
+4. **Sign up flow:** User fills email + password + optional pet details. If pet name provided, `CREATE_PET` mutation runs after signup succeeds.
+5. **Password reset:** "Forgot password?" link in sign-in mode -> email-only form -> `sendPasswordResetEmail`
 
 ### Auth Link (Apollo)
 
-In `main.tsx`, the `setContext` link reads `nhost.getUserSession()` before every GraphQL request and attaches `Authorization: Bearer <token>`. This ensures authenticated requests carry the user's JWT.
+In `main.tsx`, the `setContext` link reads `nhost.getUserSession()` before every GraphQL request and attaches `Authorization: Bearer <token>`.
 
 ---
 
@@ -385,37 +442,39 @@ In `main.tsx`, the `setContext` link reads `nhost.getUserSession()` before every
 ### Components
 
 #### `ProfilePage.tsx`
-- Fetches user's pets via `GET_MY_PETS` query (implicitly filtered by `user_id` via Hasura RLS)
+- Fetches user's pets via `GET_USER_PETS` from `src/lib/graphql.ts` (implicitly filtered by `user_id` via Hasura RLS)
 - Displays pets in a 2-column grid of glassmorphism cards
-- Each card shows: name, species, breed, age, weight, coat condition, medical history, behavioral notes, vet contact
+- Each card shows: name, species, breed, age_years, weight_kg, coat condition, medical history, behavioral notes, vet contact
 - "Add Pet" button toggles the `AddPetForm`
-- Loading spinner, error state, empty state with icon
+- Loading spinner, error state, empty state with PawPrint icon
 
 #### `AddPetForm.tsx` (inline in ProfilePage)
-- Fields: pet name, species (Dog/Cat select), breed, age, weight, coat condition, medical history, behavioral notes, vet contact
+- Fields: pet name, species (Dog/Cat select), breed, age_years, weight_kg, coat condition, medical history, behavioral notes, vet contact
 - All fields use `useRef` (except species which is a controlled select)
-- Creates pet via `CREATE_PET` mutation
-- Refetches `GET_MY_PETS` on success
+- Creates pet via `INSERT_PET` mutation from `src/lib/graphql.ts`
+- Refetches `GET_USER_PETS` on success
 - Inline error display
 
-### GraphQL Queries
+### GraphQL Queries (from src/lib/graphql.ts)
 
-**GetMyPets:**
+**GET_USER_PETS:**
 ```graphql
-query GetMyPets {
+query GetUserPets {
   pets(order_by: { created_at: desc }) {
-    id pet_name species breed age weight
+    id name species breed age_years weight_kg
     coat_condition medical_history behavioral_notes vet_contact created_at
   }
 }
 ```
 
-**CreatePet:**
+**INSERT_PET:**
 ```graphql
-mutation CreatePet($pet_name: String!, $species: String!, ...) {
-  insert_pets_one(object: { pet_name: $pet_name, species: $species, ... }) { id }
+mutation InsertPet($name: String!, $species: String!, ...) {
+  insert_pets_one(object: { name: $name, species: $species, ... }) { id }
 }
 ```
+
+**Note on column names:** The database uses `name` (not `pet_name`), `age_years` (not `age`), `weight_kg` (not `weight`).
 
 ---
 
@@ -423,51 +482,145 @@ mutation CreatePet($pet_name: String!, $species: String!, ...) {
 
 ### Route: `/admin`
 
-**Purpose:** Protected admin page for viewing and confirming bookings. Only accessible to `user.email === adminEmail`.
+**Purpose:** Protected admin page with two tabs: **Bookings** and **Content**. Only accessible when `user?.email === adminEmail`.
 
 ### Admin Email Check
-The admin email is read from the `VITE_ADMIN_EMAIL` environment variable:
 ```typescript
-const adminEmail = import.meta.env.VITE_ADMIN_EMAIL ?? "";
+const adminEmail = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
 ```
-Default value in `.env`: `VITE_ADMIN_EMAIL=admin@godscreatures.com`
-To change the admin, update `.env` locally and set `VITE_ADMIN_EMAIL` in the Cloudflare Pages dashboard.
+Defined as `adminEmail` in `src/config/site-content.ts`:
+```typescript
+export const adminEmail = "cloudlyconfusing@gmail.com";
+```
 
 ### Behavior
 - If user is not logged in: redirects to `/`
 - If user is logged in but email doesn't match adminEmail: shows "Access Denied" page with "Back to Home" button
-- If user is admin: full dashboard with all bookings
+- If user is admin: full dashboard with Bookings tab and Content tab
 
-### Features
-- Fetches all bookings via `GET_ALL_BOOKINGS` (ordered by `created_at` desc)
-- Each booking card shows: customer name, email, phone, service, preferred date, pet details, notes, advance paid, transaction ID
+### Bookings Tab
+- Fetches all bookings via `GET_ADMIN_BOOKINGS` (ordered by `created_at` desc) — includes nested `pet { name breed }` and `user { email }`
+- Each booking card shows: customer name, email (top-level + user.email), phone, service, preferred date, pet name/breed, notes, advance paid, transaction ID
 - Status badges with colors: Pending (yellow), Confirmed (green), Cancelled (red)
 - **Confirm button** for pending bookings:
   - Shows loading spinner while confirming (disabled, prevents double-click)
-  - Calls `UPDATE_STATUS` mutation
-  - Errors logged to console (not silently swallowed)
+  - Calls `UPDATE_BOOKING_STATUS` mutation from graphql.ts
+  - Errors logged to console
 - Booking count badge in header
 - Loading spinner, error state, empty state
 
+### Content Tab
+- Renders the `ContentEditor` component
+- See [Content Editor (CMS)](#content-editor-cms) section below
+
+### Admin Panel Button (front-end)
+- Fixed at `top-4 left-4 z-50` on the main page (`animated-scroll.tsx`)
+- Only visible when `user?.email === adminEmail`
+- Glassmorphism styling matching UserMenu
+- Shield icon from lucide-react
+- Navigates to `/admin`
+
 ### GraphQL Queries
 
-**GetAllBookings:**
+**GET_ADMIN_BOOKINGS:**
 ```graphql
-query GetAllBookings {
+query GetAdminBookings {
   bookings(order_by: { created_at: desc }) {
     id customer_name email phone service preferred_date notes
     advance_paid transaction_id status created_at
-    pet { pet_name species breed }
+    pet { name breed }
+    user { email }
   }
 }
 ```
 
-**UpdateBookingStatus:**
+**UPDATE_BOOKING_STATUS:**
 ```graphql
 mutation UpdateBookingStatus($id: uuid!, $status: String!) {
   update_bookings_by_pk(pk_columns: { id: $id }, _set: { status: $status }) { id status }
 }
 ```
+
+---
+
+## Content Editor (CMS)
+
+### SiteContentContext (`src/context/SiteContentContext.tsx`)
+
+**Purpose:** Provides site content state across the app and exposes `updateSection()` to persist changes to Hasura.
+
+**On mount:** Fetches all `site_content` rows via `GET_ALL_SITE_CONTENT` (imported from `content-service.ts`, which re-exports from `graphql.ts`) using `apolloClient.query()` with `fetchPolicy: "network-only"`.
+
+**Exposes:**
+- `content: SiteContent` — merged object of all sections (hero, whyChooseUs, services, reviews, booking, pageBackgrounds, designTokens)
+- `loading: boolean` — true while initial fetch is in progress
+- `updateSection(section: SectionKey, data: Record<string, unknown>)` — calls `UPSERT_SITE_CONTENT` mutation, then merges data into local state
+
+**Sections merge:** Each section's defaults (from `site-content.ts`) are deep-merged with DB content via `mapDbToSiteContent()`.
+
+### ContentEditor (`src/components/sections/ContentEditor.tsx`)
+
+**Purpose:** Admin-facing tabbed CMS interface for editing all site content.
+
+**Tabs:**
+| Tab | Section Key | Editable Fields |
+|-----|------------|-----------------|
+| Hero | hero | title, subtitle, cta, video, poster |
+| Why Choose Us | why_choose_us | heading, cards (add/delete/edit: icon, title, description) |
+| Services | services | heading, subtitle, items (add/delete/edit: id, label, icon, image, description) |
+| Reviews | reviews | heading, testimonials (add/delete/edit: emoji, author, tag, text, textLong), images (add/delete) |
+| Booking | booking | All 21 booking fields (heading, location, hours, etc.) |
+| Backgrounds | page_backgrounds | whyChooseUs URL, reviews URL, booking URL |
+
+**Save flow:** Clicking "Save Changes" calls `updateSection()` on the context, which triggers `UPSERT_SITE_CONTENT` mutation. Green "Saved!" indicator appears for 2s.
+
+**States:** Loading spinner (while context is fetching), saving spinner, saved confirmation.
+
+### Database Table
+
+```sql
+CREATE TABLE site_content (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  section TEXT NOT NULL UNIQUE,
+  content JSONB NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+Seeded with all default content from `nhost-setup.sql`.
+
+---
+
+## Centralized GraphQL (graphql.ts)
+
+### Location
+`src/lib/graphql.ts`
+
+### Purpose
+Centralizes ALL reused GraphQL document nodes so queries/mutations are defined once and imported across components. This avoids duplication and ensures consistent column names.
+
+### Exports
+
+| Export | Type | Used In |
+|--------|------|---------|
+| `GET_USER_PETS` | Query | ProfilePage, booking-modal |
+| `INSERT_PET` | Mutation | ProfilePage |
+| `GET_ADMIN_BOOKINGS` | Query | AdminDashboard |
+| `UPDATE_BOOKING_STATUS` | Mutation | AdminDashboard |
+| `GET_SITE_CONTENT` | Query | content-service.ts (re-exported as GET_ALL_SITE_CONTENT) |
+
+### Column Naming Convention
+The `pets` table uses these columns (different from what earlier inline queries used):
+- `name` (was `pet_name`)
+- `age_years` (was `age`)
+- `weight_kg` (was `weight`)
+
+The `bookings` query nests `pet { name breed }` (was `pet { pet_name species breed }`) and `user { email }`.
+
+### What is NOT centralized
+- `CREATE_BOOKING` — stays inline in `booking-modal.tsx` (only used there)
+- `GET_ALL_SITE_CONTENT` — re-exported from `content-service.ts` for backward compat with `SiteContentContext`
+- `UPSERT_SITE_CONTENT` — stays in `content-service.ts`
 
 ---
 
@@ -566,17 +719,21 @@ createRoot(rootEl).render(
   <ErrorBoundary>
     <ApolloProvider client={apolloClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route "/" -> ScrollAdventure />
-              <UserMenu />  (top-right)
-              <BookingModal />  (uses useAuth + useMutation)
-            <Route "/profile" -> ProfilePage />
-              (uses useAuth + useQuery + useMutation)
-            <Route "/admin" -> AdminDashboard />
-              (uses useAuth + useQuery + useMutation)
-          </Routes>
-        </AuthProvider>
+        <SiteContentProvider>
+          <AuthProvider>
+            <Routes>
+              <Route "/" -> ScrollAdventure />
+                <UserMenu />  (top-right)
+                <AdminPanelButton />  (top-left, conditional)
+                <AuthModal />
+                <BookingModal />
+                <AddPetModal />
+              <Route "/profile" -> ProfilePage />
+              <Route "/admin" -> AdminDashboard />
+                <ContentEditor />  (Content tab)
+            </Routes>
+          </AuthProvider>
+        </SiteContentProvider>
       </BrowserRouter>
     </ApolloProvider>
   </ErrorBoundary>
@@ -594,22 +751,23 @@ createRoot(rootEl).render(
 ## Scroll System
 
 ### Architecture
-The `animated-scroll.tsx` component manages a page index (`currentPage`) and renders all 5 pages as absolutely-positioned divs. Only the active page is at `translateY(0)`; others are above/below. Transitions use CSS `transform` with smooth easing.
+The `animated-scroll.tsx` component renders all 5 sections as a normal vertical scrollable page. **Snap-scroll has been removed.**
 
-### Navigation Methods
-| Method | Trigger | Threshold | Lockout |
-|--------|---------|-----------|---------|
-| Wheel | `wheel` event | `Math.abs(deltaY) >= 50` | 1s |
-| Touch | `touchstart/touchend` | `Math.abs(diff) >= 50` | 1s |
-| Keyboard | `keydown` ArrowUp/Down | Any press | 1s |
-| Dot nav | Click dots | Instant | 1s |
-| Chevron | Click Up/Down buttons | Instant | 1s |
+### Fade-in Transitions
+Each section has the class `.fade-section` which starts with:
+```css
+opacity: 0; transform: translateY(32px); transition: opacity 0.8s ease, transform 0.8s ease;
+```
 
-### Inner Scroll Detection
-`getScrollableAncestor(el)` walks up the DOM tree to find elements with `overflow-y: auto/scroll` and `scrollHeight > clientHeight`. Before navigating pages, the component checks if the inner scrollable is at its boundary.
+An `IntersectionObserver` (threshold 0.15) watches all `.fade-section` elements. When a section enters the viewport, the `visible` class is added:
+```css
+.fade-section.visible { opacity: 1; transform: translateY(0); }
+```
 
-### Extracted Hook
-The snap-scroll logic was extracted into `src/hooks/use-snap-scroll.ts` which handles wheel, touch, and keyboard events, and returns `{ currentPage, goTo, goUp, goDown, isAnimating }`.
+### Known Scroll Details
+- The `use-snap-scroll.ts` hook exists in `src/hooks/` but is **no longer used** — kept for reference
+- `rootRef` is still used for the IntersectionObserver setup
+- `heroVideoRef` is passed to HeroSection for video playback control
 
 ---
 
@@ -635,15 +793,68 @@ The snap-scroll logic was extracted into `src/hooks/use-snap-scroll.ts` which ha
 `src/config/site-content.ts`
 
 ### Purpose
-Centralizes ALL hardcoded strings, design tokens, and configuration values. Components import from here instead of hardcoding text or values.
+Centralizes ALL hardcoded strings, design tokens, configuration values, and the admin email constant. Components import from here instead of hardcoding text or values.
 
 ### Exports
+- `adminEmail` — admin email constant ("cloudlyconfusing@gmail.com")
 - `designTokens` — brandPink, darkPink (hex values)
-- `heroSection` — heading, subheadings, CTA text
-- `whyChooseUs` — array of 4 card objects (icon, title, description)
-- `servicesSection` — heading, 4 service objects (name, description, image path)
-- `reviewsSection` — heading, 2 review objects (name, text, image)
-- `bookingSection` — modal title, form labels, CTA text, fee details, UPI info, success messages
+- `hero` — title, subtitle, CTA text, video/poster filenames
+- `whyChooseUs` — heading + array of 4 card objects (icon, title, description)
+- `services` — heading, subtitle, 4 service objects (id, label, icon, image, description)
+- `reviews` — heading, 2 testimonials (emoji, author, tag, text, textLong), image filenames
+- `bookingSection` — all booking section text (21 fields including modal titles, CTA, fee details, UPI info, success messages)
+- `pageBackgrounds` — background image URLs for whyChooseUs, reviews, booking
+
+---
+
+## Database Schema & RLS (nhost-setup.sql)
+
+### Location
+`nhost-setup.sql` (at repo root)
+
+### Purpose
+Comprehensive SQL setup for the Hasura project. Run against the Nhost project's database.
+
+### Contents
+
+**1. Helper Function**
+```sql
+CREATE OR REPLACE FUNCTION public.current_user_id() RETURNS text
+  LANGUAGE sql STABLE
+  AS $$ SELECT nullif(current_setting('hasura.user', true), '')::json->>'x-hasura-user-id' $$;
+```
+Used by RLS policies to extract the authenticated user's ID from the Hasura JWT session variable.
+
+**2. site_content Table**
+```sql
+CREATE TABLE site_content (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  section TEXT NOT NULL UNIQUE,
+  content JSONB NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+RLS: Public SELECT, authenticated INSERT/UPDATE.
+
+**3. Seed Data**
+Inserts default content for all 6 sections (hero, why_choose_us, services, reviews, booking, page_backgrounds).
+
+**4. pets RLS**
+```sql
+ALTER TABLE pets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "pets_insert_own" ON pets FOR INSERT WITH CHECK (user_id::text = public.current_user_id());
+CREATE POLICY "pets_select_own" ON pets FOR SELECT USING (user_id::text = public.current_user_id());
+CREATE POLICY "pets_update_own" ON pets FOR UPDATE USING (user_id::text = public.current_user_id());
+```
+
+**5. bookings RLS**
+```sql
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "bookings_insert_own" ON bookings FOR INSERT WITH CHECK (user_id::text = public.current_user_id());
+CREATE POLICY "bookings_select_own" ON bookings FOR SELECT USING (user_id::text = public.current_user_id());
+```
+
+**Note:** `auth.role()` and `x_hasura_user_id()` were attempted first but failed in the Nhost environment. The `current_user_id()` helper function was created via separate SQL statement instead.
 
 ---
 
@@ -684,6 +895,7 @@ export default defineConfig({
 The following environment variables must be set in the Cloudflare Pages dashboard:
 - `VITE_NHOST_SUBDOMAIN` — Nhost project subdomain
 - `VITE_NHOST_REGION` — Nhost project region
+- `VITE_ADMIN_EMAIL` — Admin email (for admin dashboard access)
 
 These are Vite env vars (prefixed with `VITE_`) — they are bundled into the client-side code at build time.
 
@@ -703,7 +915,7 @@ npm run preview      # Serve built dist/ locally for testing
 ```
 VITE_NHOST_SUBDOMAIN=[your-nhost-subdomain]
 VITE_NHOST_REGION=[your-nhost-region]
-VITE_ADMIN_EMAIL=admin@godscreatures.com
+VITE_ADMIN_EMAIL=cloudlyconfusing@gmail.com
 ```
 
 These are Vite env vars (prefixed with `VITE_`) — they're bundled into the client-side code at build time. The Nhost subdomain and region are safe to be public (they just point to the GraphQL endpoint). The `.env` file is listed in `.gitignore` to prevent accidental commits.
@@ -765,104 +977,114 @@ These are needed because `.env` is not deployed to Cloudflare.
 
 **Phase 7: Auth System + Pet Profiles + Admin Dashboard**
 12. Installed `react-router-dom@^7.17.0`
-13. Created `src/context/AuthContext.tsx` with Nhost v4 session listener:
-    - `nhost.getUserSession()` for initial state
-    - `nhost.sessionStorage.onChange()` for session changes
-    - Exposes `{ user, loading }`
-14. Created `src/components/ui/AuthModal.tsx`:
-    - Sign In / Sign Up with email/password
-    - Show/hide password toggle
-    - Loading spinner during API calls
-    - Error messages mapped from Nhost error codes (unverified-user, invalid-email-password, signup-disabled, user-already-exists)
-    - Success message for email-verification-required signup flow
-    - Scroll lock on open
-15. Created `src/components/ui/UserMenu.tsx`:
-    - "Sign In" button for guests -> opens AuthModal
-    - User email + dropdown (My Profile, Sign Out) for logged-in users
-    - Dropdown closes on click outside
-16. Created `src/components/sections/ProfilePage.tsx`:
-    - Pet management dashboard (fetch/create pets via GraphQL)
-    - AddPetForm with all pet profile fields
-    - Redirects to `/` if not authenticated
-    - Loading/error/empty states
-17. Created `src/components/sections/AdminDashboard.tsx`:
-    - Booking management dashboard (fetch all bookings, confirm bookings)
-    - Admin email check against `site-content.ts` constant
-    - Status badges (Pending/Confirmed/Cancelled)
-    - Confirm button with loading spinner (disabled during mutation)
-    - Redirects to `/` if not authenticated, access denied if not admin
-18. Updated `App.tsx` with BrowserRouter + 3 routes (/, /profile, /admin) + catch-all redirect
+13. Created `src/context/AuthContext.tsx` with Nhost v4 session listener
+14. Created `src/components/ui/AuthModal.tsx` with sign in / sign up / password reset
+15. Created `src/components/ui/UserMenu.tsx` (Sign In / user dropdown)
+16. Created `src/components/sections/ProfilePage.tsx` (pet management dashboard)
+17. Created `src/components/sections/AdminDashboard.tsx` (booking management dashboard)
+18. Updated `App.tsx` with BrowserRouter + 3 routes + catch-all redirect
 19. Updated `main.tsx` to remove BrowserRouter/AuthProvider from here (now in App.tsx)
 20. Updated `animated-scroll.tsx` to render UserMenu in top-right corner
-21. Updated `booking-modal.tsx`:
-    - Pet selector dropdown when user is logged in (fetches via GetMyPetsForBooking)
-    - Pet ID passed to CREATE_BOOKING mutation
-    - Fixed `name` -> `pet_name` in GQL query (was returning null)
-    - Removed `"use client"` directive (Vite, not Next.js)
-    - Guarded overlay click and Escape key during submission
-    - Uses validated `phone` variable in mutation (not raw ref)
-22. Updated Nhost v4 API calls throughout (signInEmailPassword, signUpEmailPassword, signOut({}))
-23. Fixed TypeScript errors: added GraphQL query result types in AdminDashboard, ProfilePage, booking-modal
-24. Fixed AuthContext to use correct Nhost v4 APIs (nhost.getUserSession, sessionStorage.onChange)
-25. Added 404 catch-all route in App.tsx
-
-### Session Summary (June 9, 2026 — Session 4)
+21. Updated `booking-modal.tsx` with pet selector dropdown
+22. Fixed TypeScript errors across all files
 
 **Phase 8: Password Reset + Admin Email Env Var**
-1. Moved `adminEmail` from hardcoded constant in `site-content.ts` to `VITE_ADMIN_EMAIL` environment variable
-2. Added `VITE_ADMIN_EMAIL=admin@godscreatures.com` to `.env`
-3. Updated `AdminDashboard.tsx` to read `import.meta.env.VITE_ADMIN_EMAIL` instead of importing `adminEmail`
-4. Added password reset flow to `AuthModal.tsx`:
-   - New `"reset"` mode in the `mode` state union type
-   - "Forgot password?" link below the password field in sign-in mode
-   - Reset mode shows email-only form with "Send Reset Link" button
-   - Uses `nhost.auth.sendPasswordResetEmail({ email })` for the API call
-   - "Back to sign in" link to return to normal login
-   - Appropriate error and success states
-5. Updated `HANDOFF.md` to reflect all changes
+23. Added password reset flow to `AuthModal.tsx`
+24. Moved adminEmail from hardcoded constant to `VITE_ADMIN_EMAIL` env var
+
+### Session Summary (June 9, 2026 — Session 5)
+
+**Phase 9: UX Improvements**
+1. **Removed snap-scroll** — replaced with normal scrollable page
+2. **Fixed section heights** — replaced `h-full` with `min-h-screen` in WhyChooseUs and Reviews sections
+3. **Added IntersectionObserver fade-in** — smooth opacity + translateY transitions when sections scroll into view
+
+### Session Summary (June 9, 2026 — Session 6)
+
+**Phase 10: Booking Auth Flow + Pet Collection**
+4. **Booking requires login** — auth check before opening BookingModal; shows AuthModal first if not logged in
+5. **Pet details during signup** — added full pet fields section in AuthModal signup mode (name, species, breed, age, weight, coat, medical, behavioral, vet)
+6. **AddPetModal after sign-in** — created standalone `AddPetModal.tsx` that appears after successful sign-in if user has zero pets (checked via `pets_aggregate` query)
+
+### Session Summary (June 9, 2026 — Session 7)
+
+**Phase 11: Admin Content Editor + SQL Setup**
+7. **Created `SiteContentContext.tsx`** — fetches `site_content` rows on mount, exposes `{ content, loading, updateSection }` via React context
+8. **Created `ContentEditor.tsx`** — 6-tab CMS editor (Hero, Why Choose Us, Services, Reviews, Booking, Backgrounds) with inline editing, add/delete for arrays, and save button calling `UPSERT_SITE_CONTENT`
+9. **Created `nhost-setup.sql`** — SQL for `site_content` table, `current_user_id()` helper function, RLS policies for all tables, and seed data
+10. **Fixed `current_user_id()` SQL** — `auth.role()` and `x_hasura_user_id()` failed; created the helper function via raw SQL instead
+11. **Updated `App.tsx`** to wrap routes with `SiteContentProvider`
+12. **Connected BookingSection, ServicesSection, etc.** to use `useSiteContent()` instead of hardcoded imports
+
+### Session Summary (June 9, 2026 — Session 8)
+
+**Phase 12: GraphQL Centralization + Admin Button + Build Verification**
+13. **Created `src/lib/graphql.ts`** — 5 centralized gql definitions:
+    - `GET_USER_PETS` (with name/age_years/weight_kg), `INSERT_PET`
+    - `GET_ADMIN_BOOKINGS` (with pet { name breed } + user { email })
+    - `UPDATE_BOOKING_STATUS`, `GET_SITE_CONTENT`
+14. **Updated `ProfilePage.tsx`** — imports GET_USER_PETS + INSERT_PET from graphql.ts; updated column names (pet_name->name, age->age_years, weight->weight_kg)
+15. **Updated `AdminDashboard.tsx`** — imports GET_ADMIN_BOOKINGS + UPDATE_BOOKING_STATUS; added user.email nesting in query and display
+16. **Updated `booking-modal.tsx`** — imports GET_USER_PETS from graphql.ts instead of inline gql
+17. **Updated `content-service.ts`** — imports GET_SITE_CONTENT from graphql.ts, re-exports as GET_ALL_SITE_CONTENT for backward compat
+18. **Added adminEmail back to `site-content.ts`** — `export const adminEmail = "cloudlyconfusing@gmail.com"`
+19. **Added conditional Admin Panel button** — fixed top-left in animated-scroll.tsx, glassmorphism styling, Shield icon, only visible when `user?.email === adminEmail`
+20. **Build verification** — `tsc -b && vite build` passes with zero errors
 
 ---
 
 ## Known Issues & Roadmap
 
 ### Current Limitations
+- **AddPetModal** still uses old column names (`pet_name`, `age`, `weight`) in its inline gql — has not been updated to use INSERT_PET from graphql.ts
+- **AuthModal** still uses old column names (`pet_name`, `age`, `weight`) in its inline gql for signup — has not been updated to use INSERT_PET from graphql.ts
 - **FeatureCarousel height on small screens** — Fixed percentage heights may cause overflow on 320px-375px screens
 - **Transaction ID persists after error** — Input retains value after submission failure
-- **No email verification handling** — If Nhost project requires email verification, users see "Email not verified" on sign-in until they click the verification link (if SMTP is configured)
+- **No email verification handling** — If Nhost project requires email verification, users see "Email not verified" on sign-in until they click the verification link
 
 ### Completed Features
 - ✅ **Supabase -> Nhost** — Data layer migrated to `@nhost/nhost-js` v4 SDK with Apollo Client
 - ✅ **GitHub Pages -> Cloudflare Pages** — Deployed via Cloudflare Git Integration
 - ✅ **Booking form** — 2-step modal with UPI transaction validation, duplicate detection
-- ✅ **Authentication** — Sign In / Sign Up via Nhost email/password
+- ✅ **Authentication** — Sign In / Sign Up / Password Reset via Nhost email/password
 - ✅ **UserMenu** — Auth-aware top-right nav (Sign In / user dropdown)
-- ✅ **Pet Profiles** — CRUD interface at `/profile`
-- ✅ **Admin Dashboard** — Booking management at `/admin` (admin email protected)
+- ✅ **Pet Profiles** — CRUD interface at `/profile` (uses GET_USER_PETS + INSERT_PET)
+- ✅ **Admin Dashboard** — Booking management + Content Editor at `/admin`
+- ✅ **Content Editor (CMS)** — 6-tab editor for all site content, DB-backed via Hasura
+- ✅ **SiteContentContext** — Centralized content provider with UPSERT capability
+- ✅ **AddPetModal** — Post-login pet prompt when user has zero pets
+- ✅ **Pet fields during signup** — Full pet form in AuthModal signup mode
+- ✅ **Booking requires login** — Auth gate before booking modal
+- ✅ **Admin Panel button** — Conditional top-left button for admin users
+- ✅ **GraphQL centralized** — All reused gql tags in `src/lib/graphql.ts`
 - ✅ **Routing** — react-router-dom v7 with 3 routes + 404 fallback
+- ✅ **Normal scroll + fade-in** — Snap-scroll replaced with IntersectionObserver transitions
 - ✅ **ErrorBoundary** — Catches React rendering errors with retry
 - ✅ **Sections extracted** — 5 pages moved to `src/components/sections/`
 - ✅ **Config centralized** — All hardcoded text moved to `src/config/site-content.ts`
-- ✅ **Snap-scroll hook** — Extracted to `src/hooks/use-snap-scroll.ts`
 - ✅ **Strict TypeScript** — Enabled `strict: true`
 - ✅ **Modal accessibility** — Focus trap, aria-live, form labels
 - ✅ **CSP meta tag** — Content Security Policy in index.html
 - ✅ **Input maxLength** — On all form inputs
 - ✅ **Security** — Secrets redacted from docs, env vars excluded from git
-- ✅ **Scroll lock** — On both AuthModal and BookingModal
+- ✅ **Scroll lock** — On AuthModal, AddPetModal, and BookingModal
 - ✅ **Auth error codes mapped** — unverified-user, invalid-email-password, signup-disabled, user-already-exists
 - ✅ **Admin confirm loading state** — Spinner on confirm button, disabled during mutation
 - ✅ **Auth guards** — ProfilePage and AdminDashboard redirect if not logged in
 - ✅ **Password reset** — "Forgot Password?" link in AuthModal with email-only reset flow
-- ✅ **Admin email as env var** — `adminEmail` moved from `site-content.ts` to `VITE_ADMIN_EMAIL` env var
+- ✅ **nhost-setup.sql** — Complete SQL for site_content, RLS policies, helper function, seed data
+- ✅ **RLS policies** — Row-level security for pets, bookings, and site_content tables
 
 ### Future Enhancements
-1. **Loading/error/success animations** — Enhance with better motion animations
-2. **Static HTML version** — Consolidate or remove the old static site in the parent folder
+1. **Update AddPetModal inline gql** — Migrate from old column names (`pet_name`, `age`, `weight`) to centralized `INSERT_PET` from graphql.ts
+2. **Update AuthModal inline gql** — Migrate signup pet creation to centralized `INSERT_PET`
 3. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
 4. **Booking editing** — Allow admin to edit booking details
 5. **Email notifications** — Configure SMTP in Nhost for verification emails and booking confirmations
 6. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
+7. **Loading/error/success animations** — Enhance with better motion animations
+8. **Static HTML version** — Consolidate or remove the old static site in the parent folder
 
 ---
 
-*Last updated: June 9, 2026 (session 4)*
+*Last updated: June 10, 2026 (session 8)*
