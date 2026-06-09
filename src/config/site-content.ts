@@ -3,8 +3,6 @@ export const designTokens = {
   darkPink: "#c48a8b",
 } as const;
 
-export const adminEmail = "admin@godscreatures.com" as const;
-
 export const hero = {
   title: "Gods Creatures Pet Groomers",
   subtitle:

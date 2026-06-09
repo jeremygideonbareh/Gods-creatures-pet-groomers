@@ -10,7 +10,7 @@ const BASE = import.meta.env.BASE_URL;
 
 export function HeroSection({ setBookingOpen, heroVideoRef }: HeroSectionProps) {
   return (
-    <div className="absolute inset-0">
+    <div className="relative min-h-screen w-full overflow-hidden">
       <video
         ref={heroVideoRef}
         className="absolute inset-0 w-full h-full object-cover"

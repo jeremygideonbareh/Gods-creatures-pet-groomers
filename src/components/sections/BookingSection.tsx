@@ -8,7 +8,7 @@ const BRAND_PINK = designTokens.brandPink;
 
 export function BookingSection({ setBookingOpen }: BookingSectionProps) {
   return (
-    <div className="flex flex-col md:flex-row w-full h-full">
+    <div className="flex flex-col md:flex-row w-full min-h-screen">
       <div className="relative w-full md:w-1/2 h-[30%] md:h-full overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"

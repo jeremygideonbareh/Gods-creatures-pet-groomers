@@ -4,7 +4,7 @@ import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { adminEmail, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
 
 const BRAND_PINK = designTokens.brandPink;
 
@@ -93,6 +93,7 @@ export function AdminDashboard() {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
 
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL ?? "";
   const isAdmin = user?.email === adminEmail;
 
   if (!isAdmin) {

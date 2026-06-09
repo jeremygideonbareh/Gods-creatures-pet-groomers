@@ -3,8 +3,8 @@ import { services } from "@/config/site-content";
 
 export function ServicesSection() {
   return (
-    <div className="absolute inset-0 overflow-y-auto bg-black">
-      <div className="flex items-center justify-center pt-4 md:pt-6 pb-1 md:pb-2">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+      <div className="flex items-center justify-center pt-6 md:pt-8 pb-1 md:pb-2">
         <h2 className="text-lg md:text-3xl uppercase font-bold text-white drop-shadow-lg text-center px-4">
           {services.heading}
         </h2>

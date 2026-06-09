@@ -12,7 +12,7 @@ interface AuthModalProps {
 const BRAND_PINK = designTokens.brandPink;
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +27,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
 
     try {
+      if (mode === "reset") {
+        await nhost.auth.sendPasswordResetEmail({ email });
+        setSuccess("If this email is registered, a password reset link has been sent.");
+        setLoading(false);
+        return;
+      }
       if (mode === "signin") {
         const res = await nhost.auth.signInEmailPassword({ email, password });
         if (!res.body.session) {
@@ -106,12 +112,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </button>
 
             <h2 className="text-2xl font-bold text-white text-center mb-2">
-              {mode === "signin" ? "🐾 Welcome Back" : "🐾 Join Us"}
+              {mode === "signin" ? "🐾 Welcome Back" : mode === "signup" ? "🐾 Join Us" : "🐾 Reset Password"}
             </h2>
             <p className="text-white/80 text-center mb-6">
               {mode === "signin"
                 ? "Sign in to manage your pets and bookings."
-                : "Create an account to get started."}
+                : mode === "signup"
+                  ? "Create an account to get started."
+                  : "Enter your email and we'll send a reset link."}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -127,27 +135,40 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                 />
               </div>
-              <div className="relative">
-                <label htmlFor="auth-password" className="sr-only">Password</label>
-                <input
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+              {mode !== "reset" && (
+                <div className="relative">
+                  <label htmlFor="auth-password" className="sr-only">Password</label>
+                  <input
+                    id="auth-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              )}
+              {mode === "signin" && (
+                <div className="text-right -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setMode("reset"); setError(""); setSuccess(""); }}
+                    className="text-white/60 text-xs hover:text-white underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {error && (
                 <p role="alert" className="text-red-200 text-sm text-center bg-red-500/20 rounded-lg p-2">
@@ -169,20 +190,27 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    <span>{mode === "signin" ? "Signing in..." : "Creating account..."}</span>
+                    <span>{mode === "signin" ? "Signing in..." : mode === "signup" ? "Creating account..." : "Sending..."}</span>
                   </>
                 ) : (
-                  <>{mode === "signin" ? "📥 Sign In" : "✨ Sign Up"}</>
+                  <>{mode === "signin" ? "📥 Sign In" : mode === "signup" ? "✨ Sign Up" : "✉️ Send Reset Link"}</>
                 )}
               </button>
             </form>
 
             <p className="text-white/60 text-xs text-center mt-4">
-              {mode === "signin" ? (
+              {mode === "reset" ? (
+                <button
+                  onClick={() => { setMode("signin"); setError(""); setSuccess(""); }}
+                  className="text-white underline hover:no-underline"
+                >
+                  Back to sign in
+                </button>
+              ) : mode === "signin" ? (
                 <>
                   Don't have an account?{" "}
                   <button
-                    onClick={() => { setMode("signup"); setError(""); }}
+                    onClick={() => { setMode("signup"); setError(""); setSuccess(""); }}
                     className="text-white underline hover:no-underline"
                   >
                     Sign up
@@ -192,7 +220,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <>
                   Already have an account?{" "}
                   <button
-                    onClick={() => { setMode("signin"); setError(""); }}
+                    onClick={() => { setMode("signin"); setError(""); setSuccess(""); }}
                     className="text-white underline hover:no-underline"
                   >
                     Sign in
