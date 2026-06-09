@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
@@ -80,12 +81,17 @@ interface BookingsData {
 }
 
 export function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const { data, loading, error } = useQuery<BookingsData>(GET_ALL_BOOKINGS);
   const [updateStatus] = useMutation(UPDATE_STATUS, {
     refetchQueries: [{ query: GET_ALL_BOOKINGS }],
   });
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/", { replace: true });
+  }, [authLoading, user, navigate]);
 
   const isAdmin = user?.email === adminEmail;
 
@@ -105,10 +111,13 @@ export function AdminDashboard() {
   }
 
   const handleConfirm = async (id: string) => {
+    setConfirmingId(id);
     try {
       await updateStatus({ variables: { id, status: "confirmed" } });
-    } catch {
-      // Silently handle — UI updates via refetch
+    } catch (err) {
+      console.error("Failed to confirm booking:", err);
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -182,11 +191,15 @@ export function AdminDashboard() {
                         {booking.status === "pending_verification" && (
                           <button
                             onClick={() => handleConfirm(booking.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white font-semibold text-xs transition-transform hover:scale-105"
+                            disabled={confirmingId === booking.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white font-semibold text-xs transition-transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                             style={{ color: BRAND_PINK }}
                           >
-                            <CheckCircle size={14} />
-                            Confirm
+                            {confirmingId === booking.id ? (
+                              <><Loader2 size={14} className="animate-spin" /> Confirming</>
+                            ) : (
+                              <><CheckCircle size={14} /> Confirm</>
+                            )}
                           </button>
                         )}
                       </div>

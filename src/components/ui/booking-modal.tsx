@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
@@ -9,10 +7,10 @@ import { bookingSection, designTokens } from "@/config/site-content";
 import { useAuth } from "@/context/AuthContext";
 
 const GET_MY_PETS = gql`
-  query GetMyPets {
+  query GetMyPetsForBooking {
     pets {
       id
-      name
+      pet_name
       species
       breed
     }
@@ -95,7 +93,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const petRef = useRef<HTMLSelectElement>(null);
 
   const { user } = useAuth();
-  const { data: petData } = useQuery<{ pets: { id: number; name: string; species: string; breed: string }[] }>(GET_MY_PETS, { skip: !user });
+  const { data: petData } = useQuery<{ pets: { id: number; pet_name: string; species: string; breed: string }[] }>(GET_MY_PETS, { skip: !user });
   const pets = petData?.pets || [];
 
   const [createBooking] = useMutation(CREATE_BOOKING);
@@ -121,11 +119,11 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) onClose();
+      if (e.key === "Escape" && isOpen && submitStatus !== "loading") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, submitStatus]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -187,7 +185,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         variables: {
           customer_name: nameRef.current?.value || "",
           email,
-          phone: phoneRef.current?.value || "",
+          phone,
           service: serviceRef.current?.value || "",
           preferred_date: dateRef.current?.value || "",
           notes: notesRef.current?.value || "",
@@ -234,7 +232,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
+    if (e.target === e.currentTarget && submitStatus !== "loading") onClose();
   };
 
   return (
@@ -435,9 +433,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                           <option value="" className="bg-[#d0999a] text-white">
                             Select your pet
                           </option>
-                          {pets.map((pet: { id: number; name: string; species: string; breed: string }) => (
+                          {pets.map((pet: { id: number; pet_name: string; species: string; breed: string }) => (
                             <option key={pet.id} value={pet.id} className="bg-[#d0999a] text-white">
-                              {pet.name} ({pet.species}{pet.breed ? ` - ${pet.breed}` : ""})
+                              {pet.pet_name} ({pet.species}{pet.breed ? ` - ${pet.breed}` : ""})
                             </option>
                           ))}
                         </select>

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
@@ -163,10 +163,14 @@ interface PetsData {
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const { data, loading, error } = useQuery<PetsData>(GET_MY_PETS);
+  const { data, loading, error } = useQuery<PetsData>(GET_MY_PETS, { skip: !user });
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/", { replace: true });
+  }, [authLoading, user, navigate]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BRAND_PINK }}>
