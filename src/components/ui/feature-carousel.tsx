@@ -2,43 +2,28 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Bath, Scissors, Smile, PawPrint, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Bath,
+  Scissors,
+  Smile,
+  PawPrint,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { services, designTokens } from "@/config/site-content";
 
-const FEATURES = [
-  {
-    id: "luxury-bath",
-    label: "Luxury bath & blow-dry",
-    icon: Bath,
-    image:
-      "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=900&auto=format&fit=crop&q=60",
-    description: "Soft pastel shampoos, deep conditioning, and fluffy finishes. High premium imported products for extra care.",
-  },
-  {
-    id: "stylish-haircut",
-    label: "Stylish haircut",
-    icon: Scissors,
-    image:
-      "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=900&auto=format&fit=crop&q=60",
-    description: "Precision styling by experienced groomers who understand every breed's unique beauty — using professional-grade tools for a flawless finish.",
-  },
-  {
-    id: "dental-hygiene",
-    label: "Dental hygiene",
-    icon: Smile,
-    image:
-      "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=900&auto=format&fit=crop&q=60",
-    description: "Professional dental care backed by years of veterinary expertise for a sparkling healthy smile.",
-  },
-  {
-    id: "pawdicure",
-    label: "Pawdicure & nail art",
-    icon: PawPrint,
-    image:
-      "https://images.unsplash.com/photo-1544568100-847a948585b9?w=900&auto=format&fit=crop&q=60",
-    description: "Gentle paw care with imported balms and creative pet-safe colours, handled with expert precision and care.",
-  },
-];
+const iconMap: Record<string, React.ElementType> = {
+  Bath,
+  Scissors,
+  Smile,
+  PawPrint,
+};
+
+const FEATURES = services.items.map((item) => ({
+  ...item,
+  Icon: iconMap[item.icon] || Bath,
+}));
 
 const AUTO_PLAY_INTERVAL = 3000;
 const ITEM_HEIGHT = 65;
@@ -48,7 +33,7 @@ const wrap = (min: number, max: number, v: number) => {
   return ((((v - min) % rangeSize) + rangeSize) % rangeSize) + min;
 };
 
-const BRAND_PINK = "#d0999a";
+const BRAND_PINK = designTokens.brandPink;
 
 export function FeatureCarousel() {
   const [step, setStep] = useState(0);
@@ -103,24 +88,24 @@ export function FeatureCarousel() {
 
   return (
     <div className="w-full max-w-7xl mx-auto md:p-8">
-      <div className="relative overflow-hidden rounded-none md:rounded-[2.5rem] lg:rounded-[4rem] flex flex-col lg:flex-row min-h-[300px] lg:aspect-video border border-border/40">
+      <div className="relative overflow-hidden rounded-none md:rounded-[2.5rem] lg:rounded-[4rem] flex flex-col lg:flex-row max-h-[calc(100dvh-85px)] lg:max-h-none lg:aspect-video border border-border/40">
         <div
-          className="w-full lg:w-[40%] min-h-[180px] md:min-h-[350px] lg:h-full relative z-30 flex flex-col items-start justify-center overflow-hidden px-6 md:px-16 lg:pl-16"
+          className="w-full lg:w-[40%] shrink-0 relative z-30 flex items-start justify-center overflow-hidden px-6 md:px-16 lg:pl-16"
           style={{ backgroundColor: BRAND_PINK }}
         >
           <div
-            className="absolute inset-x-0 top-0 h-8 md:h-20 lg:h-16 bg-gradient-to-b z-40"
+            className="absolute inset-x-0 top-0 h-4 md:h-20 lg:h-16 bg-gradient-to-b z-40"
             style={{
               background: `linear-gradient(to bottom, ${BRAND_PINK}, ${BRAND_PINK}80, transparent)`,
             }}
           />
           <div
-            className="absolute inset-x-0 bottom-0 h-8 md:h-20 lg:h-16 bg-gradient-to-t z-40"
+            className="absolute inset-x-0 bottom-0 h-4 md:h-20 lg:h-16 bg-gradient-to-t z-40"
             style={{
               background: `linear-gradient(to top, ${BRAND_PINK}, ${BRAND_PINK}80, transparent)`,
             }}
           />
-          <div className="relative w-full h-full flex items-center justify-center lg:justify-start z-20">
+          <div className="relative w-full h-full flex items-center justify-center lg:justify-start z-20 py-2 md:py-8">
             {FEATURES.map((feature, index) => {
               const isActive = index === currentIndex;
               const distance = index - currentIndex;
@@ -154,23 +139,31 @@ export function FeatureCarousel() {
                     onMouseEnter={() => setIsPaused(true)}
                     onMouseLeave={() => setIsPaused(false)}
                     className={cn(
-                      "relative flex items-center gap-3 md:gap-4 px-4 md:px-10 lg:px-8 py-2 md:py-5 lg:py-4 rounded-full transition-all duration-700 text-left group border",
+                      "relative flex items-center gap-1.5 md:gap-4 px-2 md:px-10 lg:px-8 py-1 md:py-5 lg:py-4 rounded-full transition-all duration-700 text-left group border",
                       isActive
                         ? "bg-white z-10"
                         : "bg-transparent text-white/60 border-white/20 hover:border-white/40 hover:text-white"
                     )}
-                    style={isActive ? { color: BRAND_PINK, borderColor: "white" } : {}}
+                    style={
+                      isActive
+                        ? { color: BRAND_PINK, borderColor: "white" }
+                        : {}
+                    }
                   >
                     <div
                       className={cn(
-                        "flex items-center justify-center transition-colors duration-500",
+                        "flex items-center justify-center transition-colors duration-500"
                       )}
-                      style={isActive ? { color: BRAND_PINK } : { color: "rgba(255,255,255,0.4)" }}
+                      style={
+                        isActive
+                          ? { color: BRAND_PINK }
+                          : { color: "rgba(255,255,255,0.4)" }
+                      }
                     >
-                      <feature.icon size={16} strokeWidth={2} />
+                      <feature.Icon size={14} strokeWidth={2} />
                     </div>
 
-                    <span className="font-normal text-[11px] md:text-[15px] tracking-tight whitespace-nowrap uppercase">
+                    <span className="font-normal text-[10px] md:text-[15px] tracking-tight whitespace-nowrap uppercase">
                       {feature.label}
                     </span>
                   </button>
@@ -180,8 +173,8 @@ export function FeatureCarousel() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-[220px] md:min-h-[450px] lg:h-full relative bg-secondary/30 flex items-center justify-center py-4 md:py-16 lg:py-12 px-4 md:px-8 lg:px-8 overflow-hidden border-t lg:border-t-0 lg:border-l border-border/20">
-          <div className="relative w-full max-w-[280px] md:max-w-[360px] aspect-[4/5] md:aspect-[3/4] flex items-center justify-center">
+        <div className="flex-1 min-h-0 relative bg-secondary/30 flex items-center justify-center py-1 md:py-16 lg:py-12 px-1.5 md:px-8 lg:px-8 overflow-hidden border-t lg:border-t-0 lg:border-l border-border/20">
+          <div className="relative w-full max-w-[170px] xs:max-w-[200px] md:max-w-[360px] aspect-[3/4] md:aspect-[3/4] flex items-center justify-center">
             {FEATURES.map((feature, index) => {
               const status = getCardStatus(index);
               const isActive = status === "active";
@@ -225,52 +218,51 @@ export function FeatureCarousel() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute inset-x-0 bottom-0 p-4 md:p-10 pt-12 md:pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end pointer-events-none"
+                        className="absolute inset-x-0 bottom-0 p-2 md:p-10 pt-5 md:pt-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end pointer-events-none"
                       >
                         <div
-                          className="text-white px-4 py-1.5 rounded-full text-[11px] font-normal uppercase tracking-[0.2em] w-fit shadow-lg mb-3 border border-white/30"
+                          className="text-white px-1.5 py-0.5 md:px-4 md:py-1.5 rounded-full text-[9px] md:text-[11px] font-normal uppercase tracking-[0.2em] w-fit shadow-lg mb-1 md:mb-3 border border-white/30"
                           style={{ backgroundColor: BRAND_PINK }}
                         >
                           {index + 1} • {feature.label}
                         </div>
-                        <p className="text-white font-normal text-sm md:text-2xl leading-tight drop-shadow-md tracking-tight">
+                        <p className="text-white font-normal text-[10px] md:text-2xl leading-tight drop-shadow-md tracking-tight">
                           {feature.description}
                         </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  {/* Nav arrows */}
-                  <div className="absolute z-30 flex items-center justify-between px-2 md:px-3 inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="absolute z-30 flex items-center justify-between px-1 md:px-3 inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
                     <button
                       onClick={() => setStep((s) => s - 1)}
-                      className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
+                      className="w-5 h-5 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
                       style={{ color: BRAND_PINK }}
                       aria-label="Previous service"
                     >
-                      <ChevronLeft size={16} />
+                      <ChevronLeft size={12} />
                     </button>
                     <button
                       onClick={() => setStep((s) => s + 1)}
-                      className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
+                      className="w-5 h-5 md:w-9 md:h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white transition-colors"
                       style={{ color: BRAND_PINK }}
                       aria-label="Next service"
                     >
-                      <ChevronRight size={16} />
+                      <ChevronRight size={12} />
                     </button>
                   </div>
 
                   <div
                     className={cn(
-                      "absolute top-4 md:top-8 left-4 md:left-8 flex items-center gap-2 md:gap-3 transition-opacity duration-300",
+                      "absolute top-1 md:top-8 left-1 md:left-8 flex items-center gap-1 md:gap-3 transition-opacity duration-300",
                       isActive ? "opacity-100" : "opacity-0"
                     )}
                   >
                     <div
-                      className="w-2 h-2 rounded-full shadow-[0_0_10px_white]"
+                      className="w-1 h-1 md:w-2 md:h-2 rounded-full shadow-[0_0_10px_white]"
                       style={{ backgroundColor: BRAND_PINK }}
                     />
-                    <span className="text-white/80 text-[10px] font-normal uppercase tracking-[0.3em] font-mono">
+                    <span className="text-white/80 text-[7px] md:text-[10px] font-normal uppercase tracking-[0.3em] font-mono">
                       Featured Service
                     </span>
                   </div>

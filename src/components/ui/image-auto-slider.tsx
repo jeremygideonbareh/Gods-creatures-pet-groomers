@@ -1,15 +1,11 @@
 "use client";
 
 import { motion } from "motion/react";
+import { reviews } from "@/config/site-content";
 
 const BASE = import.meta.env.BASE_URL;
 
-const images = [
-  `${BASE}review-image1.png`,
-  `${BASE}review-image2.png`,
-  `${BASE}review-image3.png`,
-  `${BASE}reviewimage5.jpeg`,
-];
+const images = reviews.images.map((img) => `${BASE}${img}`);
 
 const duplicatedImages = [...images, ...images];
 

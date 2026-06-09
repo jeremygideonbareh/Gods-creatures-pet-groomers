@@ -4,6 +4,7 @@ import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import { ApolloProvider } from "@apollo/client/react";
 import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
 import App from "./App.tsx";
 
@@ -25,10 +26,14 @@ const apolloClient = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-createRoot(document.getElementById("root")!).render(
+const rootEl = document.getElementById("root");
+if (!rootEl) throw new Error("Root element #root not found");
+createRoot(rootEl).render(
   <StrictMode>
-    <ApolloProvider client={apolloClient}>
-      <App />
-    </ApolloProvider>
+    <ErrorBoundary>
+      <ApolloProvider client={apolloClient}>
+        <App />
+      </ApolloProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
