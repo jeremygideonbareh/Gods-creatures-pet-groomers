@@ -46,10 +46,22 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       onClose();
     } catch (err) {
       console.error("Auth error:", err);
-      const bodyMsg = err && typeof err === "object" && "body" in err
-        ? (err as { body: { message?: string } }).body?.message
+      const errorBody = err && typeof err === "object" && "body" in err
+        ? (err as { body: { message?: string; error?: string } }).body
         : null;
-      setError(bodyMsg || (err instanceof Error ? err.message : "An unexpected error occurred."));
+      const errorCode = errorBody?.error;
+      const errorMessage = errorBody?.message || (err instanceof Error ? err.message : "");
+      if (errorCode === "unverified-user") {
+        setError("Email not verified yet. Check your inbox (and spam folder) for the verification link.");
+      } else if (errorCode === "invalid-email-password") {
+        setError("Invalid email or password.");
+      } else if (errorCode === "signup-disabled") {
+        setError("New account registration is currently disabled.");
+      } else if (errorCode === "user-already-exists") {
+        setError("An account with this email already exists.");
+      } else {
+        setError(errorMessage || "An unexpected error occurred.");
+      }
       setLoading(false);
     }
   };
