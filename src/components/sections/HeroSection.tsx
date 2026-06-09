@@ -2,13 +2,13 @@ import type { RefObject } from "react";
 import { hero } from "@/config/site-content";
 
 interface HeroSectionProps {
-  setBookingOpen: (open: boolean) => void;
+  onBookClick: () => void;
   heroVideoRef: RefObject<HTMLVideoElement | null>;
 }
 
 const BASE = import.meta.env.BASE_URL;
 
-export function HeroSection({ setBookingOpen, heroVideoRef }: HeroSectionProps) {
+export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <video
@@ -30,7 +30,7 @@ export function HeroSection({ setBookingOpen, heroVideoRef }: HeroSectionProps) 
           {hero.subtitle}
         </p>
         <button
-          onClick={() => setBookingOpen(true)}
+          onClick={onBookClick}
           className="liquid-glass mt-6 md:mt-8 px-8 md:px-12 py-3 md:py-4 rounded-full font-semibold text-base md:text-lg uppercase tracking-wider transition-transform hover:scale-105 text-white"
         >
           🐾 {hero.cta}

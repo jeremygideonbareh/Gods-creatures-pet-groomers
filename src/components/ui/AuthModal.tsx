@@ -1,17 +1,46 @@
 import { useState, useEffect } from "react";
+import { gql } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, Eye, EyeOff } from "lucide-react";
 import { nhost } from "@/lib/nhost";
 import { designTokens } from "@/config/site-content";
 
+const CREATE_PET = gql`
+  mutation CreatePetFromSignup(
+    $pet_name: String!
+    $species: String!
+    $breed: String!
+    $age: Int
+    $weight: numeric
+    $coat_condition: String
+    $medical_history: String
+    $behavioral_notes: String
+    $vet_contact: String
+  ) {
+    insert_pets_one(object: {
+      pet_name: $pet_name
+      species: $species
+      breed: $breed
+      age: $age
+      weight: $weight
+      coat_condition: $coat_condition
+      medical_history: $medical_history
+      behavioral_notes: $behavioral_notes
+      vet_contact: $vet_contact
+    }) { id }
+  }
+`;
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthSuccess?: () => void;
 }
 
 const BRAND_PINK = designTokens.brandPink;
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +48,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [petName, setPetName] = useState("");
+  const [species, setSpecies] = useState("");
+  const [breed, setBreed] = useState("");
+  const [age, setAge] = useState("");
+  const [weight, setWeight] = useState("");
+  const [coatCondition, setCoatCondition] = useState("");
+  const [medicalHistory, setMedicalHistory] = useState("");
+  const [behavioralNotes, setBehavioralNotes] = useState("");
+  const [vetContact, setVetContact] = useState("");
+
+  const apolloClient = useApolloClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +81,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setLoading(false);
           return;
         }
+        onAuthSuccess?.();
       } else {
         const res = await nhost.auth.signUpEmailPassword({ email, password });
         if (!res.body.session) {
@@ -48,8 +90,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setLoading(false);
           return;
         }
+        if (petName) {
+          try {
+            await apolloClient.mutate({
+              mutation: CREATE_PET,
+              variables: {
+                pet_name: petName,
+                species: species || "Dog",
+                breed,
+                age: age ? parseInt(age, 10) : null,
+                weight: weight ? parseFloat(weight) : null,
+                coat_condition: coatCondition || null,
+                medical_history: medicalHistory || null,
+                behavioral_notes: behavioralNotes || null,
+                vet_contact: vetContact || null,
+              },
+            });
+          } catch (petErr) {
+            console.error("Failed to create pet:", petErr);
+          }
+        }
+        onAuthSuccess?.();
       }
-      onClose();
     } catch (err) {
       console.error("Auth error:", err);
       const errorBody = err && typeof err === "object" && "body" in err
@@ -75,6 +137,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      setPetName("");
+      setSpecies("");
+      setBreed("");
+      setAge("");
+      setWeight("");
+      setCoatCondition("");
+      setMedicalHistory("");
+      setBehavioralNotes("");
+      setVetContact("");
     } else {
       document.body.style.overflow = "";
     }
@@ -100,7 +171,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.8 }}
-            className="relative w-full max-w-md rounded-3xl p-8 border border-white/20"
+            className="relative w-full max-w-md rounded-3xl p-8 border border-white/20 overflow-y-auto max-h-[90vh]"
             style={{ backgroundColor: BRAND_PINK }}
           >
             <button
@@ -118,7 +189,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {mode === "signin"
                 ? "Sign in to manage your pets and bookings."
                 : mode === "signup"
-                  ? "Create an account to get started."
+                  ? "Create an account and tell us about your pet!"
                   : "Enter your email and we'll send a reset link."}
             </p>
 
@@ -168,6 +239,135 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     Forgot password?
                   </button>
                 </div>
+              )}
+
+              {mode === "signup" && (
+                <>
+                  <div className="border-t border-white/20 pt-3 mt-2">
+                    <p className="text-white/80 text-xs font-semibold mb-3 uppercase tracking-wider">
+                      🐾 Tell us about your pet
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label htmlFor="auth-pet-name" className="sr-only">Pet name</label>
+                        <input
+                          id="auth-pet-name"
+                          type="text"
+                          placeholder="Pet name *"
+                          required
+                          maxLength={100}
+                          value={petName}
+                          onChange={(e) => setPetName(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label htmlFor="auth-species" className="sr-only">Species</label>
+                          <select
+                            id="auth-species"
+                            value={species}
+                            onChange={(e) => setSpecies(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60"
+                          >
+                            <option value="" className="bg-[#d0999a] text-white">Species *</option>
+                            <option value="Dog" className="bg-[#d0999a] text-white">Dog</option>
+                            <option value="Cat" className="bg-[#d0999a] text-white">Cat</option>
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label htmlFor="auth-breed" className="sr-only">Breed</label>
+                          <input
+                            id="auth-breed"
+                            type="text"
+                            placeholder="Breed"
+                            maxLength={100}
+                            value={breed}
+                            onChange={(e) => setBreed(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label htmlFor="auth-age" className="sr-only">Age (years)</label>
+                          <input
+                            id="auth-age"
+                            type="number"
+                            placeholder="Age (years)"
+                            min={0}
+                            max={50}
+                            value={age}
+                            onChange={(e) => setAge(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label htmlFor="auth-weight" className="sr-only">Weight (kg)</label>
+                          <input
+                            id="auth-weight"
+                            type="number"
+                            placeholder="Weight (kg)"
+                            min={0}
+                            max={200}
+                            step={0.1}
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="auth-coat" className="sr-only">Coat condition</label>
+                        <input
+                          id="auth-coat"
+                          type="text"
+                          placeholder="Coat condition (e.g., dry, shedding, healthy)"
+                          maxLength={200}
+                          value={coatCondition}
+                          onChange={(e) => setCoatCondition(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="auth-medical" className="sr-only">Medical history</label>
+                        <textarea
+                          id="auth-medical"
+                          placeholder="Medical history (allergies, medications, conditions...)"
+                          rows={2}
+                          maxLength={500}
+                          value={medicalHistory}
+                          onChange={(e) => setMedicalHistory(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="auth-behavior" className="sr-only">Behavioral notes</label>
+                        <textarea
+                          id="auth-behavior"
+                          placeholder="Behavioral notes (anxious, energetic, shy...)"
+                          rows={2}
+                          maxLength={500}
+                          value={behavioralNotes}
+                          onChange={(e) => setBehavioralNotes(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="auth-vet" className="sr-only">Vet contact</label>
+                        <input
+                          id="auth-vet"
+                          type="text"
+                          placeholder="Vet contact (name/clinic + phone)"
+                          maxLength={200}
+                          value={vetContact}
+                          onChange={(e) => setVetContact(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
               {error && (

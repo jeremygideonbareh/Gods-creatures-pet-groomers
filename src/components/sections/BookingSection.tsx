@@ -1,12 +1,12 @@
 import { bookingSection, pageBackgrounds, designTokens } from "@/config/site-content";
 
 interface BookingSectionProps {
-  setBookingOpen: (open: boolean) => void;
+  onBookClick: () => void;
 }
 
 const BRAND_PINK = designTokens.brandPink;
 
-export function BookingSection({ setBookingOpen }: BookingSectionProps) {
+export function BookingSection({ onBookClick }: BookingSectionProps) {
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
       <div className="relative w-full md:w-1/2 h-[30%] md:h-full overflow-hidden">
@@ -33,7 +33,7 @@ export function BookingSection({ setBookingOpen }: BookingSectionProps) {
             </p>
           </div>
           <button
-            onClick={() => setBookingOpen(true)}
+            onClick={onBookClick}
             className="mt-4 md:mt-6 px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base md:text-lg uppercase tracking-wider transition-transform hover:scale-105"
             style={{ backgroundColor: BRAND_PINK }}
           >

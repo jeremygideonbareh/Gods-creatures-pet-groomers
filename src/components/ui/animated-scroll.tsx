@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import BookingModal from "@/components/ui/booking-modal";
+import AuthModal from "@/components/ui/AuthModal";
 import UserMenu from "@/components/ui/UserMenu";
+import { useAuth } from "@/context/AuthContext";
 import HeroSection from "@/components/sections/HeroSection";
 import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
 import ServicesSection from "@/components/sections/ServicesSection";
@@ -8,9 +10,29 @@ import ReviewsSection from "@/components/sections/ReviewsSection";
 import BookingSection from "@/components/sections/BookingSection";
 
 export default function ScrollAdventure() {
+  const { user } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const bookingIntentRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const handleAuthSuccess = () => {
+    setAuthOpen(false);
+    if (bookingIntentRef.current) {
+      bookingIntentRef.current = false;
+      setBookingOpen(true);
+    }
+  };
+
+  const handleBookClick = () => {
+    if (user) {
+      setBookingOpen(true);
+    } else {
+      bookingIntentRef.current = true;
+      setAuthOpen(true);
+    }
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -59,7 +81,7 @@ export default function ScrollAdventure() {
       </div>
 
       <section id="hero">
-        <HeroSection setBookingOpen={setBookingOpen} heroVideoRef={heroVideoRef} />
+        <HeroSection onBookClick={handleBookClick} heroVideoRef={heroVideoRef} />
       </section>
 
       <section id="why-choose-us" className="fade-section">
@@ -75,8 +97,14 @@ export default function ScrollAdventure() {
       </section>
 
       <section id="booking" className="fade-section">
-        <BookingSection setBookingOpen={setBookingOpen} />
+        <BookingSection onBookClick={handleBookClick} />
       </section>
+
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => { setAuthOpen(false); bookingIntentRef.current = false; }}
+        onAuthSuccess={handleAuthSuccess}
+      />
 
       <BookingModal
         isOpen={bookingOpen}
