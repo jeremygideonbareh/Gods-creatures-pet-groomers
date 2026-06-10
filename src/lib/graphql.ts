@@ -60,6 +60,8 @@ export const GET_ADMIN_BOOKINGS = gql`
       transaction_id
       status
       created_at
+      addons
+      total_price
       pet {
         name
         breed

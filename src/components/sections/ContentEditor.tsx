@@ -7,9 +7,10 @@ import type {
   WhyChooseUsCard,
   ServiceItem,
   Testimonial,
+  PricingMenuContent,
 } from "@/lib/content-service";
 
-type Tab = "hero" | "why_choose_us" | "services" | "reviews" | "booking" | "page_backgrounds";
+type Tab = "hero" | "why_choose_us" | "services" | "reviews" | "booking" | "page_backgrounds" | "pricing";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "hero", label: "Hero" },
@@ -18,6 +19,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "reviews", label: "Reviews" },
   { key: "booking", label: "Booking" },
   { key: "page_backgrounds", label: "Backgrounds" },
+  { key: "pricing", label: "Pricing & Policies" },
 ];
 
 const SECTION_MAP: Record<Tab, SectionKey> = {
@@ -27,6 +29,7 @@ const SECTION_MAP: Record<Tab, SectionKey> = {
   reviews: "reviews",
   booking: "booking",
   page_backgrounds: "page_backgrounds",
+  pricing: "pricing_menu",
 };
 
 export function ContentEditor() {
@@ -42,6 +45,7 @@ export function ContentEditor() {
   const [reviewsForm, setReviewsForm] = useState({ heading: content.reviews.heading, testimonials: [...content.reviews.testimonials], images: [...content.reviews.images] });
   const [bookingForm, setBookingForm] = useState({ ...content.booking });
   const [bgForm, setBgForm] = useState({ ...content.pageBackgrounds });
+  const [pricingForm, setPricingForm] = useState(() => JSON.parse(JSON.stringify(content.pricingMenu)) as PricingMenuContent);
 
   useEffect(() => {
     setHeroForm({ ...content.hero });
@@ -50,6 +54,7 @@ export function ContentEditor() {
     setReviewsForm({ heading: content.reviews.heading, testimonials: [...content.reviews.testimonials], images: [...content.reviews.images] });
     setBookingForm({ ...content.booking });
     setBgForm({ ...content.pageBackgrounds });
+    setPricingForm(JSON.parse(JSON.stringify(content.pricingMenu)));
   }, [content]);
 
   const handleSave = useCallback(async () => {
@@ -63,6 +68,7 @@ export function ContentEditor() {
         reviews: reviewsForm,
         booking: bookingForm,
         page_backgrounds: bgForm,
+        pricing: pricingForm as unknown as Record<string, unknown>,
       };
       await updateSection(SECTION_MAP[activeTab], tabData[activeTab]);
       setSaved(true);
@@ -72,7 +78,7 @@ export function ContentEditor() {
     } finally {
       setSaving(false);
     }
-  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, updateSection]);
+  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, updateSection]);
 
   if (loading) {
     return (
@@ -271,6 +277,105 @@ export function ContentEditor() {
             <ImageDropzone label="Booking Background" value={bgForm.booking} onChange={(v) => setBgForm({ ...bgForm, booking: v })} />
           </div>
         )}
+
+        {tab === "pricing" && (
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+            <div>
+              <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                📋 Basic Services
+              </p>
+              {pricingForm.basicServices.map((svc, i) => (
+                <ServicePriceEditor
+                  key={svc.id}
+                  label={svc.label}
+                  hasFlat={svc.flat !== undefined}
+                  prices={svc.prices as PricingMenuContent["basicServices"][number]["prices"]}
+                  flat={svc.flat}
+                  onPricesChange={(prices) => {
+                    const items = [...pricingForm.basicServices];
+                    items[i] = { ...items[i], prices };
+                    setPricingForm({ ...pricingForm, basicServices: items });
+                  }}
+                  onFlatChange={(flat) => {
+                    const items = [...pricingForm.basicServices];
+                    items[i] = { ...items[i], flat };
+                    setPricingForm({ ...pricingForm, basicServices: items });
+                  }}
+                />
+              ))}
+            </div>
+
+            <div>
+              <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                🎁 Complete Packages
+              </p>
+              {pricingForm.completePackages.map((pkg, i) => (
+                <ServicePriceEditor
+                  key={pkg.id}
+                  label={pkg.label}
+                  hasFlat={false}
+                  prices={pkg.prices as PricingMenuContent["completePackages"][number]["prices"]}
+                  onPricesChange={(prices) => {
+                    const items = [...pricingForm.completePackages];
+                    items[i] = { ...items[i], prices };
+                    setPricingForm({ ...pricingForm, completePackages: items });
+                  }}
+                />
+              ))}
+            </div>
+
+            <div>
+              <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                ✨ Add-On Services
+              </p>
+              {pricingForm.addOnServices.map((addon, i) => (
+                <ServicePriceEditor
+                  key={addon.id}
+                  label={addon.label}
+                  hasFlat={addon.flat !== undefined}
+                  prices={addon.prices as PricingMenuContent["addOnServices"][number]["prices"]}
+                  flat={addon.flat}
+                  onPricesChange={(prices) => {
+                    const items = [...pricingForm.addOnServices];
+                    items[i] = { ...items[i], prices };
+                    setPricingForm({ ...pricingForm, addOnServices: items });
+                  }}
+                  onFlatChange={(flat) => {
+                    const items = [...pricingForm.addOnServices];
+                    items[i] = { ...items[i], flat };
+                    setPricingForm({ ...pricingForm, addOnServices: items });
+                  }}
+                />
+              ))}
+            </div>
+
+            <div>
+              <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                📏 Weight Categories (labels only)
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {Object.entries(pricingForm.weightCategories).map(([key, cat]) => (
+                  <div key={key} className="bg-white/10 rounded-xl p-2 text-center">
+                    <p className="text-white/60 text-[10px] uppercase">{key}</p>
+                    <p className="text-white text-xs font-medium">{cat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-white/80 text-xs font-semibold mb-1 uppercase tracking-wider">
+                📝 Rules & Policies
+              </label>
+              <textarea
+                value={pricingForm.rules}
+                onChange={(e) => setPricingForm({ ...pricingForm, rules: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/10">
@@ -413,6 +518,61 @@ function TestimonialEditor({
         <input placeholder="Short text" value={testimonial.text} onChange={(e) => onChange({ ...testimonial, text: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         <textarea placeholder="Long text" value={testimonial.textLong} onChange={(e) => onChange({ ...testimonial, textLong: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
       </div>
+    </div>
+  );
+}
+
+function NumInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <input
+      type="number"
+      min={0}
+      step={50}
+      value={value}
+      onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+      className="w-full px-2 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs text-center outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+    />
+  );
+}
+
+function ServicePriceEditor({
+  label,
+  hasFlat,
+  prices,
+  flat,
+  onPricesChange,
+  onFlatChange,
+}: {
+  label: string;
+  hasFlat: boolean;
+  prices?: { small: number; medium: number; large: number; xlarge: number };
+  flat?: number;
+  onPricesChange?: (p: { small: number; medium: number; large: number; xlarge: number }) => void;
+  onFlatChange?: (f: number) => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-3 border border-white/10 mb-2">
+      <p className="text-white/70 text-xs font-medium mb-2">{label}</p>
+      {hasFlat ? (
+        <div className="flex items-center gap-3">
+          <span className="text-white/50 text-[10px] uppercase tracking-wider w-16">Flat Rate</span>
+          <div className="w-24">
+            <NumInput value={flat ?? 0} onChange={(v) => onFlatChange?.(v)} />
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-2">
+          {(["small", "medium", "large", "xlarge"] as const).map((size) => (
+            <div key={size}>
+              <p className="text-white/40 text-[9px] uppercase tracking-wider mb-0.5 text-center">{size}</p>
+              <NumInput
+                value={prices?.[size] ?? 0}
+                onChange={(v) => onPricesChange?.({ ...prices!, [size]: v })}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

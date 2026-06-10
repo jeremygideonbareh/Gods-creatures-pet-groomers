@@ -43,6 +43,10 @@ CREATE POLICY "pets_select_own" ON pets
 CREATE POLICY "pets_update_own" ON pets
   FOR UPDATE USING (user_id::text = public.current_user_id());
 
+-- Add new columns for pricing
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS addons JSONB DEFAULT '[]';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_price INTEGER;
+
 -- Bookings RLS
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 
@@ -51,3 +55,8 @@ CREATE POLICY "bookings_insert_own" ON bookings
 
 CREATE POLICY "bookings_select_own" ON bookings
   FOR SELECT USING (user_id::text = public.current_user_id());
+
+-- Seed pricing_menu content
+INSERT INTO site_content (section, content) VALUES
+('pricing_menu', '{"rules":"Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).","basicServices":[{"id":"bath-brush-nail-ear","label":"Bath + Brush + Nail Trim + Ear Cleaning","prices":{"small":1800,"medium":2100,"large":2400,"xlarge":2800}},{"id":"haircut-styling","label":"Haircut / Styling Only","prices":{"small":1200,"medium":1400,"large":1600,"xlarge":1800}},{"id":"nail-trim-ear-cleaning","label":"Nail Trim + Ear Cleaning Only","flat":500}],"completePackages":[{"id":"full-groom","label":"Full Groom (Bath + Haircut + Nails + Ears)","prices":{"small":2500,"medium":2900,"large":3300,"xlarge":3800}},{"id":"full-spa","label":"Full Spa Package (Everything included)","prices":{"small":2900,"medium":3400,"large":3900,"xlarge":4500}}],"addOnServices":[{"id":"teeth-cleaning","label":"Teeth Cleaning","flat":400},{"id":"flea-tick","label":"Flea & Tick Removal Treatment","flat":500},{"id":"deshedding","label":"De-shedding Treatment","prices":{"small":500,"medium":600,"large":700,"xlarge":800}},{"id":"spa-massage","label":"Spa with Massage & Conditioning","prices":{"small":700,"medium":800,"large":900,"xlarge":1000}}],"weightCategories":{"small":{"label":"Small (Up to 10kg)","maxKg":10},"medium":{"label":"Medium (10-20kg)","maxKg":20},"large":{"label":"Large (20-35kg)","maxKg":35},"xlarge":{"label":"Extra Large (Above 35kg)","maxKg":999}}}')
+ON CONFLICT (section) DO NOTHING;

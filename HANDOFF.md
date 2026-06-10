@@ -54,9 +54,12 @@ repo root (GitHub) =
   ├── vite.config.ts           # Build config
   ├── tsconfig.json            # TypeScript config (references tsconfig.app.json)
   ├── tsconfig.app.json        # Strict TypeScript mode
+  ├── functions/               # Nhost Serverless Functions
+  │   ├── send-booking-receipt.ts  # Hasura Event Trigger → Resend email receipt
+  │   └── package.json             # resend dependency
   ├── src/                     # Application source
   │   ├── components/          # React components
-  │   ├── config/              # Site content & design tokens
+  │   ├── config/              # Site content & design tokens + PRICING_MENU
   │   ├── context/             # React contexts (AuthContext, SiteContentContext)
   │   ├── hooks/               # Custom hooks
   │   ├── lib/                 # Utilities (nhost, utils, graphql, content-service)
@@ -121,8 +124,13 @@ repo root/
 │   ├── lib/
 │   │   ├── nhost.ts                 # Nhost client + GraphQL URL export
 │   │   ├── graphql.ts               # Centralized gql definitions (pets, bookings, site_content)
-│   │   ├── content-service.ts       # Site content types, DB-to-UI mapper, re-exports from graphql.ts
+│   │   ├── content-service.ts       # Site content types (+ PricingMenuContent), DB-to-UI mapper
 │   │   └── utils.ts                 # cn() helper (clsx + tailwind-merge)
+│   ├── config/
+│   │   └── site-content.ts          # ALL hardcoded content + PRICING_MENU matrix + adminEmail
+│   ├── context/
+│   │   ├── AuthContext.tsx           # Auth state provider (Nhost v4 session listener)
+│   │   └── SiteContentContext.tsx    # Site content provider + pricingMenu support
 │   ├── App.tsx                      # Root: BrowserRouter + Routes + AuthProvider + SiteContentProvider
 │   ├── main.tsx                     # Entry point: ApolloProvider + ErrorBoundary + auth link
 │   └── index.css                    # Tailwind CSS 4 + theme tokens (pink palette)
@@ -130,7 +138,10 @@ repo root/
 ├── package.json
 ├── vite.config.ts                   # Path alias (@/), Tailwind plugin, base: '/'
 ├── tsconfig.json
-└── tsconfig.app.json                # strict: true
+├── tsconfig.app.json                # strict: true
+└── functions/                       # Nhost Serverless Functions
+    ├── send-booking-receipt.ts      # Hasura Event Trigger → Resend email receipt
+    └── package.json                 # resend dependency
 ```
 
 ---
@@ -154,6 +165,8 @@ repo root/
 │   SiteContentProvider (SiteContentContext.tsx)                 │
 │     └── Fetches site_content on mount via apolloClient.query() │
 │         -> exposes { content, loading, updateSection }        │
+│         content.pricingMenu — read by booking modal for       │
+│         size-based pricing, add-on selection, total calc      │
 │                                                               │
 │   AuthProvider (AuthContext.tsx)                               │
 │     └── Listens to nhost.sessionStorage.onChange()             │
@@ -318,36 +331,55 @@ Used across modals, cards, nav, and admin panels.
 
 **Purpose:** Infinite horizontal auto-scroll of review photos at 20s linear loop. Hover pauses.
 
-### `booking-modal.tsx` — Booking Modal
+### `booking-modal.tsx` — Pricing-Aware Booking Modal
 
-**Purpose:** 2-step booking flow wired to Nhost/Hasura via Apollo Client `useMutation`.
+**Purpose:** 2-step booking flow wired to Nhost/Hasura via Apollo Client `useMutation`, with real-time price calculation.
 
 **Steps:**
 1. Info step — ₹500 booking fee disclaimer
-2. Form step — name, email, phone, service select, preferred date, notes, advance payment section (UPI Reference Number)
+2. Form step — name/email (auto-filled + readOnly when logged in), phone, pet dropdown with **auto size detection**, package picker, add-on checkboxes, live price breakdown, date, notes, advance payment section
 
-**Pet Selector (auth-aware):** When user is logged in, a pet dropdown appears after the service selector. Fetches pets via `GET_USER_PETS` from `src/lib/graphql.ts`. Selected `pet_id` is passed in the mutation.
+**Pet Size Detection:** When a logged-in user selects a pet, `weight_kg` is used to auto-calculate size:
+- **Small** (Up to 10kg) | **Medium** (10–20kg) | **Large** (20–35kg) | **Extra Large** (Above 35kg)
 
-**Form Fields:** All use `useRef` (not state) for performance — no re-renders on keystroke.
+**Package Picker (card-selector):** Two sections:
+- **Basic Services** (3 options): Bath+Brush+Nail+Ear, Haircut/Styling Only, Nail Trim+Ear Only (flat ₹500)
+- **Complete Packages** (2 options): Full Groom, Full Spa Package
+- Each shows the real-time price for the detected size, selected card highlights in white
+
+**Add-On Services (multi-select checkboxes):**
+- Teeth Cleaning (flat ₹400), Flea & Tick (flat ₹500), De-shedding (sized), Spa Massage & Conditioning (sized)
+- Checked items with visual checkmark, each showing `+₹[price]`
+
+**Live Price Breakdown Widget:** Glass card showing base package + each add-on line item + total.
+
+**Auth state fix:** Name and email inputs auto-filled from `user.displayName` / `user.email` and set to `readOnly` with `opacity-60` for authenticated users.
+
+**Form Fields:** Name, email use `defaultValue` + `readOnly` when authenticated. Others use `useRef`.
 
 **Validation:**
 - Email: regex `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
 - Phone: regex `/^\+?\d{7,15}$/` (if provided)
+- Package selection: required before submit
 - Transaction ID: required, non-empty check
 
 **Error Handling:**
-- Duplicate UPI reference: catches `unique constraint` / `unique_transaction_id` in both `result.error` and `catch`
+- Duplicate UPI reference: catches `unique constraint` / `unique_transaction_id`
 - Generic: fallback message
 - Loading guard: Escape key and overlay click blocked during submission
 
-**GraphQL Mutation (inline — not centralized):**
+**GraphQL Mutation (inline):**
 ```graphql
 mutation CreateBooking($customer_name: String!, $email: String!, $phone: String!,
   $service: String!, $preferred_date: String!, $notes: String!,
-  $advance_paid: numeric!, $transaction_id: String!, $pet_id: Int) {
+  $advance_paid: numeric!, $transaction_id: String!, $pet_id: Int,
+  $addons: jsonb, $total_price: Int) {
   insert_bookings_one(object: { ... }) { id, customer_name }
 }
 ```
+- `service` column stores package label + size, e.g. "Full Groom (Bath + Haircut + Nails + Ears) - Medium (10-20kg)"
+- `addons` stores JSON array of add-on label strings
+- `total_price` stores calculated integer (package + add-ons)
 
 **States:** Closed, Open (info), Open (form), Submitting (spinner + disabled), Success (auto-close 1.5s), Error (form stays visible).
 
@@ -600,6 +632,7 @@ mutation UpdateBookingStatus($id: uuid!, $status: String!) {
 | Reviews | reviews | heading, testimonials (add/delete/edit: emoji, author, tag, text, textLong), images (add/delete) |
 | Booking | booking | All 21 booking fields (heading, location, hours, etc.) |
 | Backgrounds | page_backgrounds | whyChooseUs URL, reviews URL, booking URL |
+| Pricing & Policies | pricing_menu | All 5 package prices per size, 4 add-on prices, rules text |
 
 **Save flow:** Clicking "Save Changes" calls `updateSection()` on the context, which triggers `UPSERT_SITE_CONTENT` mutation. Green "Saved!" indicator appears for 2s.
 
@@ -833,6 +866,58 @@ An `IntersectionObserver` (threshold 0.15) watches all `.fade-section` elements.
 
 ---
 
+## Nhost Serverless Function — Booking Email Receipts
+
+### Location
+`functions/send-booking-receipt.ts`
+
+### Purpose
+Sends a professional HTML email receipt to the customer when a booking is inserted into the `bookings` table, triggered via Hasura Event Trigger.
+
+### Payload
+The function receives a standard Hasura Event Trigger payload and extracts from `req.body.event.data.new`:
+| Field | Type | Source |
+|-------|------|--------|
+| `customer_name` | string | booking form |
+| `email` | string | customer email |
+| `service` | string | package label + size |
+| `preferred_date` | string | requested date |
+| `total_price` | integer | calculated total (package + add-ons) |
+| `addons` | string[] |selected add-on labels |
+| `transaction_id` | string | UPI reference |
+| `advance_paid` | number | always 500 |
+
+### Email Template
+Clean HTML email (inline styles, table-based layout) with:
+- Header: Booking Received! 🎉
+- Greeting with customer name
+- Booking Summary table: Package, Date, Add-Ons list, Total (₹)
+- Advance Payment Reminder box: ₹500 fee, GPay 9089196235@axisbank
+- Footer with business address and contact details
+
+### Resend Integration
+```typescript
+import { Resend } from "resend";
+const resend = new Resend(process.env.RESEND_API_KEY);
+await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+```
+
+### Environment Variables (set in Nhost Dashboard)
+| Variable | Default | Required |
+|----------|---------|----------|
+| `RESEND_API_KEY` | — | Yes |
+| `FROM_EMAIL` | `onboarding@resend.dev` | No |
+
+### Deployment
+1. Push to GitHub → Nhost auto-deploys `functions/`
+2. Set `RESEND_API_KEY` in Nhost Dashboard → Environment Variables
+3. Create Hasura Event Trigger in Nhost Dashboard:
+   - **Name**: `send_booking_receipt`
+   - **Table**: `bookings` → **Operation**: Insert
+   - **Webhook URL**: `https://{subdomain}.functions.{region}.nhost.run/v1/send-booking-receipt`
+
+---
+
 ## Configuration (site-content.ts)
 
 ### Location
@@ -974,6 +1059,11 @@ Set in Cloudflare dashboard -> your Pages project -> Settings -> Environment var
 
 These are needed because `.env` is not deployed to Cloudflare.
 
+### Nhost Functions Environment Variables
+Set in Nhost Dashboard -> Environment Variables:
+- `RESEND_API_KEY` — Required for the `send-booking-receipt` function (get from [resend.com](https://resend.com))
+- `FROM_EMAIL` — Optional, defaults to `onboarding@resend.dev`
+
 ---
 
 ## Migration Log
@@ -1094,13 +1184,42 @@ These are needed because `.env` is not deployed to Cloudflare.
 3. **Array management improvements** — Cards, Services, Testimonials, and Review Images sections all support add new items (with empty template) and delete any item. Mutations use immutable patterns and save atomically via UPSERT_SITE_CONTENT.
 4. **Build verification** — `tsc -b && vite build` passes with zero errors
 
+### Session Summary (June 10, 2026 — Session 10)
+
+**Phase 14: Pricing Overhaul — PRICING_MENU + Booking Calculator + CMS Tab**
+1. **Created `PRICING_MENU`** — complete price matrix in `src/config/site-content.ts` with:
+   - 5 service tiers (3 Basic + 2 Complete Packages) with 4 size categories (Small/Medium/Large/XL)
+   - 4 Add-On Services (2 flat-rate, 2 size-scaled)
+   - Weight category definitions and rules string
+2. **Updated `bookingSection`** — new address (Malki, Nongshiliang, Shillong - 793001), phone (8798897732), UPI (9089196235@axisbank)
+3. **Extended types** — `PricingMenuContent` interface + `pricingMenu` field in `SiteContent` + `"pricing_menu"` in `SectionKey`
+4. **Updated `SiteContentContext`** — added `pricingMenu` default and section mapping
+5. **Overhauled `booking-modal.tsx`**:
+   - Auto size detection from pet weight (Small ≤10kg, Medium 10-20, Large 20-35, XL >35)
+   - Package picker with Basic Services (3) + Complete Packages (2), each showing sized price
+   - Add-On multi-select checkboxes with live `+₹` display
+   - Live Price Breakdown widget (base + add-ons + total)
+   - Policy warning block (₹500 fee, GPay 9089196235@axisbank)
+   - Mutation now sends `addons` (jsonb) and `total_price` (int)
+6. **Added "Pricing & Policies" tab** to `ContentEditor.tsx` with editable tables for all services
+7. **Updated `graphql.ts`** — GET_ADMIN_BOOKINGS includes `addons` and `total_price`
+8. **Updated `nhost-setup.sql`** — ALTER TABLE migration + seed data for pricing_menu
+9. **Build verification** — `tsc -b && vite build` passes with zero errors
+
+**Phase 15: Critical Bug Fixes + Nhost Serverless Function**
+10. **UX & Auth fix** — Name/email auto-filled + `readOnly` for authenticated users; AuthModal skips signup if `user` already exists
+11. **GraphQL schema fix** — AuthModal CREATE_PET mutation updated: `pet_name`→`name`, `age`→`age_years`, `weight`→`weight_kg`
+12. **Mobile overflow fix** — Booking modal padding changed to `p-4 sm:p-6` for small screens
+13. **Created `functions/send-booking-receipt.ts`** — Nhost Serverless Function sending HTML email receipts via Resend with booking summary, price breakdown, and advance payment reminder
+14. **Created `functions/package.json`** — with `resend` dependency
+15. **Build verification** — `tsc -b && vite build` passes with zero errors
+
 ---
 
 ## Known Issues & Roadmap
 
 ### Current Limitations
 - **AddPetModal** still uses old column names (`pet_name`, `age`, `weight`) in its inline gql — has not been updated to use INSERT_PET from graphql.ts
-- **AuthModal** still uses old column names (`pet_name`, `age`, `weight`) in its inline gql for signup — has not been updated to use INSERT_PET from graphql.ts
 - **FeatureCarousel height on small screens** — Fixed percentage heights may cause overflow on 320px-375px screens
 - **Transaction ID persists after error** — Input retains value after submission failure
 - **No email verification handling** — If Nhost project requires email verification, users see "Email not verified" on sign-in until they click the verification link
@@ -1137,17 +1256,30 @@ These are needed because `.env` is not deployed to Cloudflare.
 - ✅ **Password reset** — "Forgot Password?" link in AuthModal with email-only reset flow
 - ✅ **nhost-setup.sql** — Complete SQL for site_content, RLS policies, helper function, seed data
 - ✅ **RLS policies** — Row-level security for pets, bookings, and site_content tables
+- ✅ **PRICING_MENU** — Complete price matrix (5 basic/package tiers + 4 add-ons + weight categories) in site-content.ts
+- ✅ **Booking contact update** — New address (Malki, Nongshiliang, Shillong - 793001), phone (8798897732), UPI (9089196235@axisbank)
+- ✅ **PricingMenuContent types** — Extended content-service.ts with full type definitions
+- ✅ **SiteContentContext pricing** — pricingMenu default + section key map in context
+- ✅ **Pricing-aware booking modal** — Auto size detection, package picker, add-on checkboxes, live price breakdown
+- ✅ **Auth state pre-fill** — Name/email auto-filled + readOnly for authenticated users
+- ✅ **Auth guard** — AuthModal skips signup entirely when user is already authenticated
+- ✅ **GraphQL fix** — CREATE_PET mutation uses correct column names (name, age_years, weight_kg)
+- ✅ **Mobile scroll fix** — Booking modal has responsive padding (p-4 sm:p-6) and smooth overflow
+- ✅ **CMS Pricing tab** — 7th tab "Pricing & Policies" in ContentEditor with editable tables for all services
+- ✅ **Database migration** — `addons` (JSONB) and `total_price` (INTEGER) columns added to bookings table
+- ✅ **Seed data** — pricing_menu section seeded in nhost-setup.sql
+- ✅ **GraphQL updated** — GET_ADMIN_BOOKINGS queries addons + total_price fields
+- ✅ **Nhost Serverless Function** — `functions/send-booking-receipt.ts` sends HTML email receipts via Resend
+- ✅ **AuthModal GraphQL fixed** — pet_name → name, age → age_years, weight → weight_kg in CREATE_PET mutation
 
 ### Future Enhancements
 1. **Update AddPetModal inline gql** — Migrate from old column names (`pet_name`, `age`, `weight`) to centralized `INSERT_PET` from graphql.ts
-2. **Update AuthModal inline gql** — Migrate signup pet creation to centralized `INSERT_PET`
-3. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
-4. **Booking editing** — Allow admin to edit booking details
-5. **Email notifications** — Configure SMTP in Nhost for verification emails and booking confirmations
-6. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
-7. **Loading/error/success animations** — Enhance with better motion animations
-8. **Static HTML version** — Consolidate or remove the old static site in the parent folder
+2. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
+3. **Booking editing** — Allow admin to edit booking details
+4. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
+5. **Loading/error/success animations** — Enhance with better motion animations
+6. **Static HTML version** — Consolidate or remove the old static site in the parent folder
 
 ---
 
-*Last updated: June 10, 2026 (session 9)*
+*Last updated: June 10, 2026 (session 11)*

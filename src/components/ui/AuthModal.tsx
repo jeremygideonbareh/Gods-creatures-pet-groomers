@@ -5,25 +5,26 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, Eye, EyeOff } from "lucide-react";
 import { nhost } from "@/lib/nhost";
 import { designTokens } from "@/config/site-content";
+import { useAuth } from "@/context/AuthContext";
 
 const CREATE_PET = gql`
   mutation CreatePetFromSignup(
-    $pet_name: String!
+    $name: String!
     $species: String!
     $breed: String!
-    $age: Int
-    $weight: numeric
+    $age_years: Int
+    $weight_kg: numeric
     $coat_condition: String
     $medical_history: String
     $behavioral_notes: String
     $vet_contact: String
   ) {
     insert_pets_one(object: {
-      pet_name: $pet_name
+      name: $name
       species: $species
       breed: $breed
-      age: $age
-      weight: $weight
+      age_years: $age_years
+      weight_kg: $weight_kg
       coat_condition: $coat_condition
       medical_history: $medical_history
       behavioral_notes: $behavioral_notes
@@ -41,6 +42,7 @@ interface AuthModalProps {
 const BRAND_PINK = designTokens.brandPink;
 
 export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
+  const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,6 +76,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         setLoading(false);
         return;
       }
+      if (user) {
+        onAuthSuccess?.();
+        setLoading(false);
+        return;
+      }
       if (mode === "signin") {
         const res = await nhost.auth.signInEmailPassword({ email, password });
         if (!res.body.session) {
@@ -95,11 +102,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             await apolloClient.mutate({
               mutation: CREATE_PET,
               variables: {
-                pet_name: petName,
+                name: petName,
                 species: species || "Dog",
                 breed,
-                age: age ? parseInt(age, 10) : null,
-                weight: weight ? parseFloat(weight) : null,
+                age_years: age ? parseInt(age, 10) : null,
+                weight_kg: weight ? parseFloat(weight) : null,
                 coat_condition: coatCondition || null,
                 medical_history: medicalHistory || null,
                 behavioral_notes: behavioralNotes || null,

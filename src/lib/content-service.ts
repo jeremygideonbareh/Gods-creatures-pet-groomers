@@ -89,6 +89,35 @@ export interface DesignTokensContent {
   darkPink: string;
 }
 
+export interface PricingSizePrices {
+  small: number;
+  medium: number;
+  large: number;
+  xlarge: number;
+}
+
+export interface PricingServiceItem {
+  id: string;
+  label: string;
+  prices?: PricingSizePrices;
+  flat?: number;
+}
+
+export interface PricingWeightCategories {
+  small: { label: string; maxKg: number };
+  medium: { label: string; maxKg: number };
+  large: { label: string; maxKg: number };
+  xlarge: { label: string; maxKg: number };
+}
+
+export interface PricingMenuContent {
+  rules: string;
+  basicServices: PricingServiceItem[];
+  completePackages: PricingServiceItem[];
+  addOnServices: PricingServiceItem[];
+  weightCategories: PricingWeightCategories;
+}
+
 export interface SiteContent {
   hero: HeroContent;
   whyChooseUs: WhyChooseUsContent;
@@ -97,6 +126,7 @@ export interface SiteContent {
   booking: BookingContent;
   pageBackgrounds: PageBackgroundsContent;
   designTokens: DesignTokensContent;
+  pricingMenu: PricingMenuContent;
 }
 
 export type SectionKey =
@@ -106,7 +136,8 @@ export type SectionKey =
   | "reviews"
   | "booking"
   | "page_backgrounds"
-  | "design_tokens";
+  | "design_tokens"
+  | "pricing_menu";
 
 const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   hero: "hero",
@@ -116,6 +147,7 @@ const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   booking: "booking",
   page_backgrounds: "pageBackgrounds",
   design_tokens: "designTokens",
+  pricing_menu: "pricingMenu",
 };
 
 export { GET_SITE_CONTENT as GET_ALL_SITE_CONTENT };

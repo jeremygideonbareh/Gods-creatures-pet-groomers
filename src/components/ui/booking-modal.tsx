@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Loader2 } from "lucide-react";
-import { designTokens } from "@/config/site-content";
+import { X, Loader2, Check } from "lucide-react";
+import { designTokens, PRICING_MENU } from "@/config/site-content";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
+import type { PricingMenuContent } from "@/lib/content-service";
 
 const CREATE_BOOKING = gql`
   mutation CreateBooking(
@@ -19,6 +20,8 @@ const CREATE_BOOKING = gql`
     $advance_paid: numeric!
     $transaction_id: String!
     $pet_id: Int
+    $addons: jsonb
+    $total_price: Int
   ) {
     insert_bookings_one(
       object: {
@@ -31,6 +34,8 @@ const CREATE_BOOKING = gql`
         advance_paid: $advance_paid
         transaction_id: $transaction_id
         pet_id: $pet_id
+        addons: $addons
+        total_price: $total_price
       }
     ) {
       id
@@ -44,7 +49,31 @@ interface BookingModalProps {
   onClose: () => void;
 }
 
+type PetSize = "small" | "medium" | "large" | "xlarge";
+
 const BRAND_PINK = designTokens.brandPink;
+
+const SIZE_LABELS: Record<PetSize, string> = {
+  small: "Small (Up to 10kg)",
+  medium: "Medium (10-20kg)",
+  large: "Large (20-35kg)",
+  xlarge: "Extra Large (Above 35kg)",
+};
+
+function getPetSize(weightKg: number | null): PetSize {
+  if (!weightKg || weightKg <= 10) return "small";
+  if (weightKg <= 20) return "medium";
+  if (weightKg <= 35) return "large";
+  return "xlarge";
+}
+
+function getPrice(
+  item: { prices?: { small: number; medium: number; large: number; xlarge: number }; flat?: number },
+  size: PetSize,
+): number {
+  if (item.flat !== undefined) return item.flat;
+  return item.prices?.[size] ?? 0;
+}
 
 const springTransition = {
   type: "spring" as const,
@@ -73,21 +102,59 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string>("");
+
   const modalRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const serviceRef = useRef<HTMLSelectElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const transactionIdRef = useRef<HTMLInputElement>(null);
-  const petRef = useRef<HTMLSelectElement>(null);
 
   const { user } = useAuth();
   const { content } = useSiteContent();
   const booking = content.booking;
-  const { data: petData } = useQuery<{ pets: { id: number; name: string; species: string; breed: string | null }[] }>(GET_USER_PETS, { skip: !user });
+  const pricing = (content.pricingMenu || PRICING_MENU) as PricingMenuContent;
+  const { data: petData } = useQuery<{ pets: { id: number; name: string; species: string; breed: string | null; weight_kg: number | null }[] }>(GET_USER_PETS, { skip: !user });
   const pets = petData?.pets || [];
+
+  const selectedPet = useMemo(() => {
+    if (!selectedPetId) return null;
+    return pets.find((p) => p.id.toString() === selectedPetId) || null;
+  }, [selectedPetId, pets]);
+
+  const petSize = useMemo(() => {
+    if (!selectedPet) return null;
+    return getPetSize(selectedPet.weight_kg ?? null);
+  }, [selectedPet]);
+
+  const allServices = useMemo(() => {
+    return [...pricing.basicServices, ...pricing.completePackages];
+  }, [pricing]);
+
+  const selectedPackage = useMemo(() => {
+    if (!selectedPackageId) return null;
+    return allServices.find((s) => s.id === selectedPackageId) || null;
+  }, [selectedPackageId, allServices]);
+
+  const addonTotal = useMemo(() => {
+    if (!petSize) return 0;
+    return selectedAddOns.reduce((sum, addonId) => {
+      const addon = pricing.addOnServices.find((a) => a.id === addonId);
+      if (!addon) return sum;
+      return sum + getPrice(addon, petSize);
+    }, 0);
+  }, [selectedAddOns, petSize, pricing]);
+
+  const packageTotal = useMemo(() => {
+    if (!petSize || !selectedPackage) return 0;
+    return getPrice(selectedPackage, petSize);
+  }, [selectedPackage, petSize]);
+
+  const totalPrice = packageTotal + addonTotal;
 
   const [createBooking] = useMutation(CREATE_BOOKING);
 
@@ -96,6 +163,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       setStep("info");
       setSubmitStatus("idle");
       setErrorMessage("");
+      setSelectedPackageId(null);
+      setSelectedAddOns([]);
+      setSelectedPetId("");
     }
   }, [isOpen]);
 
@@ -140,6 +210,14 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     []
   );
 
+  const toggleAddon = (addonId: string) => {
+    setSelectedAddOns((prev) =>
+      prev.includes(addonId)
+        ? prev.filter((id) => id !== addonId)
+        : [...prev, addonId]
+    );
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -160,6 +238,12 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       return;
     }
 
+    if (!selectedPackage) {
+      setErrorMessage("Please select a grooming package.");
+      setSubmitStatus("error");
+      return;
+    }
+
     const transactionId = transactionIdRef.current?.value.trim();
     if (!transactionId) {
       setErrorMessage(
@@ -169,7 +253,13 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       return;
     }
 
-    const selectedPetId = petRef.current?.value ? parseInt(petRef.current.value, 10) : null;
+    const selectedPetNum = selectedPetId ? parseInt(selectedPetId, 10) : null;
+
+    const addonLabels = selectedAddOns
+      .map((id) => {
+        const addon = pricing.addOnServices.find((a) => a.id === id);
+        return addon?.label || id;
+      });
 
     setSubmitStatus("loading");
 
@@ -179,12 +269,14 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           customer_name: nameRef.current?.value || "",
           email,
           phone,
-          service: serviceRef.current?.value || "",
+          service: selectedPackage.label + (petSize ? ` - ${SIZE_LABELS[petSize]}` : ""),
           preferred_date: dateRef.current?.value || "",
           notes: notesRef.current?.value || "",
           advance_paid: 500,
           transaction_id: transactionId,
-          pet_id: selectedPetId,
+          pet_id: selectedPetNum,
+          addons: addonLabels,
+          total_price: totalPrice,
         },
       });
 
@@ -239,16 +331,16 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={handleOverlayClick}
         >
-          <motion.div
-            ref={modalRef}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={springTransition}
-            onKeyDown={handleKeyDown}
-            className="relative w-full max-w-lg rounded-3xl p-8 border border-white/20"
-            style={{ backgroundColor: BRAND_PINK }}
-          >
+            <motion.div
+              ref={modalRef}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={springTransition}
+              onKeyDown={handleKeyDown}
+              className="relative w-full max-w-lg rounded-3xl p-4 sm:p-6 border border-white/20 max-h-[90vh] overflow-y-auto"
+              style={{ backgroundColor: BRAND_PINK }}
+            >
             <button
               onClick={onClose}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
@@ -325,14 +417,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   <p className="text-white/80 text-center mb-4">
                     {booking.formSubtitle}
                   </p>
-                  <div className="bg-white/20 rounded-xl p-3 mb-4 text-center">
-                    <p className="text-white text-sm">
-                      {booking.bookingFeeLabel}{" "}
-                      <span className="text-white/70">
-                        — {booking.bookingFeeDetail.toLowerCase()}
-                      </span>
-                    </p>
-                  </div>
+
                   <form onSubmit={handleFormSubmit} className="space-y-3">
                     <div>
                       <label htmlFor="booking-name" className="sr-only">
@@ -345,7 +430,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         placeholder="Your name *"
                         required
                         maxLength={100}
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        defaultValue={user?.displayName ?? ""}
+                        readOnly={!!user}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 read-only:opacity-60 read-only:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -359,7 +446,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         placeholder="Email address *"
                         required
                         maxLength={255}
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        defaultValue={user?.email ?? ""}
+                        readOnly={!!user}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 read-only:opacity-60 read-only:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -375,44 +464,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                       />
                     </div>
-                    <div>
-                      <label htmlFor="booking-service" className="sr-only">
-                        Select service
-                      </label>
-                      <select
-                        id="booking-service"
-                        ref={serviceRef}
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60"
-                      >
-                        <option value="" className="bg-[#d0999a] text-white">
-                          Select service
-                        </option>
-                        <option
-                          value="luxury-grooming"
-                          className="bg-[#d0999a] text-white"
-                        >
-                          Luxury Grooming
-                        </option>
-                        <option
-                          value="wellness-check"
-                          className="bg-[#d0999a] text-white"
-                        >
-                          Wellness Check + Vet Advice
-                        </option>
-                        <option
-                          value="spa-dental"
-                          className="bg-[#d0999a] text-white"
-                        >
-                          Spa & Dental package
-                        </option>
-                        <option
-                          value="nail-trim"
-                          className="bg-[#d0999a] text-white"
-                        >
-                          Just a nail trim / paw care
-                        </option>
-                      </select>
-                    </div>
+
                     {user && pets.length > 0 && (
                       <div>
                         <label htmlFor="booking-pet" className="sr-only">
@@ -420,13 +472,18 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         </label>
                         <select
                           id="booking-pet"
-                          ref={petRef}
+                          value={selectedPetId}
+                          onChange={(e) => {
+                            setSelectedPetId(e.target.value);
+                            setSelectedPackageId(null);
+                            setSelectedAddOns([]);
+                          }}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60"
                         >
                           <option value="" className="bg-[#d0999a] text-white">
                             Select your pet
                           </option>
-                          {pets.map((pet: { id: number; name: string; species: string; breed: string | null }) => (
+                          {pets.map((pet) => (
                             <option key={pet.id} value={pet.id} className="bg-[#d0999a] text-white">
                               {pet.name} ({pet.species}{pet.breed ? ` - ${pet.breed}` : ""})
                             </option>
@@ -434,6 +491,141 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         </select>
                       </div>
                     )}
+
+                    {petSize && selectedPet && (
+                      <div className="bg-white/20 rounded-xl px-3 py-2 text-center">
+                        <p className="text-white text-sm font-medium">
+                          🐾 {selectedPet.name} &mdash; {selectedPet.species} &middot; {SIZE_LABELS[petSize]}
+                          {selectedPet.weight_kg ? ` (${selectedPet.weight_kg} kg)` : ""}
+                        </p>
+                      </div>
+                    )}
+
+                    {petSize && (
+                      <>
+                        <div>
+                          <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            📋 Basic Services
+                          </p>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {pricing.basicServices.map((svc) => {
+                              const price = getPrice(svc, petSize);
+                              const isSelected = selectedPackageId === svc.id;
+                              return (
+                                <button
+                                  key={svc.id}
+                                  type="button"
+                                  onClick={() => setSelectedPackageId(svc.id)}
+                                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                                    isSelected
+                                      ? "bg-white text-pink-700 font-semibold"
+                                      : "bg-white/15 text-white hover:bg-white/25"
+                                  }`}
+                                >
+                                  <span>{svc.label}</span>
+                                  <span className="tabular-nums">₹{price.toLocaleString("en-IN")}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            🎁 Complete Packages
+                          </p>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {pricing.completePackages.map((pkg) => {
+                              const price = getPrice(pkg, petSize);
+                              const isSelected = selectedPackageId === pkg.id;
+                              return (
+                                <button
+                                  key={pkg.id}
+                                  type="button"
+                                  onClick={() => setSelectedPackageId(pkg.id)}
+                                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                                    isSelected
+                                      ? "bg-white text-pink-700 font-semibold"
+                                      : "bg-white/15 text-white hover:bg-white/25"
+                                  }`}
+                                >
+                                  <span>{pkg.label}</span>
+                                  <span className="tabular-nums">₹{price.toLocaleString("en-IN")}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            ✨ Add-On Services
+                          </p>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {pricing.addOnServices.map((addon) => {
+                              const price = getPrice(addon, petSize);
+                              const isChecked = selectedAddOns.includes(addon.id);
+                              return (
+                                <button
+                                  key={addon.id}
+                                  type="button"
+                                  onClick={() => toggleAddon(addon.id)}
+                                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                                    isChecked
+                                      ? "bg-white/30 text-white font-semibold"
+                                      : "bg-white/15 text-white/80 hover:bg-white/25"
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                                      isChecked
+                                        ? "bg-white border-white"
+                                        : "border-white/40"
+                                    }`}>
+                                      {isChecked && <Check size={12} className="text-pink-700" />}
+                                    </span>
+                                    {addon.label}
+                                  </span>
+                                  <span className="tabular-nums">+₹{price.toLocaleString("en-IN")}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {totalPrice > 0 && (
+                          <div className="bg-white/20 rounded-xl p-3 space-y-1">
+                            <p className="text-white/70 text-xs font-semibold uppercase tracking-wider">
+                              💰 Price Breakdown
+                            </p>
+                            {selectedPackage && (
+                              <div className="flex justify-between text-white text-sm">
+                                <span>{selectedPackage.label}</span>
+                                <span className="tabular-nums">₹{packageTotal.toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            {selectedAddOns.map((addonId) => {
+                              const addon = pricing.addOnServices.find((a) => a.id === addonId);
+                              if (!addon) return null;
+                              return (
+                                <div key={addonId} className="flex justify-between text-white/80 text-xs pl-2">
+                                  <span>{addon.label}</span>
+                                  <span className="tabular-nums">+₹{getPrice(addon, petSize).toLocaleString("en-IN")}</span>
+                                </div>
+                              );
+                            })}
+                            <div className="border-t border-white/30 pt-1 mt-1 flex justify-between text-white font-bold text-base">
+                              <span>Total</span>
+                              <span className="tabular-nums">₹{totalPrice.toLocaleString("en-IN")}</span>
+                            </div>
+                            <p className="text-white/50 text-[10px] pt-1">
+                              * ₹500 booking fee adjusted in final bill
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+
                     <div>
                       <label htmlFor="booking-date" className="sr-only">
                         Preferred date
@@ -460,6 +652,19 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60 resize-none"
                       />
                     </div>
+
+                    <div className="bg-amber-500/20 border border-amber-400/30 rounded-xl p-3 space-y-1">
+                      <p className="text-amber-200 text-xs font-semibold flex items-center gap-1">
+                        ⚠️ Please Note
+                      </p>
+                      <p className="text-amber-100/90 text-xs">
+                        Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).
+                      </p>
+                      <p className="text-amber-100/90 text-xs">
+                        Please GPay advance to: <strong>9089196235@axisbank</strong>
+                      </p>
+                    </div>
+
                     <div className="bg-white/15 rounded-xl p-3 space-y-2">
                       <p className="text-white font-semibold text-sm">
                         💳 {booking.advancePaymentTitle}
@@ -485,6 +690,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         💡 {booking.upiTooltip}
                       </p>
                     </div>
+
                     {submitStatus === "error" && (
                       <p
                         role="alert"
@@ -493,9 +699,10 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         {errorMessage}
                       </p>
                     )}
+
                     <button
                       type="submit"
-                      disabled={submitStatus === "loading"}
+                      disabled={submitStatus === "loading" || !selectedPackage}
                       className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ color: BRAND_PINK }}
                     >

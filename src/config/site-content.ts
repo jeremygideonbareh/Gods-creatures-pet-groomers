@@ -126,9 +126,9 @@ export const reviews = {
 
 export const bookingSection = {
   heading: "Book Now",
-  location: "Malki, Shillong",
+  location: "Malki, Nongshiliang, Shillong, Meghalaya - 793001",
   hours: "Mon–Sat 8am–4pm | Sunday closed",
-  phone: "Call us to book your slot!",
+  phone: "8798897732",
   cta: "Book a Session",
   subtitle: "Walk-ins possible? Just give us a ring!",
   ctaIcon: "🐾",
@@ -139,21 +139,74 @@ export const bookingSection = {
   modalSubtitle: "Secure your spot — we'll take care of the rest!",
   bookingFeeLabel: "₹500 booking fee",
   bookingFeeDetail:
-    "Paid at time of service. Covers grooming essentials & wellness check.",
+    "Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).",
   proceedCta: "Proceed to Schedule",
   questionsCta: "Questions? Call us directly!",
   formTitle: "Book a Session",
   formSubtitle: "Fill in the details and we'll get back to you!",
   advancePaymentTitle: "Advance Payment (₹500)",
   advancePaymentDetail:
-    "A ₹500 advance is required to secure your grooming slot. Pay via UPI and enter the reference below.",
+    "A ₹500 booking fee is required (adjusted in your final bill). GPay to: 9089196235@axisbank",
   upiTooltip:
-    "Find the 12-digit UPI Ref Number (UTR) in your GPay/PhonePe history.",
-  upiPlaceholder: "UPI Reference No. / Transaction ID *",
+    "GPay UPI: 9089196235@axisbank",
+  upiPlaceholder: "GPay UPI Reference No. / Transaction ID *",
   submitLabel: "send request",
   submittingLabel: "Sending...",
   successEmoji: "🎉",
   successTitle: "Woohoo!",
   successMessage:
     "Your request has been sent. We'll get back to you with a confirmed slot!",
+} as const;
+
+export const PRICING_MENU = {
+  rules: "Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).",
+  basicServices: [
+    {
+      id: "bath-brush-nail-ear",
+      label: "Bath + Brush + Nail Trim + Ear Cleaning",
+      prices: { small: 1800, medium: 2100, large: 2400, xlarge: 2800 },
+    },
+    {
+      id: "haircut-styling",
+      label: "Haircut / Styling Only",
+      prices: { small: 1200, medium: 1400, large: 1600, xlarge: 1800 },
+    },
+    {
+      id: "nail-trim-ear-cleaning",
+      label: "Nail Trim + Ear Cleaning Only",
+      flat: 500,
+    },
+  ],
+  completePackages: [
+    {
+      id: "full-groom",
+      label: "Full Groom (Bath + Haircut + Nails + Ears)",
+      prices: { small: 2500, medium: 2900, large: 3300, xlarge: 3800 },
+    },
+    {
+      id: "full-spa",
+      label: "Full Spa Package (Everything included)",
+      prices: { small: 2900, medium: 3400, large: 3900, xlarge: 4500 },
+    },
+  ],
+  addOnServices: [
+    { id: "teeth-cleaning", label: "Teeth Cleaning", flat: 400 },
+    { id: "flea-tick", label: "Flea & Tick Removal Treatment", flat: 500 },
+    {
+      id: "deshedding",
+      label: "De-shedding Treatment",
+      prices: { small: 500, medium: 600, large: 700, xlarge: 800 },
+    },
+    {
+      id: "spa-massage",
+      label: "Spa with Massage & Conditioning",
+      prices: { small: 700, medium: 800, large: 900, xlarge: 1000 },
+    },
+  ],
+  weightCategories: {
+    small: { label: "Small (Up to 10kg)", maxKg: 10 },
+    medium: { label: "Medium (10-20kg)", maxKg: 20 },
+    large: { label: "Large (20-35kg)", maxKg: 35 },
+    xlarge: { label: "Extra Large (Above 35kg)", maxKg: Infinity },
+  },
 } as const;

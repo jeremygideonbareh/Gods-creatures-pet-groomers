@@ -15,6 +15,7 @@ import {
   reviews,
   bookingSection,
   pageBackgrounds,
+  PRICING_MENU,
 } from "@/config/site-content";
 
 const DEFAULTS: SiteContent = {
@@ -25,6 +26,7 @@ const DEFAULTS: SiteContent = {
   booking: bookingSection as unknown as SiteContent["booking"],
   pageBackgrounds: pageBackgrounds as unknown as SiteContent["pageBackgrounds"],
   designTokens: designTokens as unknown as SiteContent["designTokens"],
+  pricingMenu: PRICING_MENU as unknown as SiteContent["pricingMenu"],
 };
 
 interface SiteContentState {
@@ -95,6 +97,7 @@ const SECTION_KEY_MAP: Record<SectionKey, keyof SiteContent> = {
   booking: "booking",
   page_backgrounds: "pageBackgrounds",
   design_tokens: "designTokens",
+  pricing_menu: "pricingMenu",
 };
 
 export function useSiteContent() {
