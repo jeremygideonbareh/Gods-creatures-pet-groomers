@@ -1,0 +1,180 @@
+- name: default
+  kind: postgres
+  configuration:
+    connection_info:
+      database_url:
+        from_env: HASURA_GRAPHQL_DATABASE_URL
+      isolation_level: read-committed
+      use_prepared_statements: false
+  tables:
+    - table:
+        schema: public
+        name: bookings
+      object_relationships:
+        - name: pet
+          using:
+            foreign_key_constraint_on: pet_id
+      array_relationships: []
+      insert_permissions:
+        - role: user
+          permission:
+            check:
+              user_id:
+                _eq: X-Hasura-User-Id
+            set:
+              user_id: x-hasura-User-Id
+            columns:
+              - addons
+              - advance_paid
+              - customer_name
+              - email
+              - notes
+              - pet_id
+              - phone
+              - preferred_date
+              - service
+              - total_price
+              - transaction_id
+            backend_only: false
+      select_permissions:
+        - role: user
+          permission:
+            columns:
+              - addons
+              - advance_paid
+              - created_at
+              - customer_name
+              - email
+              - id
+              - notes
+              - pet_id
+              - phone
+              - preferred_date
+              - service
+              - status
+              - total_price
+              - transaction_id
+              - user_id
+            filter:
+              user_id:
+                _eq: X-Hasura-User-Id
+            allow_aggregations: true
+      update_permissions: []
+      delete_permissions: []
+    - table:
+        schema: public
+        name: pets
+      object_relationships: []
+      array_relationships:
+        - name: bookings
+          using:
+            foreign_key_constraint_on:
+              column: pet_id
+              table:
+                schema: public
+                name: bookings
+      insert_permissions:
+        - role: user
+          permission:
+            check:
+              user_id:
+                _eq: X-Hasura-User-Id
+            set:
+              user_id: x-hasura-User-Id
+            columns:
+              - age_years
+              - behavioral_notes
+              - breed
+              - coat_condition
+              - medical_history
+              - name
+              - species
+              - vet_contact
+              - weight_kg
+            backend_only: false
+      select_permissions:
+        - role: user
+          permission:
+            columns:
+              - age_years
+              - behavioral_notes
+              - breed
+              - coat_condition
+              - created_at
+              - id
+              - medical_history
+              - name
+              - species
+              - user_id
+              - vet_contact
+              - weight_kg
+            filter:
+              user_id:
+                _eq: X-Hasura-User-Id
+            allow_aggregations: true
+      update_permissions:
+        - role: user
+          permission:
+            columns:
+              - age_years
+              - behavioral_notes
+              - breed
+              - coat_condition
+              - medical_history
+              - name
+              - species
+              - vet_contact
+              - weight_kg
+            filter:
+              user_id:
+                _eq: X-Hasura-User-Id
+            check: null
+            set:
+              user_id: x-hasura-User-Id
+      delete_permissions:
+        - role: user
+          permission:
+            filter:
+              user_id:
+                _eq: X-Hasura-User-Id
+    - table:
+        schema: public
+        name: site_content
+      object_relationships: []
+      array_relationships: []
+      insert_permissions:
+        - role: user
+          permission:
+            check: {}
+            columns:
+              - content
+              - section
+            backend_only: false
+      select_permissions:
+        - role: public
+          permission:
+            columns:
+              - content
+              - id
+              - section
+              - updated_at
+            filter: {}
+            allow_aggregations: false
+        - role: user
+          permission:
+            columns:
+              - content
+              - id
+              - section
+              - updated_at
+            filter: {}
+            allow_aggregations: false
+      update_permissions:
+        - role: user
+          permission:
+            columns:
+              - content
+            filter: {}
+            check: null
+      delete_permissions: []
+  functions: []

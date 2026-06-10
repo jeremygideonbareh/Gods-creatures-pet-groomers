@@ -66,9 +66,6 @@ export const GET_ADMIN_BOOKINGS = gql`
         name
         breed
       }
-      user {
-        email
-      }
     }
   }
 `;
