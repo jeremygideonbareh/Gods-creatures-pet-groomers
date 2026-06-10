@@ -215,7 +215,8 @@ repo root/
 │    bookings: id, customer_name, email, phone, service,        │
 │              preferred_date, notes, advance_paid,              │
 │              transaction_id (UNIQUE), status, created_at,      │
-│              user_id (FK -> users), pet_id (FK -> pets)       │
+│              addons (JSONB), total_price (INTEGER),              │
+│              user_id (FK -> users), pet_id (FK -> pets, uuid)  │
 │                                                               │
 │    pets: id, name, species, breed, age_years, weight_kg,      │
 │          coat_condition, medical_history, behavioral_notes,    │
@@ -353,7 +354,9 @@ Used across modals, cards, nav, and admin panels.
 
 **Live Price Breakdown Widget:** Glass card showing base package + each add-on line item + total.
 
-**Auth state fix:** Name and email inputs auto-filled from `user.displayName` / `user.email` and set to `readOnly` with `opacity-60` for authenticated users.
+**Guest / No-Pet Flow:** When no pet is selected (guest user, logged-in with no pets, or logged-in but hasn't selected one), a **manual size selector** appears with 4 buttons (Small/Medium/Large/XL) so guests can still browse packages and prices. `effectiveSize = petSize || manualSize` ensures price calculations work regardless of source.
+
+**Auth state fix:** Name and email inputs auto-filled from `user.displayName` / `user.email` and set to `readOnly` with `opacity-60` for authenticated users. `required` attribute removed when `readOnly` to avoid browser validation lock.
 
 **Form Fields:** Name, email use `defaultValue` + `readOnly` when authenticated. Others use `useRef`.
 
@@ -364,15 +367,16 @@ Used across modals, cards, nav, and admin panels.
 - Transaction ID: required, non-empty check
 
 **Error Handling:**
-- Duplicate UPI reference: catches `unique constraint` / `unique_transaction_id`
-- Generic: fallback message
+- Duplicate UPI reference: catches `unique constraint` / `unique_transaction_id` with friendly message
+- All other errors: raw GraphQL error message displayed verbatim in red banner
+- Both `result.error` and catch branches log `console.error("GRAPHQL ERROR:", err)` to DevTools
 - Loading guard: Escape key and overlay click blocked during submission
 
 **GraphQL Mutation (inline):**
 ```graphql
 mutation CreateBooking($customer_name: String!, $email: String!, $phone: String!,
-  $service: String!, $preferred_date: String!, $notes: String!,
-  $advance_paid: numeric!, $transaction_id: String!, $pet_id: Int,
+  $service: String!, $preferred_date: date!, $notes: String!,
+  $advance_paid: numeric!, $transaction_id: String!, $pet_id: uuid,
   $addons: jsonb, $total_price: Int) {
   insert_bookings_one(object: { ... }) { id, customer_name }
 }
@@ -1216,10 +1220,25 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ---
 
+### Session Summary (June 11, 2026 — Session 12)
+
+**Phase 16: Booking Modal Bug Fixes + GraphQL Type Corrections**
+1. **Fixed pet size selector not rendering** — Replaced two separate conditional blocks (`{petSize && selectedPet && (...)}` / `{!petSize && (...)}`) with a single `selectedPet && petSize ? A : B` ternary that **guarantees exactly one branch always renders**, eliminating the blank gap in the UI
+2. **Added `manualSize` state** — Lets guests / logged-in users without pets self-select their pet size; `effectiveSize = petSize || manualSize` fallback drives all price calculations
+3. **Added calendar date picker** — Changed date input from `type="text"` to `type="date"` with `min=today` and `[color-scheme:dark]` for dark theme compatibility
+4. **Crash-safe array iteration** — Guarded all `.map()` calls on `pricing.basicServices`, `pricing.completePackages`, `pricing.addOnServices` with `|| []` to prevent render tree teardown if data shape is unexpected
+5. **Removed `!selectedPackage` from submit button disabled prop** — Validation now shows a visible red error message instead of silently disabling the button
+6. **Removed `required` from name/email when `readOnly`** — Prevents browser validation lock on fields that are pre-filled and disabled for authenticated users
+7. **Raw GraphQL error display** — Both `result.error` and `catch` branches now `console.error("GRAPHQL ERROR:", err)` and display the **exact backend error message** verbatim in the red UI banner instead of a generic fallback (only `unique constraint` / `unique_transaction_id` keeps its friendly message)
+8. **Fixed `$preferred_date` GraphQL type** — Changed from `String!` to `date!` to match Hasura's custom `date` scalar (fixes: "variable 'preferred_date' is declared as 'String!', but used where 'date' is expected")
+9. **Fixed `$pet_id` GraphQL type** — Changed from `Int` to `uuid` to match the pets table primary key type (fixes: "variable 'pet_id' is declared as 'Int', but used where 'uuid' is expected")
+10. **Build verification** — `tsc -b && vite build` passes with zero errors across all fixes
+
+---
+
 ## Known Issues & Roadmap
 
 ### Current Limitations
-- **AddPetModal** still uses old column names (`pet_name`, `age`, `weight`) in its inline gql — has not been updated to use INSERT_PET from graphql.ts
 - **FeatureCarousel height on small screens** — Fixed percentage heights may cause overflow on 320px-375px screens
 - **Transaction ID persists after error** — Input retains value after submission failure
 - **No email verification handling** — If Nhost project requires email verification, users see "Email not verified" on sign-in until they click the verification link
@@ -1271,6 +1290,12 @@ Set in Nhost Dashboard -> Environment Variables:
 - ✅ **GraphQL updated** — GET_ADMIN_BOOKINGS queries addons + total_price fields
 - ✅ **Nhost Serverless Function** — `functions/send-booking-receipt.ts` sends HTML email receipts via Resend
 - ✅ **AuthModal GraphQL fixed** — pet_name → name, age → age_years, weight → weight_kg in CREATE_PET mutation
+- ✅ **Manual size selector** — Guest / no-pet users can self-select pet size (Small/Medium/Large/XL) to browse packages
+- ✅ **Calendar date picker** — Date input uses native `type="date"` with `min=today`
+- ✅ **Crash-safe pricing arrays** — All `.map()` calls guarded with `|| []` to prevent render crashes
+- ✅ **Visible validation instead of silent disabled** — Submit button is always enabled; missing package shows a red error banner
+- ✅ **Raw GraphQL errors in UI** — Backend error messages displayed verbatim with `console.error("GRAPHQL ERROR:", ...)`
+- ✅ **GraphQL type fixes** — `$preferred_date: String!` → `date!`, `$pet_id: Int` → `uuid`
 
 ### Future Enhancements
 1. **Update AddPetModal inline gql** — Migrate from old column names (`pet_name`, `age`, `weight`) to centralized `INSERT_PET` from graphql.ts
@@ -1282,4 +1307,4 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ---
 
-*Last updated: June 10, 2026 (session 11)*
+*Last updated: June 11, 2026 (session 12)*
