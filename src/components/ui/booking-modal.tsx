@@ -105,6 +105,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [manualSize, setManualSize] = useState<PetSize | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -131,6 +132,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     return getPetSize(selectedPet.weight_kg ?? null);
   }, [selectedPet]);
 
+  const effectiveSize = petSize || manualSize;
+
   const allServices = useMemo(() => {
     return [...pricing.basicServices, ...pricing.completePackages];
   }, [pricing]);
@@ -141,18 +144,18 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   }, [selectedPackageId, allServices]);
 
   const addonTotal = useMemo(() => {
-    if (!petSize) return 0;
+    if (!effectiveSize) return 0;
     return selectedAddOns.reduce((sum, addonId) => {
       const addon = pricing.addOnServices.find((a) => a.id === addonId);
       if (!addon) return sum;
-      return sum + getPrice(addon, petSize);
+      return sum + getPrice(addon, effectiveSize);
     }, 0);
-  }, [selectedAddOns, petSize, pricing]);
+  }, [selectedAddOns, effectiveSize, pricing]);
 
   const packageTotal = useMemo(() => {
-    if (!petSize || !selectedPackage) return 0;
-    return getPrice(selectedPackage, petSize);
-  }, [selectedPackage, petSize]);
+    if (!effectiveSize || !selectedPackage) return 0;
+    return getPrice(selectedPackage, effectiveSize);
+  }, [selectedPackage, effectiveSize]);
 
   const totalPrice = packageTotal + addonTotal;
 
@@ -166,6 +169,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       setSelectedPackageId(null);
       setSelectedAddOns([]);
       setSelectedPetId("");
+      setManualSize(null);
     }
   }, [isOpen]);
 
@@ -269,7 +273,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           customer_name: nameRef.current?.value || "",
           email,
           phone,
-          service: selectedPackage.label + (petSize ? ` - ${SIZE_LABELS[petSize]}` : ""),
+          service: selectedPackage.label + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
           preferred_date: dateRef.current?.value || "",
           notes: notesRef.current?.value || "",
           advance_paid: 500,
@@ -428,7 +432,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         ref={nameRef}
                         type="text"
                         placeholder="Your name *"
-                        required
+                        required={!user}
                         maxLength={100}
                         defaultValue={user?.displayName ?? ""}
                         readOnly={!!user}
@@ -444,7 +448,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         ref={emailRef}
                         type="email"
                         placeholder="Email address *"
-                        required
+                        required={!user}
                         maxLength={255}
                         defaultValue={user?.email ?? ""}
                         readOnly={!!user}
@@ -492,24 +496,46 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                       </div>
                     )}
 
-                    {petSize && selectedPet && (
+                    {selectedPet && petSize ? (
                       <div className="bg-white/20 rounded-xl px-3 py-2 text-center">
                         <p className="text-white text-sm font-medium">
                           🐾 {selectedPet.name} &mdash; {selectedPet.species} &middot; {SIZE_LABELS[petSize]}
                           {selectedPet.weight_kg ? ` (${selectedPet.weight_kg} kg)` : ""}
                         </p>
                       </div>
+                    ) : (
+                      <div>
+                        <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                          🐕 Pet Size
+                        </p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(Object.entries(SIZE_LABELS) as [PetSize, string][]).map(([sizeKey, label]) => (
+                            <button
+                              key={sizeKey}
+                              type="button"
+                              onClick={() => { setManualSize(sizeKey); setSelectedPackageId(null); setSelectedAddOns([]); }}
+                              className={`px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                                manualSize === sizeKey
+                                  ? "bg-white text-pink-700 font-semibold"
+                                  : "bg-white/15 text-white hover:bg-white/25"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
-                    {petSize && (
+                    {effectiveSize && (
                       <>
                         <div>
                           <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
                             📋 Basic Services
                           </p>
                           <div className="grid grid-cols-1 gap-1.5">
-                            {pricing.basicServices.map((svc) => {
-                              const price = getPrice(svc, petSize);
+                            {(pricing.basicServices || []).map((svc) => {
+                              const price = getPrice(svc, effectiveSize);
                               const isSelected = selectedPackageId === svc.id;
                               return (
                                 <button
@@ -535,8 +561,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                             🎁 Complete Packages
                           </p>
                           <div className="grid grid-cols-1 gap-1.5">
-                            {pricing.completePackages.map((pkg) => {
-                              const price = getPrice(pkg, petSize);
+                            {(pricing.completePackages || []).map((pkg) => {
+                              const price = getPrice(pkg, effectiveSize);
                               const isSelected = selectedPackageId === pkg.id;
                               return (
                                 <button
@@ -562,8 +588,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                             ✨ Add-On Services
                           </p>
                           <div className="grid grid-cols-1 gap-1.5">
-                            {pricing.addOnServices.map((addon) => {
-                              const price = getPrice(addon, petSize);
+                            {(pricing.addOnServices || []).map((addon) => {
+                              const price = getPrice(addon, effectiveSize);
                               const isChecked = selectedAddOns.includes(addon.id);
                               return (
                                 <button
@@ -610,7 +636,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                               return (
                                 <div key={addonId} className="flex justify-between text-white/80 text-xs pl-2">
                                   <span>{addon.label}</span>
-                                  <span className="tabular-nums">+₹{getPrice(addon, petSize).toLocaleString("en-IN")}</span>
+                                  <span className="tabular-nums">+₹{getPrice(addon, effectiveSize).toLocaleString("en-IN")}</span>
                                 </div>
                               );
                             })}
@@ -633,10 +659,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                       <input
                         id="booking-date"
                         ref={dateRef}
-                        type="text"
-                        placeholder="Preferred date (e.g., Monday 10am)"
-                        maxLength={50}
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60 [color-scheme:dark]"
                       />
                     </div>
                     <div>
@@ -702,7 +727,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 
                     <button
                       type="submit"
-                      disabled={submitStatus === "loading" || !selectedPackage}
+                      disabled={submitStatus === "loading"}
                       className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ color: BRAND_PINK }}
                     >
