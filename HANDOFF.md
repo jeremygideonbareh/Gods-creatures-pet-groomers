@@ -1360,7 +1360,7 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ### Future Enhancements
 1. **Set admin JWT claims** — Configure Nhost Dashboard to assign `admin` role to admin user so role-based metadata permissions work end-to-end
-2. **Update Apollo auth link** — Send `x-hasura-role: admin` header in Apollo context when `user.email === adminEmail`
+2. **Move ADMIN_EMAIL to Nhost env var** — Add `ADMIN_EMAIL` to Nhost Dashboard → Environment Variables, then update frontend to read it at runtime (instead of hardcoding `adminEmail` in `site-content.ts`). This lets you change the admin without touching source code.
 3. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
 4. **Booking editing** — Allow admin to edit booking details beyond status
 5. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
