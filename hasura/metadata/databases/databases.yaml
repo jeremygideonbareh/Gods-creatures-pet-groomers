@@ -8,6 +8,15 @@
       use_prepared_statements: true
   tables:
     - table:
+        schema: auth
+        name: users
+      object_relationships: []
+      array_relationships: []
+      insert_permissions: []
+      select_permissions: []
+      update_permissions: []
+      delete_permissions: []
+    - table:
         schema: public
         name: bookings
       object_relationships:
