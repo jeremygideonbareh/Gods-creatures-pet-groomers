@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { designTokens, adminEmail } from "@/config/site-content";
+import { designTokens, adminEmail, RUPEESIGN } from "@/config/site-content";
 import ContentEditor from "@/components/sections/ContentEditor";
 import { GET_ADMIN_BOOKINGS, UPDATE_BOOKING_STATUS } from "@/lib/graphql";
 
@@ -181,7 +181,7 @@ export function AdminDashboard() {
                         </p>
                         {booking.notes && <p className="text-white/40 text-[10px] mt-0.5">📝 {booking.notes}</p>}
                         <p className="text-white/30 text-[10px] mt-0.5">
-                          ₹{booking.advance_paid?.toString() ?? "500"} • UPI: {booking.transaction_id}
+                          {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} • UPI: {booking.transaction_id}
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0">

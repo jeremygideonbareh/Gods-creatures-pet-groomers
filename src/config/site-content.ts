@@ -1,5 +1,7 @@
 export const adminEmail = "cloudlyconfusing@gmail.com";
 
+export const RUPEESIGN = "\u20B9";
+
 export const designTokens = {
   brandPink: "#d0999a",
   darkPink: "#c48a8b",
@@ -137,16 +139,16 @@ export const bookingSection = {
   phoneIcon: "📞",
   modalTitle: "Book a Session",
   modalSubtitle: "Secure your spot — we'll take care of the rest!",
-  bookingFeeLabel: "₹500 booking fee",
+  bookingFeeLabel: `${RUPEESIGN}500 booking fee`,
   bookingFeeDetail:
-    "Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).",
+    `Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`,
   proceedCta: "Proceed to Schedule",
   questionsCta: "Questions? Call us directly!",
   formTitle: "Book a Session",
   formSubtitle: "Fill in the details and we'll get back to you!",
-  advancePaymentTitle: "Advance Payment (₹500)",
+  advancePaymentTitle: `Advance Payment (${RUPEESIGN}500)`,
   advancePaymentDetail:
-    "A ₹500 booking fee is required (adjusted in your final bill). GPay to: 9089196235@axisbank",
+    `A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill). GPay to: 9089196235@axisbank`,
   upiTooltip:
     "GPay UPI: 9089196235@axisbank",
   upiPlaceholder: "GPay UPI Reference No. / Transaction ID *",
@@ -159,7 +161,7 @@ export const bookingSection = {
 } as const;
 
 export const PRICING_MENU = {
-  rules: "Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).",
+  rules: `Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`,
   basicServices: [
     {
       id: "bath-brush-nail-ear",

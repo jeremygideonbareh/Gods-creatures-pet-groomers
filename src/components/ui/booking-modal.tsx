@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, Check } from "lucide-react";
-import { designTokens, PRICING_MENU } from "@/config/site-content";
+import { designTokens, PRICING_MENU, RUPEESIGN } from "@/config/site-content";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
@@ -251,7 +251,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     const transactionId = transactionIdRef.current?.value.trim();
     if (!transactionId) {
       setErrorMessage(
-        "Please enter the UPI Transaction ID to confirm your ₹500 advance payment."
+        `Please enter the UPI Transaction ID to confirm your ${RUPEESIGN}500 advance payment.`
       );
       setSubmitStatus("error");
       return;
@@ -553,7 +553,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                                   }`}
                                 >
                                   <span>{svc.label}</span>
-                                  <span className="tabular-nums">₹{price.toLocaleString("en-IN")}</span>
+                                  <span className="tabular-nums">{RUPEESIGN}{price.toLocaleString("en-IN")}</span>
                                 </button>
                               );
                             })}
@@ -580,7 +580,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                                   }`}
                                 >
                                   <span>{pkg.label}</span>
-                                  <span className="tabular-nums">₹{price.toLocaleString("en-IN")}</span>
+                                  <span className="tabular-nums">{RUPEESIGN}{price.toLocaleString("en-IN")}</span>
                                 </button>
                               );
                             })}
@@ -616,7 +616,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                                     </span>
                                     {addon.label}
                                   </span>
-                                  <span className="tabular-nums">+₹{price.toLocaleString("en-IN")}</span>
+                                  <span className="tabular-nums">+{RUPEESIGN}{price.toLocaleString("en-IN")}</span>
                                 </button>
                               );
                             })}
@@ -631,7 +631,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                             {selectedPackage && (
                               <div className="flex justify-between text-white text-sm">
                                 <span>{selectedPackage.label}</span>
-                                <span className="tabular-nums">₹{packageTotal.toLocaleString("en-IN")}</span>
+                                <span className="tabular-nums">{RUPEESIGN}{packageTotal.toLocaleString("en-IN")}</span>
                               </div>
                             )}
                             {selectedAddOns.map((addonId) => {
@@ -640,16 +640,16 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                               return (
                                 <div key={addonId} className="flex justify-between text-white/80 text-xs pl-2">
                                   <span>{addon.label}</span>
-                                  <span className="tabular-nums">+₹{getPrice(addon, effectiveSize).toLocaleString("en-IN")}</span>
+                                  <span className="tabular-nums">+{RUPEESIGN}{getPrice(addon, effectiveSize).toLocaleString("en-IN")}</span>
                                 </div>
                               );
                             })}
                             <div className="border-t border-white/30 pt-1 mt-1 flex justify-between text-white font-bold text-base">
                               <span>Total</span>
-                              <span className="tabular-nums">₹{totalPrice.toLocaleString("en-IN")}</span>
+                              <span className="tabular-nums">{RUPEESIGN}{totalPrice.toLocaleString("en-IN")}</span>
                             </div>
                             <p className="text-white/50 text-[10px] pt-1">
-                              * ₹500 booking fee adjusted in final bill
+                              * {RUPEESIGN}500 booking fee adjusted in final bill
                             </p>
                           </div>
                         )}
@@ -687,7 +687,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         ⚠️ Please Note
                       </p>
                       <p className="text-amber-100/90 text-xs">
-                        Booking by appointment only. A ₹500 booking fee is required (adjusted in your final bill).
+                        {`Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`}
                       </p>
                       <p className="text-amber-100/90 text-xs">
                         Please GPay advance to: <strong>9089196235@axisbank</strong>

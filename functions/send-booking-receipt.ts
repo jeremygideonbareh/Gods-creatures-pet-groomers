@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+const RUPEESIGN = "\u20B9";
+
 interface BookingData {
   customer_name: string;
   email: string;
@@ -111,7 +113,7 @@ function buildHtmlEmail(data: BookingData): string {
                             <tr>
                               <td style="font-size:18px;font-weight:700;color:#fff;">Total</td>
                               <td style="font-size:18px;font-weight:700;color:#fff;text-align:right;">
-                                ₹${(data.total_price ?? 0).toLocaleString("en-IN")}
+                                ${RUPEESIGN}${(data.total_price ?? 0).toLocaleString("en-IN")}
                               </td>
                             </tr>
                           </table>
@@ -124,7 +126,7 @@ function buildHtmlEmail(data: BookingData): string {
                         💰 Advance Payment Reminder
                       </p>
                       <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.8);line-height:1.5;">
-                        A ₹500 booking fee is required to confirm your appointment.
+                        A ${RUPEESIGN}500 booking fee is required to confirm your appointment.
                         If you haven't already, please GPay <strong style="color:#fff;">9089196235@axisbank</strong>
                         and include the UPI reference in your booking.
                       </p>
