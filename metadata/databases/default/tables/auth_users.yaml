@@ -2,8 +2,11 @@ table:
   name: users
   schema: auth
 configuration:
-  column_config: {}
-  custom_column_names: {}
+  column_config:
+    display_name:
+      custom_name: displayName
+  custom_column_names:
+    display_name: displayName
   custom_name: users
   custom_root_fields:
     select: users
