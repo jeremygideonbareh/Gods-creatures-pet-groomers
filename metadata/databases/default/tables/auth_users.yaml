@@ -40,6 +40,8 @@ configuration:
   custom_name: users
   custom_root_fields:
     select: users
+    select_aggregate: usersAggregate
+    select_by_pk: user
 object_relationships:
   - name: role
     using:
