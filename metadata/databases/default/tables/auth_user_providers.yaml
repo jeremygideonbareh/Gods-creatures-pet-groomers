@@ -1,6 +1,20 @@
 table:
   name: user_providers
   schema: auth
+configuration:
+  column_config:
+    provider_id:
+      custom_name: providerId
+    provider_user_id:
+      custom_name: providerUserId
+    user_id:
+      custom_name: userId
+  custom_column_names:
+    provider_id: providerId
+    provider_user_id: providerUserId
+    user_id: userId
+  custom_name: authUserProviders
+  custom_root_fields: {}
 object_relationships:
   - name: provider
     using:
