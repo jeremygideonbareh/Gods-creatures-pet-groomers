@@ -1578,4 +1578,9 @@ All findings from the code-reviewer, security-reviewer, and database-reviewer ag
 
 ---
 
+**Post Session 16 — AdminDashboard cleanup:**
+- Removed `user: { email: string } | null` from `Booking` interface (dead type)
+- Removed `booking.user?.email` JSX from line 174 (always undefined since `user` relationship removed from metadata)
+- Committed & pushed to `main` — triggers Nhost auto-deploy
+
 *Last updated: June 11, 2026 (session 16)*
