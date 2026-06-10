@@ -1,6 +1,14 @@
 table:
   name: roles
   schema: auth
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: authRoles
+  custom_root_fields:
+    select: authRoles
+    select_aggregate: authRolesAggregate
+    select_by_pk: authRole
 array_relationships:
   - name: user_roles
     using:
