@@ -13,6 +13,9 @@ dist
 dist-ssr
 *.local
 
+# Hasura config (contains admin secret)
+hasura/config.yaml
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

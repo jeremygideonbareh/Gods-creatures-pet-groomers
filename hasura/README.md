@@ -3,8 +3,12 @@
 ## Setup
 
 1. Install Hasura CLI: `npm install -g hasura-cli` or `curl -L https://github.com/hasura/graphql-engine/raw/stable/cli/get.sh | sh`
-2. Set admin secret in `config.yaml` (get from Nhost Dashboard → Settings → Hasura → Admin Secret)
+2. Set the `NHOST_ADMIN_SECRET` environment variable (get from Nhost Dashboard → Settings → Hasura → Admin Secret):
+   - **PowerShell:** `$env:NHOST_ADMIN_SECRET = "your-admin-secret"`
+   - **Bash:** `export NHOST_ADMIN_SECRET=your-admin-secret`
 3. Run from this directory: `hasura metadata apply`
+
+The admin secret is never stored in the repo. It's loaded at runtime from the `NHOST_ADMIN_SECRET` env var via the `{{NHOST_ADMIN_SECRET}}` placeholder in `config.yaml`. A template file `config.yaml.example` is tracked instead.
 
 ## Roles
 
