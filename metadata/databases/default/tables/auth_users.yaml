@@ -4,6 +4,7 @@ table:
 configuration:
   column_config: {}
   custom_column_names: {}
+  custom_name: users
   custom_root_fields:
     select: users
 object_relationships:
