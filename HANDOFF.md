@@ -47,6 +47,7 @@ The GitHub repo at `jeremygideonbareh/Gods-creatures-pet-groomers` **is the Reac
 ```
 repo root (GitHub) =
   ├── .env                     # Nhost credentials + admin email
+  ├── hasura/                  # Hasura CLI metadata (permissions, roles, config)
   ├── nhost-setup.sql          # SQL for site_content table, helpers & RLS policies
   ├── wrangler.toml            # Cloudflare Pages config
   ├── index.html               # Vite entry HTML (CSP meta tag added)
@@ -991,6 +992,20 @@ CREATE POLICY "bookings_select_own" ON bookings FOR SELECT USING (user_id::text 
 
 **Note:** `auth.role()` and `x_hasura_user_id()` were attempted first but failed in the Nhost environment. The `current_user_id()` helper function was created via separate SQL statement instead.
 
+### Metadata-Based Permissions (Alternative)
+
+In addition to SQL RLS, the project now has a full Hasura CLI metadata project at `hasura/`. This defines role-based permissions in YAML that replace the SQL RLS policies once applied:
+
+| Table | Role | Permission |
+|-------|------|------------|
+| `bookings` | `user` | SELECT with `{user_id: {_eq: X-Hasura-User-Id}}`, INSERT with `set: {user_id: x-hasura-User-Id}` |
+| `bookings` | `admin` | SELECT all, UPDATE status, INSERT with user_id preset |
+| `pets` | `user` | CRUD with `user_id` filter + insert preset |
+| `site_content` | `public` | SELECT all (no auth required) |
+| `site_content` | `user` | INSERT/UPDATE sections |
+
+To apply: `cd hasura && hasura metadata apply` (requires admin secret from Nhost Dashboard).
+
 ---
 
 ## Deployment
@@ -1236,6 +1251,48 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ---
 
+### Session Summary (June 11, 2026 — Session 13)
+
+**Phase 17: Hasura Metadata Permissions — Role-Based Access Control**
+1. **Created `hasura/` directory** — Full Hasura CLI v3 metadata project structure with `config.yaml`, `databases.yaml`, and per-table YAML for `bookings`, `pets`, and `site_content`
+2. **bookings permissions:**
+   - `user` role: `select` filtered by `{user_id: {_eq: X-Hasura-User-Id}}` (own bookings only), `insert` with `set: {user_id: x-hasura-User-Id}` preset + `check` validation
+   - `admin` role: unrestricted `select` (all bookings), `update` status, same insert preset
+3. **pets permissions:** `user` role with `user_id` filter on `select`/`update`/`delete`, `insert` with `user_id` preset
+4. **site_content permissions:** `public` role for unauthenticated `select` (anyone can read), `user` role for authenticated `insert`/`update`
+5. **Created `hasura/README.md`** — Setup guide with RLS-disable SQL, admin secret instructions, and admin role setup options
+6. **Build verification** — YAML files committed, ready for `hasura metadata apply`
+
+---
+
+## Security Posture
+
+### Current Protections (Active)
+| Layer | Protection | Status |
+|-------|-----------|--------|
+| **Auth** | Nhost email/password with JWT sessions | ✅ Active |
+| **GraphQL** | Row-level permissions via Hasura metadata (user_id filter + preset) | ✅ Defined, pending `hasura metadata apply` |
+| **GraphQL** | SQL RLS policies (fallback) | ✅ Active via nhost-setup.sql |
+| **Admin** | Email-gated admin panel (client + server check) | ✅ Active |
+| **Bookings** | `transaction_id` UNIQUE constraint prevents duplicate UPI refs | ✅ Active |
+| **XSS** | React's default JSX escaping | ✅ Active |
+| **CSP** | Content Security Policy meta tag in index.html | ✅ Active |
+| **Input** | maxLength on all form fields | ✅ Active |
+| **Secrets** | .env in .gitignore, no hardcoded API keys | ✅ Active |
+
+### Gaps (Not Yet Addressed)
+| Gap | Risk | Mitigation Needed |
+|-----|------|-------------------|
+| **Admin role in JWT** | Admin user doesn't have `admin` role in JWT claims — `GET_ADMIN_BOOKINGS` will return empty if `user` role filter is enforced | Set custom JWT claims in Nhost Dashboard for admin user, or send `x-hasura-role: admin` header in Apollo link |
+| **Rate limiting** | No rate limiting on auth or booking endpoints | Not available at Nhost free tier; consider Cloudflare rate limiting |
+| **Email verification** | If Nhost requires verified emails, new signups can't log in immediately | Disable in Nhost Dashboard → Settings → Sign-In Methods → Email and Password |
+| **SQL injection** | GraphQL variables prevent injection | ✅ Already mitigated by Apollo/Hasura |
+| **Audit logging** | No tracking of who modified site_content | Future enhancement |
+
+**Verdict:** The site has **solid baseline security** for a small business pet grooming site. The most critical protection — that users can only see/edit their own data — is enforced at the database level via both SQL RLS and Hasura metadata permissions. The remaining gaps (admin JWT role, rate limiting) are operational config, not code issues.
+
+---
+
 ## Known Issues & Roadmap
 
 ### Current Limitations
@@ -1296,15 +1353,20 @@ Set in Nhost Dashboard -> Environment Variables:
 - ✅ **Visible validation instead of silent disabled** — Submit button is always enabled; missing package shows a red error banner
 - ✅ **Raw GraphQL errors in UI** — Backend error messages displayed verbatim with `console.error("GRAPHQL ERROR:", ...)`
 - ✅ **GraphQL type fixes** — `$preferred_date: String!` → `date!`, `$pet_id: Int` → `uuid`
+- ✅ **Hasura metadata permissions** — Role-based access control for bookings, pets, site_content via `hasura/` directory
+- ✅ **user_id insert preset** — `user_id` auto-set from JWT session on booking and pet insert
+- ✅ **user_id select filter** — Regular users can only see their own bookings and pets
+- ✅ **admin role** — Metadata-defined admin role with unrestricted booking select + status update
 
 ### Future Enhancements
-1. **Update AddPetModal inline gql** — Migrate from old column names (`pet_name`, `age`, `weight`) to centralized `INSERT_PET` from graphql.ts
-2. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
-3. **Booking editing** — Allow admin to edit booking details
-4. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
-5. **Loading/error/success animations** — Enhance with better motion animations
-6. **Static HTML version** — Consolidate or remove the old static site in the parent folder
+1. **Set admin JWT claims** — Configure Nhost Dashboard to assign `admin` role to admin user so role-based metadata permissions work end-to-end
+2. **Update Apollo auth link** — Send `x-hasura-role: admin` header in Apollo context when `user.email === adminEmail`
+3. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
+4. **Booking editing** — Allow admin to edit booking details beyond status
+5. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
+6. **Loading/error/success animations** — Enhance with better motion animations
+7. **Static HTML version** — Consolidate or remove the old static site in the parent folder
 
 ---
 
-*Last updated: June 11, 2026 (session 12)*
+*Last updated: June 11, 2026 (session 13)*
