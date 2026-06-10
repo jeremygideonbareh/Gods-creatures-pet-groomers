@@ -1,0 +1,91 @@
+table:
+  name: pets
+  schema: public
+array_relationships:
+  - name: bookings
+    using:
+      foreign_key_constraint_on:
+        column: pet_id
+        table:
+          name: bookings
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - age_years
+        - behavioral_notes
+        - breed
+        - coat_condition
+        - medical_history
+        - name
+        - species
+        - vet_contact
+        - weight_kg
+select_permissions:
+  - role: admin
+    permission:
+      columns:
+        - age_years
+        - behavioral_notes
+        - breed
+        - coat_condition
+        - created_at
+        - id
+        - medical_history
+        - name
+        - species
+        - user_id
+        - vet_contact
+        - weight_kg
+      filter: {}
+      allow_aggregations: true
+  - role: user
+    permission:
+      columns:
+        - age_years
+        - behavioral_notes
+        - breed
+        - coat_condition
+        - created_at
+        - id
+        - medical_history
+        - name
+        - species
+        - user_id
+        - vet_contact
+        - weight_kg
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - age_years
+        - behavioral_notes
+        - breed
+        - coat_condition
+        - medical_history
+        - name
+        - species
+        - vet_contact
+        - weight_kg
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check: null
+      set:
+        user_id: x-hasura-User-Id
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
