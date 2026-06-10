@@ -7,22 +7,22 @@ import { designTokens } from "@/config/site-content";
 
 const CREATE_PET = gql`
   mutation CreatePetAfterLogin(
-    $pet_name: String!
+    $name: String!
     $species: String!
-    $breed: String!
-    $age: Int
-    $weight: numeric
+    $breed: String
+    $age_years: Int
+    $weight_kg: numeric
     $coat_condition: String
     $medical_history: String
     $behavioral_notes: String
     $vet_contact: String
   ) {
     insert_pets_one(object: {
-      pet_name: $pet_name
+      name: $name
       species: $species
       breed: $breed
-      age: $age
-      weight: $weight
+      age_years: $age_years
+      weight_kg: $weight_kg
       coat_condition: $coat_condition
       medical_history: $medical_history
       behavioral_notes: $behavioral_notes
@@ -42,8 +42,8 @@ export function AddPetModal({ isOpen, onClose }: AddPetModalProps) {
   const [petName, setPetName] = useState("");
   const [species, setSpecies] = useState("");
   const [breed, setBreed] = useState("");
-  const [age, setAge] = useState("");
-  const [weight, setWeight] = useState("");
+  const [ageYears, setAgeYears] = useState("");
+  const [weightKg, setWeightKg] = useState("");
   const [coatCondition, setCoatCondition] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
   const [behavioralNotes, setBehavioralNotes] = useState("");
@@ -59,11 +59,11 @@ export function AddPetModal({ isOpen, onClose }: AddPetModalProps) {
       await apolloClient.mutate({
         mutation: CREATE_PET,
         variables: {
-          pet_name: petName,
+          name: petName,
           species: species || "Dog",
-          breed,
-          age: age ? parseInt(age, 10) : null,
-          weight: weight ? parseFloat(weight) : null,
+          breed: breed || null,
+          age_years: ageYears ? parseInt(ageYears, 10) : null,
+          weight_kg: weightKg ? parseFloat(weightKg) : null,
           coat_condition: coatCondition || null,
           medical_history: medicalHistory || null,
           behavioral_notes: behavioralNotes || null,
@@ -165,8 +165,8 @@ export function AddPetModal({ isOpen, onClose }: AddPetModalProps) {
                     placeholder="Age (years)"
                     min={0}
                     max={50}
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
+                    value={ageYears}
+                    onChange={(e) => setAgeYears(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
                 </div>
@@ -179,8 +179,8 @@ export function AddPetModal({ isOpen, onClose }: AddPetModalProps) {
                     min={0}
                     max={200}
                     step={0.1}
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
+                    value={weightKg}
+                    onChange={(e) => setWeightKg(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
                   />
                 </div>

@@ -53,14 +53,13 @@ export default function ScrollAdventure() {
       if (count === 0) {
         setShowPetForm(true);
       }
-    } catch {
-      // silently ignore
+    } catch (err) {
+      console.error("Failed to check pet count:", err);
     }
   };
 
   const handleLogout = async () => {
-    // @ts-expect-error Nhost v4 type expects SignOutRequest but no-args avoids payload errors
-    await nhost.auth.signOut();
+    await nhost.auth.signOut({});
     navigate("/");
   };
 

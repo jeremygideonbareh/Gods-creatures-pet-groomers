@@ -73,8 +73,8 @@ export function ContentEditor() {
       await updateSection(SECTION_MAP[activeTab], tabData[activeTab]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch {
-      // error handled by context
+    } catch (err) {
+      console.error("Failed to save section:", err);
     } finally {
       setSaving(false);
     }
@@ -125,7 +125,7 @@ export function ContentEditor() {
             <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Cards</p>
             {whyForm.cards.map((card, i) => (
               <CardEditor
-                key={i}
+                key={card.title || i}
                 card={card}
                 index={i}
                 onChange={(updated) => {
@@ -155,7 +155,7 @@ export function ContentEditor() {
             <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Service Items</p>
             {servicesForm.items.map((item, i) => (
               <ServiceItemEditor
-                key={i}
+                key={item.id || i}
                 item={item}
                 index={i}
                 onChange={(updated) => {
@@ -184,7 +184,7 @@ export function ContentEditor() {
             <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Testimonials</p>
             {reviewsForm.testimonials.map((t, i) => (
               <TestimonialEditor
-                key={i}
+                key={t.author || i}
                 testimonial={t}
                 index={i}
                 onChange={(updated) => {
@@ -207,7 +207,7 @@ export function ContentEditor() {
             <div className="border-t border-white/10 pt-4 mt-4">
               <p className="text-white/60 text-xs uppercase tracking-wider font-semibold mb-2">Review Images</p>
               {reviewsForm.images.map((img, i) => (
-                <div key={i} className="flex gap-2 mb-2 items-start">
+                <div key={img || i} className="flex gap-2 mb-2 items-start">
                   <div className="flex-1">
                     <ImageDropzone value={img} onChange={(v) => {
                       const images = [...reviewsForm.images];

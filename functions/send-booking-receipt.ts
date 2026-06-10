@@ -2,6 +2,15 @@ import { Resend } from "resend";
 
 const RUPEESIGN = "\u20B9";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 interface BookingData {
   customer_name: string;
   email: string;
@@ -38,7 +47,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
 
 function buildHtmlEmail(data: BookingData): string {
   const addonsList = data.addons && data.addons.length > 0
-    ? data.addons.map((a) => `<li>${a}</li>`).join("")
+    ? data.addons.map((a) => `<li>${escapeHtml(a)}</li>`).join("")
     : "<li>None selected</li>";
 
   return `
@@ -73,7 +82,7 @@ function buildHtmlEmail(data: BookingData): string {
                       Booking Received! 🎉
                     </h2>
                     <p style="margin:0 0 20px;font-size:14px;color:rgba(255,255,255,0.8);line-height:1.5;">
-                      Hello <strong style="color:#fff;">${data.customer_name}</strong>,<br />
+                      Hello <strong style="color:#fff;">${escapeHtml(data.customer_name)}</strong>,<br />
                       your booking request has been received and is being reviewed.
                     </p>
 
@@ -88,7 +97,7 @@ function buildHtmlEmail(data: BookingData): string {
                           <table width="100%" cellpadding="0" cellspacing="0">
                             <tr>
                               <td style="font-size:13px;color:rgba(255,255,255,0.7);">Package</td>
-                              <td style="font-size:13px;color:#fff;font-weight:600;text-align:right;">${data.service}</td>
+                              <td style="font-size:13px;color:#fff;font-weight:600;text-align:right;">${escapeHtml(data.service)}</td>
                             </tr>
                             <tr>
                               <td style="font-size:13px;color:rgba(255,255,255,0.7);padding-top:6px;">Date</td>
@@ -131,7 +140,7 @@ function buildHtmlEmail(data: BookingData): string {
                         and include the UPI reference in your booking.
                       </p>
                       <p style="margin:6px 0 0;font-size:11px;color:rgba(255,255,255,0.5);">
-                        Transaction ID: ${data.transaction_id}
+                        Transaction ID: ${escapeHtml(data.transaction_id)}
                       </p>
                     </div>
                   </td>
@@ -184,7 +193,7 @@ export default async function handler(req: any, res: any) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: booking.email,
-      subject: `🐾 Booking Received — ${booking.customer_name}, your grooming request is confirmed!`,
+      subject: `🐾 Booking Received — ${escapeHtml(booking.customer_name)}, your grooming request is confirmed!`,
       html: emailHtml,
     });
 

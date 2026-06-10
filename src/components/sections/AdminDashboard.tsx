@@ -40,7 +40,6 @@ interface Booking {
   status: string;
   created_at: string;
   pet: { name: string; breed: string | null } | null;
-  user: { email: string } | null;
 }
 
 interface BookingsData {
@@ -171,7 +170,6 @@ export function AdminDashboard() {
                         </div>
                         <p className="text-white/50 text-xs">
                           {booking.email}
-                          {booking.user?.email ? ` • user: ${booking.user.email}` : ""}
                           {booking.phone ? ` • ${booking.phone}` : ""}
                         </p>
                         <p className="text-white/60 text-xs mt-1">

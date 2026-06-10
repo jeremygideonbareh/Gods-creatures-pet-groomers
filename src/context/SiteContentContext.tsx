@@ -56,8 +56,8 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
           fetchPolicy: "network-only",
         });
         setContent(mapDbToSiteContent(data?.site_content, DEFAULTS));
-      } catch {
-        // Use hardcoded defaults
+      } catch (err) {
+        console.error("Failed to fetch site content, using defaults:", err);
       } finally {
         setLoading(false);
       }

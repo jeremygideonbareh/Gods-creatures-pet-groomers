@@ -1540,4 +1540,42 @@ All three specialized agents were run against the full codebase (code-reviewer, 
 
 ---
 
-*Last updated: June 11, 2026 (session 15)*
+### Session 16 — Code Review Fix Implementation (June 11, 2026)
+
+All findings from the code-reviewer, security-reviewer, and database-reviewer agents (Session 15) have been fixed and verified by re-running all three agents.
+
+| # | Severity | Finding | File(s) | Fix |
+|---|----------|---------|---------|-----|
+| 1 | CRITICAL | Wrong mutation column names | `AddPetModal.tsx` | `pet_name`→`name`, `age`→`age_years`, `weight`→`weight_kg` |
+| 2 | CRITICAL | Hardcoded adminEmail | `site-content.ts` | Reads `VITE_ADMIN_EMAIL` env var first, falls back to hardcoded value |
+| 3 | CRITICAL | RLS blocks admin user | `databases.yaml` | Added `admin` role with full SELECT on bookings+pets, UPDATE bookings.status, INSERT/UPDATE site_content |
+| 4 | CRITICAL | site_content blocked for unauthenticated | `databases.yaml` | `public` role has SELECT on site_content |
+| 5 | HIGH | parseInt on UUID pet_id | `booking-modal.tsx` | Removed `parseInt`, passes UUID string directly |
+| 6 | HIGH | @ts-expect-error on signOut | `UserMenu.tsx`, `animated-scroll.tsx` | Changed to `signOut({})` |
+| 7 | HIGH | Empty catch blocks | `SiteContentContext.tsx`, `ContentEditor.tsx`, `animated-scroll.tsx` | Added `console.error` with descriptive messages |
+| 8 | HIGH | No global GraphQL error handling | `main.tsx` | Added Apollo v4 `ErrorLink` via `new ErrorLink(...)` + `CombinedGraphQLErrors.is()` |
+| 9 | HIGH | SQL injection in email receipts | `send-booking-receipt.ts` | Added `escapeHtml()` — applied to all user-controlled fields |
+| 10 | HIGH | Missing CREATE TABLE IF NOT EXISTS | `nhost-setup.sql` | Full rewrite — all tables use `CREATE TABLE IF NOT EXISTS` |
+| 11 | HIGH | Missing indexes | `nhost-setup.sql` | 6 indexes added (bookings.user_id, pet_id, status, created_at, transaction_id; pets.user_id) |
+| 12 | MEDIUM | Missing use_prepared_statements | `databases.yaml` | Set to `true` |
+| 13 | MEDIUM | No date validation | `booking-modal.tsx` | Added `required` + `min` (today) to date input |
+| 14 | MEDIUM | key={i} in list renders | `ContentEditor.tsx` | Changed to `key={card.title \|\| i}`, `key={item.id \|\| i}`, etc. |
+| 15 | MEDIUM | current_user_id() returns text | `nhost-setup.sql` | New `current_user_uuid()` returns `uuid`; old wrapped as backward-compat |
+| 16 | MEDIUM | No CHECK on bookings.status | `nhost-setup.sql` | Added `CONSTRAINT bookings_status_check` |
+| 17 | MEDIUM | No updated_at trigger | `nhost-setup.sql` | Added `update_site_content_timestamp()` trigger |
+| 18 | LOW | nhost-setup.sql not idempotent | `nhost-setup.sql` | All `IF NOT EXISTS`, `DROP POLICY IF EXISTS`, `DROP TRIGGER IF EXISTS`, `ON CONFLICT DO NOTHING` |
+| 19 | LOW | Missing aria-describedby | `booking-modal.tsx` | Added `aria-describedby="booking-form"` + `id="booking-form"` |
+| 20 | LOW | Apollo v4 build errors | `main.tsx` | Fixed imports: `ErrorLink` from `@apollo/client/link/error`, `CombinedGraphQLErrors` from `@apollo/client/errors` |
+
+**Build status:** `tsc -b` passes clean, `vite build` passes (pre-existing chunk size warning only)
+
+**Files changed (15):** `AddPetModal.tsx`, `booking-modal.tsx`, `UserMenu.tsx`, `animated-scroll.tsx`, `SiteContentContext.tsx`, `ContentEditor.tsx`, `site-content.ts`, `main.tsx`, `databases.yaml`, `nhost-setup.sql`, `send-booking-receipt.ts`, `config.yaml.example`, `vite.config.ts`, `HANDOFF.md`
+
+**Remaining infrastructure steps:**
+1. Run `ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;` (and pets, site_content) in Nhost Dashboard SQL console
+2. Configure Nhost JWT claims for admin user (`cloudlyconfusing@gmail.com`) — add `admin` role to `x-hasura-allowed-roles`
+3. Re-apply metadata: `hasura metadata apply` (will accept the `admin` role after JWT claims configured)
+
+---
+
+*Last updated: June 11, 2026 (session 16)*

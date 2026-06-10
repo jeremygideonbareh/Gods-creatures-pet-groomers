@@ -1,4 +1,4 @@
-export const adminEmail = "cloudlyconfusing@gmail.com";
+export const adminEmail = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
 
 export const RUPEESIGN = "\u20B9";
 

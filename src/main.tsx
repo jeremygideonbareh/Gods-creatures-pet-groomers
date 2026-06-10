@@ -1,7 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { ApolloClient, InMemoryCache, createHttpLink, from } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
+import { ErrorLink } from "@apollo/client/link/error";
+import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { ApolloProvider } from "@apollo/client/react";
 import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -24,8 +26,18 @@ const authLink = setContext(async (_, { headers }) => {
   };
 });
 
+const errorLink = new ErrorLink(({ error }) => {
+  if (CombinedGraphQLErrors.is(error)) {
+    error.errors.forEach((err) =>
+      console.error("[GraphQL error]:", err.message, err.locations, err.path)
+    );
+  } else {
+    console.error("[Network error]:", error);
+  }
+});
+
 const apolloClient = new ApolloClient({
-  link: authLink.concat(httpLink),
+  link: from([errorLink, authLink.concat(httpLink)]),
   cache: new InMemoryCache(),
 });
 

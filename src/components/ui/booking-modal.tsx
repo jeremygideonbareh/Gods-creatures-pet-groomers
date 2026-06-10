@@ -119,7 +119,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const { content } = useSiteContent();
   const booking = content.booking;
   const pricing = (content.pricingMenu || PRICING_MENU) as PricingMenuContent;
-  const { data: petData } = useQuery<{ pets: { id: number; name: string; species: string; breed: string | null; weight_kg: number | null }[] }>(GET_USER_PETS, { skip: !user });
+  const { data: petData } = useQuery<{ pets: { id: string; name: string; species: string; breed: string | null; weight_kg: number | null }[] }>(GET_USER_PETS, { skip: !user });
   const pets = petData?.pets || [];
 
   const selectedPet = useMemo(() => {
@@ -257,7 +257,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       return;
     }
 
-    const selectedPetNum = selectedPetId ? parseInt(selectedPetId, 10) : null;
+    const selectedPetUuid = selectedPetId || null;
 
     const addonLabels = selectedAddOns
       .map((id) => {
@@ -278,7 +278,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           notes: notesRef.current?.value || "",
           advance_paid: 500,
           transaction_id: transactionId,
-          pet_id: selectedPetNum,
+          pet_id: selectedPetUuid,
           addons: addonLabels,
           total_price: totalPrice,
         },
@@ -426,7 +426,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     {booking.formSubtitle}
                   </p>
 
-                  <form onSubmit={handleFormSubmit} className="space-y-3">
+                  <form id="booking-form" onSubmit={handleFormSubmit} className="space-y-3">
                     <div>
                       <label htmlFor="booking-name" className="sr-only">
                         Your name
@@ -664,6 +664,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         id="booking-date"
                         ref={dateRef}
                         type="date"
+                        required
                         min={new Date().toISOString().split("T")[0]}
                         className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60 [color-scheme:dark]"
                       />
@@ -723,6 +724,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     {submitStatus === "error" && (
                       <p
                         role="alert"
+                        aria-describedby="booking-form"
                         className="text-red-200 text-sm text-center bg-red-500/20 rounded-lg p-2"
                       >
                         {errorMessage}
