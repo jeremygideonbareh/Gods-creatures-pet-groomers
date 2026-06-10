@@ -1,6 +1,11 @@
 version: 3
-endpoint: https://ukuqslqvwovrukooziwf.graphql.ap-south-1.nhost.run
-admin_secret: {{NHOST_ADMIN_SECRET}}
+# Use the direct Hasura engine endpoint, NOT the GraphQL proxy (graphql.*.nhost.run).
+# The GraphQL proxy doesn't expose Hasura's metadata API endpoints.
+endpoint: https://ukuqslqvwovrukooziwf.hasura.ap-south-1.nhost.run
+# admin_secret is read from HASURA_GRAPHQL_ADMIN_SECRET env var at runtime.
+# Set it before running hasura CLI:
+#   $env:HASURA_GRAPHQL_ADMIN_SECRET = "your-admin-secret"
+admin_secret: {{HASURA_GRAPHQL_ADMIN_SECRET}}
 metadata_directory: metadata
 actions:
   kind: synchronous

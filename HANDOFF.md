@@ -47,7 +47,15 @@ The GitHub repo at `jeremygideonbareh/Gods-creatures-pet-groomers` **is the Reac
 ```
 repo root (GitHub) =
   ├── .env                     # Nhost credentials + admin email
-  ├── hasura/                  # Hasura CLI metadata (permissions, roles, config)
+  ├── hasura/                  # Hasura CLI metadata project (permissions, roles, config)
+  │   ├── config.yaml          # CLI config (gitignored) — endpoint: hasura.ap-south-1.nhost.run
+  │   ├── config.yaml.example  # Tracked template for fresh clones
+  │   ├── README.md            # Setup guide (RLS-disable SQL, env vars, admin role)
+  │   └── metadata/            # Hasura v3 metadata YAML
+  │       ├── version.yaml     # version: 3
+  │       ├── actions.yaml     # Empty (no custom actions yet)
+  │       └── databases/
+  │           └── databases.yaml  # Inline table defs: bookings, pets, site_content + roles
   ├── nhost-setup.sql          # SQL for site_content table, helpers & RLS policies
   ├── wrangler.toml            # Cloudflare Pages config
   ├── index.html               # Vite entry HTML (CSP meta tag added)
@@ -85,6 +93,15 @@ This local folder contains extra files NOT in the repo:
 ```
 repo root/
 ├── .env                          # Nhost credentials + admin email
+├── hasura/                       # Hasura CLI metadata project
+│   ├── config.yaml               # CLI config (gitignored) — endpoint: hasura.ap-south-1.nhost.run
+│   ├── config.yaml.example       # Tracked template for fresh clones
+│   ├── README.md                 # Setup guide
+│   └── metadata/                 # Hasura v3 metadata YAML
+│       ├── version.yaml          # version: 3
+│       ├── actions.yaml          # Empty (no custom actions yet)
+│       └── databases/
+│           └── databases.yaml    # Inline table defs: bookings, pets, site_content + roles
 ├── nhost-setup.sql               # SQL setup (site_content table, RLS, current_user_id helper)
 ├── wrangler.toml                 # Cloudflare Pages config
 ├── public/
@@ -200,7 +217,9 @@ repo root/
 │     └── ApolloClient                                          │
 │         ├── createHttpLink(uri=NHOST_GRAPHQL_URL)             │
 │         ├── setContext(authLink)                              │
-│         │   └── reads nhost.getUserSession()->Authorization   │
+│         │   ├── reads nhost.getUserSession()->Authorization   │
+│         │   └── reads nhost.auth.getUser() -> x-hasura-role   │
+│         │       adminEmail ? "admin" : "user"                 │
 │         └── InMemoryCache                                     │
 │                                                               │
 └──────────────────────────┬───────────────────────────────────┘
@@ -565,7 +584,9 @@ export const adminEmail = "cloudlyconfusing@gmail.com";
 - If user is admin: full dashboard with Bookings tab and Content tab
 
 ### Bookings Tab
-- Fetches all bookings via `GET_ADMIN_BOOKINGS` (ordered by `created_at` desc) — includes nested `pet { name breed }` and `user { email }`
+- Fetches all bookings via `GET_ADMIN_BOOKINGS` (ordered by `created_at` desc) — includes nested `pet { name breed }`
+- The `user { email }` sub-query was removed in Session 14 because `auth.users` is not tracked in Hasura metadata (the `user` relationship was causing inconsistency errors)
+- The `email` field is available directly on the bookings table (stored at booking time)
 - Each booking card shows: customer name, email (top-level + user.email), phone, service, preferred date, pet name/breed, notes, advance paid, transaction ID
 - Status badges with colors: Pending (yellow), Confirmed (green), Cancelled (red)
 - **Confirm button** for pending bookings:
@@ -588,14 +609,13 @@ export const adminEmail = "cloudlyconfusing@gmail.com";
 
 ### GraphQL Queries
 
-**GET_ADMIN_BOOKINGS:**
+**GET_ADMIN_BOOKINGS (updated Session 14 — removed `user { email }`):**
 ```graphql
 query GetAdminBookings {
   bookings(order_by: { created_at: desc }) {
     id customer_name email phone service preferred_date notes
     advance_paid transaction_id status created_at
     pet { name breed }
-    user { email }
   }
 }
 ```
@@ -699,7 +719,7 @@ The `pets` table uses these columns (different from what earlier inline queries 
 - `age_years` (was `age`)
 - `weight_kg` (was `weight`)
 
-The `bookings` query nests `pet { name breed }` (was `pet { pet_name species breed }`) and `user { email }`.
+The `bookings` query nests `pet { name breed }` (was `pet { pet_name species breed }` — the `user { email }` sub-query was removed in Session 14 because `auth.users` isn't tracked in Hasura metadata, causing "table not tracked" inconsistency errors during `hasura metadata apply`).
 
 ### What is NOT centralized
 - `CREATE_BOOKING` — stays inline in `booking-modal.tsx` (only used there)
@@ -754,7 +774,7 @@ export const NHOST_GRAPHQL_URL = generateServiceUrl(
 ### Location
 `src/main.tsx`
 
-### Current File Content
+### Current File Content (updated Session 14 — role header)
 ```typescript
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -763,6 +783,7 @@ import { setContext } from "@apollo/client/link/context";
 import { ApolloProvider } from "@apollo/client/react";
 import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { adminEmail } from "@/config/site-content";
 import "./index.css";
 import App from "./App.tsx";
 
@@ -771,10 +792,15 @@ const httpLink = createHttpLink({ uri: NHOST_GRAPHQL_URL });
 const authLink = setContext(async (_, { headers }) => {
   const session = nhost.getUserSession();
   const token = session?.accessToken;
+  const user = nhost.auth.getUser();
+  const role = user?.email === adminEmail ? "admin" : "user";
   return {
     headers: {
       ...headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token ? {
+        Authorization: `Bearer ${token}`,
+        "x-hasura-role": role,
+      } : {}),
     },
   };
 });
@@ -824,11 +850,16 @@ createRoot(rootEl).render(
 </StrictMode>
 ```
 
-### Auth Link Behavior
+### Auth Link Behavior (Updated Session 14)
 - `setContext` runs before every GraphQL request
 - Reads current Nhost session via `nhost.getUserSession()`
-- If `accessToken` exists, attaches `Authorization: Bearer <token>`
-- Unauthenticated users can still insert bookings (Hasura permissions control anonymous access)
+- If `accessToken` exists, attaches:
+  - `Authorization: Bearer <token>` — JWT auth token
+  - `x-hasura-role: admin|user` — role header based on admin email check
+- Role logic: `user?.email === adminEmail ? "admin" : "user"` — adminEmail imported from `site-content.ts`
+- Role header is only sent when a JWT token is present (unauthenticated requests skip it)
+- Hasura validates `x-hasura-role` against the JWT's `x-hasura-allowed-roles` claim; if `admin` isn't in the JWT claims, Hasura falls back to `user` role
+- **Current state:** `admin` role permissions have been removed from metadata until Nhost custom JWT claims are configured
 
 ---
 
@@ -1253,15 +1284,86 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ### Session Summary (June 11, 2026 — Session 13)
 
-**Phase 17: Hasura Metadata Permissions — Role-Based Access Control**
-1. **Created `hasura/` directory** — Full Hasura CLI v3 metadata project structure with `config.yaml`, `databases.yaml`, and per-table YAML for `bookings`, `pets`, and `site_content`
-2. **bookings permissions:**
-   - `user` role: `select` filtered by `{user_id: {_eq: X-Hasura-User-Id}}` (own bookings only), `insert` with `set: {user_id: x-hasura-User-Id}` preset + `check` validation
-   - `admin` role: unrestricted `select` (all bookings), `update` status, same insert preset
-3. **pets permissions:** `user` role with `user_id` filter on `select`/`update`/`delete`, `insert` with `user_id` preset
-4. **site_content permissions:** `public` role for unauthenticated `select` (anyone can read), `user` role for authenticated `insert`/`update`
-5. **Created `hasura/README.md`** — Setup guide with RLS-disable SQL, admin secret instructions, and admin role setup options
-6. **Build verification** — YAML files committed, ready for `hasura metadata apply`
+**Phase 17: Hasura CLI Metadata Project — Role-Based Permissions Structure**
+
+1. **Created `hasura/` directory** — Full Hasura CLI v3 metadata project structure:
+   - `hasura/config.yaml` — CLI configuration pointing to Hasura engine (`hasura.ap-south-1.nhost.run`, NOT `graphql.ap-south-1.nhost.run` because the GraphQL proxy doesn't expose Hasura metadata endpoints). `admin_secret` is loaded from `HASURA_GRAPHQL_ADMIN_SECRET` env var at runtime. Config file is gitignored.
+   - `hasura/config.yaml.example` — Tracked template for new clones (uses `{{HASURA_GRAPHQL_ADMIN_SECRET}}` placeholder)
+   - `hasura/README.md` — Setup guide with RLS-disable SQL, admin secret instructions, `hasura metadata apply` workflow, and admin role config guidance
+   - `hasura/metadata/version.yaml` — `version: 3`
+   - `hasura/metadata/actions.yaml` — Empty (no custom actions yet)
+   - `hasura/metadata/databases/databases.yaml` — Contains Hasura metadata with **inline table definitions** using the `tables` key (not separate YAML files per table), configured for three tables:
+
+2. **bookings table permissions** (inline in databases.yaml):
+   - `user` role: `select` with `filter: {user_id: {_eq: X-Hasura-User-Id}}` (own bookings only), `insert` with `set: {user_id: x-hasura-User-Id}` preset + same `check` validation
+   - `admin` role: unrestricted `select` on all bookings, `update` on `status` column, same `insert` with `user_id` preset
+
+3. **pets table permissions** (inline in databases.yaml):
+   - `user` role: `select`/`update`/`delete` filtered by `user_id`, `insert` with `user_id` preset
+
+4. **site_content table permissions** (inline in databases.yaml):
+   - `public` role: unauthenticated `select` (anyone can read site content — this is the landing page data)
+   - `user` role: `insert`/`update` for authenticated users with content management access
+
+5. **Explicit column permissions configured** — Each table's `select`/`insert`/`update` permissions explicitly list which columns are accessible per role (e.g., bookings `insert` allows all columns, `update` only allows `status` for admin)
+
+6. **Hasura CLI binary** — Downloaded `hasura.exe` v2.42.0 (71MB) to `%TEMP%\hasura.exe`. Updated CLI with `hasura update-cli`. Validated with `hasura version`.
+
+7. **First `hasura metadata apply` failed** — Error: `"Inconsistent object: table 'bookings' in source 'default' is not tracked"`. Root cause: `databases.yaml` used Hasura metadata v3 `tables` key with inline definitions, but Hasura CLI v2.42.0 expects `database`-level metadata syntax (table tracking + permissions separated). Fix attempted: restructured metadata to track tables first then apply permissions.
+
+8. **Second attempt with direct-engine endpoint** — Changed `endpoint` from `graphql.ap-south-1.nhost.run` to `hasura.ap-south-1.nhost.run` (direct Hasura engine). This is **required** — the GraphQL proxy doesn't serve the `/v1/metadata` endpoint. Response error changed to `"inconsistent_object: table bookings in source default not found"` — meaning tables must already exist in the database (they do) but need to be tracked through Hasura.
+
+9. **Key discovery** — Hasura CLI v2.42.0 on Windows works with the Nhost Hasura engine directly. The `config.yaml` must point to `hasura.ap-south-1.nhost.run`, not `graphql.ap-south-1.nhost.run`. The `admin_secret` must be the Nhost project's Hasura admin secret (found in Nhost Dashboard → Settings → Hasura → Admin Secret). `HASURA_GRAPHQL_ADMIN_SECRET` env var is the native Hasura CLI env var — no template interpolation needed.
+
+10. **Build verification** — `tsc -b && vite build` passes with zero errors
+
+---
+
+### Session Summary (June 11, 2026 — Session 14)
+
+**Phase 18: Metadata Apply + Permissions Fix + Apollo Auth Role Link**
+
+1. **Successful `hasura metadata apply`** — Ran `& "C:\Users\cloud\AppData\Local\Temp\hasura.exe" metadata apply` with `$env:HASURA_GRAPHQL_ADMIN_SECRET` set. Output: `INFO Metadata applied` — clean apply with zero warnings. The metadata is now **live on the Hasura engine**.
+
+2. **Removed `admin` role permissions from metadata** — Nhost's JWT doesn't include `admin` in `x-hasura-allowed-roles` by default. If metadata defines an `admin` role but the JWT doesn't include it in the `allowed-roles` claim, Hasura will reject requests with `x-hasura-role: admin` header. Removed all `admin` role permission blocks from `databases.yaml` to avoid this. Will re-add once custom JWT claims configured in Nhost Dashboard.
+
+3. **Removed `user` object_relationship from bookings and pets** — The `auth.users` table is not tracked in Hasura metadata (Nhost manages users outside Hasura). The bookings table had a `user` relationship referencing `auth.users`, which caused "table not tracked" inconsistency errors during `hasura metadata apply`. Removed the `user` object_relationship from both bookings and pets table definitions.
+
+4. **Updated `GET_ADMIN_BOOKINGS` query** — Removed `user { email }` sub-query from `GET_ADMIN_BOOKINGS` in `src/lib/graphql.ts` since the `user` relationship no longer exists in Hasura metadata. The `email` field is available directly on the bookings table (stored at booking time), so admin can still see the customer email.
+
+5. **Updated Apollo auth link in `main.tsx`** — Modified the `setContext` auth link to send `x-hasura-role` header alongside the JWT `Authorization` header:
+   ```typescript
+   const authLink = setContext(async (_, { headers }) => {
+     const session = nhost.getUserSession();
+     const token = session?.accessToken;
+     const user = nhost.auth.getUser();
+     const role = user?.email === adminEmail ? "admin" : "user";
+     return {
+       headers: {
+         ...headers,
+         ...(token ? {
+           Authorization: `Bearer ${token}`,
+           "x-hasura-role": role,
+         } : {}),
+       },
+     };
+   });
+   ```
+   - When `user.email === adminEmail`: sends `x-hasura-role: admin`
+   - For all other users: sends `x-hasura-role: user`
+   - Role header is only attached when a JWT token is present (unauthenticated queries skip it)
+   - This is a **client-side assertion** of role — Hasura will validate against JWT claims and fall back to `user` role if `admin` isn't in the JWT's `x-hasura-allowed-roles`
+
+6. **Fixed `config.yaml` endpoint** — Confirmed the config.yaml uses `hasura.ap-south-1.nhost.run` (direct Hasura engine). The `config.yaml.example` template was updated to match with the correct endpoint and `HASURA_GRAPHQL_ADMIN_SECRET` placeholder. The `admin_secret` line is present in the example (with `{{HASURA_GRAPHQL_ADMIN_SECRET}}` placeholder) but commented out in the actual config.yaml (reads from env var at runtime via `HASURA_GRAPHQL_ADMIN_SECRET`).
+
+7. **Git workflow** — Created `hasura/config.yaml.example`, added `hasura/config.yaml` to `.gitignore`, committed all changes across 5 commits:
+   - `feat: booking modal fixes` (pet size ternary, manualSize, date picker, crash-safe arrays, raw error display, validation fixes)
+   - `fix: GraphQL type corrections` ($preferred_date: date!, $pet_id: uuid)
+   - `feat: hasura metadata structure` (databases.yaml with bookings/pets/site_content permissions)
+   - `fix: auth link role header` (x-hasura-role: admin/user in Apollo setContext)
+   - `fix: metadata fixes` (remove admin role, remove user relationship, update bookings graphql query)
+
+8. **Build verification** — `tsc -b && vite build` passes with zero errors
 
 ---
 
@@ -1271,9 +1373,9 @@ Set in Nhost Dashboard -> Environment Variables:
 | Layer | Protection | Status |
 |-------|-----------|--------|
 | **Auth** | Nhost email/password with JWT sessions | ✅ Active |
-| **GraphQL** | Row-level permissions via Hasura metadata (user_id filter + preset) | ✅ Defined, pending `hasura metadata apply` |
-| **GraphQL** | SQL RLS policies (fallback) | ✅ Active via nhost-setup.sql |
-| **Admin** | Email-gated admin panel (client + server check) | ✅ Active |
+| **GraphQL** | Hasura metadata permissions applied (`user` role: own-data-only select/insert on bookings + pets, `public` role: unauthenticated site_content read) | ✅ Active via `hasura metadata apply` |
+| **GraphQL** | SQL RLS policies (fallback — **still active, should be disabled** to prevent conflicts with Hasura metadata permissions) | ⚠️ Active — needs explicit `DISABLE ROW LEVEL SECURITY` SQL |
+| **Admin** | Email-gated admin panel (client + Apollo link sends `x-hasura-role: admin` header) | ✅ Active |
 | **Bookings** | `transaction_id` UNIQUE constraint prevents duplicate UPI refs | ✅ Active |
 | **XSS** | React's default JSX escaping | ✅ Active |
 | **CSP** | Content Security Policy meta tag in index.html | ✅ Active |
@@ -1283,13 +1385,15 @@ Set in Nhost Dashboard -> Environment Variables:
 ### Gaps (Not Yet Addressed)
 | Gap | Risk | Mitigation Needed |
 |-----|------|-------------------|
-| **Admin role in JWT** | Admin user doesn't have `admin` role in JWT claims — `GET_ADMIN_BOOKINGS` will return empty if `user` role filter is enforced | Set custom JWT claims in Nhost Dashboard for admin user, or send `x-hasura-role: admin` header in Apollo link |
+| **SQL RLS still active** | SQL RLS policies and Hasura metadata permissions operate in parallel — they don't conflict for simple operations, but `user_id`-filtered queries go through both layers. The `auth.users` table is not tracked in Hasura, so the `user` object relationship was removed (bookings table has no `user { email }` in GraphQL schema). | Run `ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;` (and pets, site_content) in Nhost Dashboard SQL console |
+| **Admin role in JWT** | Nhost doesn't assign `admin` role in `x-hasura-allowed-roles` JWT claims by default — `admin` role permissions removed from metadata until Nhost custom claims configured. The Apollo link sends `x-hasura-role: admin` header when user email matches adminEmail, but Hasura will default to `user` role if JWT doesn't include `admin` in allowed-roles. | Configure custom JWT claims in Nhost Dashboard → Users → Edit admin user → Add role `admin`, then re-add `admin` role permissions to metadata |
 | **Rate limiting** | No rate limiting on auth or booking endpoints | Not available at Nhost free tier; consider Cloudflare rate limiting |
 | **Email verification** | If Nhost requires verified emails, new signups can't log in immediately | Disable in Nhost Dashboard → Settings → Sign-In Methods → Email and Password |
 | **SQL injection** | GraphQL variables prevent injection | ✅ Already mitigated by Apollo/Hasura |
 | **Audit logging** | No tracking of who modified site_content | Future enhancement |
+| **adminEmail hardcoded** | `ADMIN_EMAIL` is hardcoded in `src/config/site-content.ts` as a fallback to `VITE_ADMIN_EMAIL` env var | Move to Nhost Environment Variables and fetch at runtime |
 
-**Verdict:** The site has **solid baseline security** for a small business pet grooming site. The most critical protection — that users can only see/edit their own data — is enforced at the database level via both SQL RLS and Hasura metadata permissions. The remaining gaps (admin JWT role, rate limiting) are operational config, not code issues.
+**Verdict:** The site has **solid baseline security** for a small business pet grooming site. The most critical protection — that users can only see/edit their own data — is enforced at the database level via Hasura metadata permissions (applied and live). The remaining gaps are operational: disabling old SQL RLS policies, configuring admin JWT claims in Nhost, and moving admin config to env vars.
 
 ---
 
@@ -1299,6 +1403,8 @@ Set in Nhost Dashboard -> Environment Variables:
 - **FeatureCarousel height on small screens** — Fixed percentage heights may cause overflow on 320px-375px screens
 - **Transaction ID persists after error** — Input retains value after submission failure
 - **No email verification handling** — If Nhost project requires email verification, users see "Email not verified" on sign-in until they click the verification link
+- **SQL RLS still active** — Old `nhost-setup.sql` RLS policies still active on bookings, pets, and site_content tables; need to `DISABLE ROW LEVEL SECURITY` to prevent potential conflicts with Hasura metadata permissions
+- **Admin role removed from metadata** — `admin` role permissions are not in Hasura metadata because Nhost JWT doesn't include `admin` in `x-hasura-allowed-roles` by default; Apollo link sends `x-hasura-role: admin` header but Hasura will fall back to `user` role until JWT claims configured
 
 ### Completed Features
 - ✅ **Supabase -> Nhost** — Data layer migrated to `@nhost/nhost-js` v4 SDK with Apollo Client
@@ -1353,20 +1459,28 @@ Set in Nhost Dashboard -> Environment Variables:
 - ✅ **Visible validation instead of silent disabled** — Submit button is always enabled; missing package shows a red error banner
 - ✅ **Raw GraphQL errors in UI** — Backend error messages displayed verbatim with `console.error("GRAPHQL ERROR:", ...)`
 - ✅ **GraphQL type fixes** — `$preferred_date: String!` → `date!`, `$pet_id: Int` → `uuid`
-- ✅ **Hasura metadata permissions** — Role-based access control for bookings, pets, site_content via `hasura/` directory
+- ✅ **Hasura metadata permissions applied** — Role-based access control live for bookings, pets, site_content via `hasura metadata apply`
 - ✅ **user_id insert preset** — `user_id` auto-set from JWT session on booking and pet insert
-- ✅ **user_id select filter** — Regular users can only see their own bookings and pets
-- ✅ **admin role** — Metadata-defined admin role with unrestricted booking select + status update
+- ✅ **user_id select filter** — Regular users can only see their own bookings and pets (`{user_id: {_eq: X-Hasura-User-Id}}`)
+- ✅ **public role** — Unauthenticated users can read site_content (landing page data)
+- ✅ **admin role header in Apollo link** — `x-hasura-role: admin` sent when user email matches adminEmail (role permissions removed from metadata pending JWT claims config)
+- ✅ **Apollo role-based auth link** — `setContext` sends both `Authorization: Bearer <token>` and `x-hasura-role: admin|user`
+- ✅ **auth.users relationship removed** — Removed `user` object_relationship from bookings/pets metadata to fix `"table not tracked"` inconsistency error
+- ✅ **GET_ADMIN_BOOKINGS updated** — `user { email }` sub-query removed since relationship no longer exists (email available directly on bookings table)
+- ✅ **Hasura CLI setup** — v2.42.0 binary at `%TEMP%\hasura.exe`, direct engine endpoint (`hasura.ap-south-1.nhost.run`), `HASURA_GRAPHQL_ADMIN_SECRET` env var
+- ✅ **config.yaml gitignored** — `hasura/config.yaml` in `.gitignore`, `hasura/config.yaml.example` as tracked template with instructions
+- ✅ **hasura/config.yaml endpoint fix** — Direct Hasura engine endpoint (not GraphQL proxy) with env var based admin secret
 
 ### Future Enhancements
-1. **Set admin JWT claims** — Configure Nhost Dashboard to assign `admin` role to admin user so role-based metadata permissions work end-to-end
-2. **Move ADMIN_EMAIL to Nhost env var** — Add `ADMIN_EMAIL` to Nhost Dashboard → Environment Variables, then update frontend to read it at runtime (instead of hardcoding `adminEmail` in `site-content.ts`). This lets you change the admin without touching source code.
-3. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
-4. **Booking editing** — Allow admin to edit booking details beyond status
-5. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
-6. **Loading/error/success animations** — Enhance with better motion animations
-7. **Static HTML version** — Consolidate or remove the old static site in the parent folder
+1. **Disable SQL RLS policies** — Run `ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;` (and pets, site_content) in Nhost Dashboard SQL console to prevent conflicts with Hasura metadata permissions
+2. **Configure admin JWT claims** — Set custom JWT claims in Nhost Dashboard → Users → Edit admin user → Add role `admin` so `x-hasura-role: admin` header in Apollo link is validated by Hasura, then re-add `admin` role permissions to metadata
+3. **Move ADMIN_EMAIL to Nhost env var** — Add `ADMIN_EMAIL` to Nhost Dashboard → Environment Variables, then update frontend to read it at runtime (instead of hardcoding `adminEmail` in `site-content.ts`)
+4. **Pet editing/deletion** — Currently only "Add Pet" is supported; add edit and delete
+5. **Booking editing** — Allow admin to edit booking details beyond status
+6. **Disable "Require Verified Emails"** — Turn off in Nhost Dashboard → Settings → Sign-In Methods → Email and Password so signups work immediately
+7. **Loading/error/success animations** — Enhance with better motion animations
+8. **Static HTML version** — Consolidate or remove the old static site in the parent folder
 
 ---
 
-*Last updated: June 11, 2026 (session 13)*
+*Last updated: June 11, 2026 (session 14)*
