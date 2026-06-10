@@ -1,6 +1,11 @@
 table:
   name: users
   schema: auth
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_root_fields:
+    select: users
 object_relationships:
   - name: role
     using:
