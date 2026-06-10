@@ -19,7 +19,7 @@ const CREATE_BOOKING = gql`
     $notes: String!
     $advance_paid: numeric!
     $transaction_id: String!
-    $pet_id: Int
+    $pet_id: uuid
     $addons: jsonb
     $total_price: Int
   ) {
