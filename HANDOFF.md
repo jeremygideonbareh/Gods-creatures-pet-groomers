@@ -1367,6 +1367,63 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ---
 
+### Session Summary (June 11, 2026 — Session 15)
+
+**Phase 19: Full Codebase Review — Code Review, Security Review, Database Review**
+
+All three specialized agents were run against the full codebase (code-reviewer, security-reviewer, database-reviewer) and produced overlapping findings. Consolidated below:
+
+#### 🔴 CRITICAL (6 issues)
+
+| # | Finding | File | Details |
+|---|---------|------|---------|
+| 1 | **AddPetModal uses wrong column names — mutation always fails** | `AddPetModal.tsx:8-31` | Uses `pet_name`, `age`, `weight` — database schema has `name`, `age_years`, `weight_kg`. Three separate pet-creation mutations exist (graphql.ts correct, AuthModal.tsx correct, AddPetModal.tsx wrong) violating DRY. |
+| 2 | **No `admin` role defined in Hasura metadata** | `databases.yaml` | Only `user` + `public` roles exist. Admin dashboard relies purely on client-side email check (`user?.email === adminEmail`). `GET_ADMIN_BOOKINGS` returns zero rows because the `user` role enforces `user_id: {_eq: X-Hasura-User-Id}` filter — admin email user sees only their own bookings. |
+| 3 | **Any authenticated user can modify site content** | `databases.yaml:146-178` | `user` role has `insert_permissions` with `check: {}` (empty = allow all) and `update_permissions` with `filter: {}` (unrestricted). SQL RLS only checks `current_user_id() IS NOT NULL`. No server-side admin guard on site_content mutations. |
+| 4 | **Hardcoded admin email in client bundle** | `site-content.ts:1` | `cloudlyconfusing@gmail.com` compiled into JS bundle — anyone can view it. Should be `VITE_ADMIN_EMAIL` env var (fallback exists but code uses the literal). |
+| 5 | **Raw GraphQL error messages exposed to end users** | `booking-modal.tsx:299,321` | Backend constraint names (`unique_transaction_id`), schema details, and internal error text displayed verbatim in red UI banner. |
+| 6 | **Pet ID decoded as Int instead of UUID — booking with existing pet fails** | `booking-modal.tsx:260` | `parseInt("uuid-string", 10)` → `NaN`. The pets table PK is UUID (string), not integer. Removes `parseInt()` and passes string directly. |
+
+#### 🟠 HIGH (7 issues)
+
+| # | Finding | File |
+|---|---------|------|
+| 7 | **Missing `CREATE TABLE` statements for `bookings` and `pets`** | `nhost-setup.sql` — only `ALTER TABLE ADD COLUMN` exists. Schema can't be reproduced from source. |
+| 8 | **Missing indexes on foreign keys and filtered columns** | `nhost-setup.sql` — no indexes on `bookings.user_id`, `bookings.pet_id`, `bookings.status`, `bookings.created_at`, `pets.user_id`, `bookings.transaction_id` |
+| 9 | **HTML injection in email receipts** | `send-booking-receipt.ts:41,76,91,134` — user-controlled `customer_name`, `service`, `transaction_id` interpolated directly into HTML email without escaping. |
+| 10 | **Hasura engine endpoint exposed in version-controlled file** | `config.yaml.example:4` — direct Hasura engine URL (not rate-limited GraphQL proxy) committed to repo. |
+| 11 | **`use_prepared_statements: false` disables query optimization** | `databases.yaml:8` — should be `true` for query planning reuse and SQL injection defense-in-depth. |
+| 12 | **`@ts-expect-error` on `nhost.auth.signOut()` masks real type bug** | `UserMenu.tsx:18`, `animated-scroll.tsx:62` — Nhost API type mismatch silently suppressed. |
+| 13 | **Empty catch blocks swallow errors** | `SiteContentContext.tsx:59`, `ContentEditor.tsx:76`, `animated-scroll.tsx:57` — silent failures make debugging impossible. |
+
+#### 🟡 MEDIUM (8 issues)
+
+| # | Finding | Details |
+|---|---------|---------|
+| 14 | **No global Apollo `onError` link** | `main.tsx` — network/auth errors not handled globally; each component handles inconsistently. |
+| 15 | **`preferred_date` required in mutation but optional in UI** | `booking-modal.tsx:18` vs `:665` — `$preferred_date: date!` but `<input>` not marked `required`. Submission without date fails. |
+| 16 | **`site_content` has no auto-update trigger for `updated_at`** | `nhost-setup.sql` — column has `DEFAULT now()` but no `BEFORE UPDATE` trigger. `updated_at` stays stale on upsert. |
+| 17 | **`current_user_id()` function returns `text` instead of `uuid`** | `nhost-setup.sql` — `user_id` columns are UUID; cast `user_id::text = current_user_id()` prevents index usage. |
+| 18 | **No CHECK constraint on `bookings.status`** | `nhost-setup.sql` — allows arbitrary strings. Frontend uses `pending_verification`, `confirmed`, `cancelled`. |
+| 19 | **Mixed controlled/uncontrolled form in booking-modal** | `booking-modal.tsx:434-474` — name/email use refs (uncontrolled), selects/toggles use React state (controlled). |
+| 20 | **CSP allows `'unsafe-inline'` for styles** | `index.html:6` — necessary for Tailwind but weakens CSP. |
+
+#### 🔵 LOW (6 issues)
+
+- Missing `aria-describedby` on error messages
+- `key={i}` usage in list rendering (ContentEditor)
+- `nhost-setup.sql` not idempotent (`CREATE POLICY` without `IF NOT EXISTS`)
+- No test runner configured in `package.json`
+- `.env` `VITE_ADMIN_EMAIL` inconsistent with hardcoded email
+- Resend `FROM_EMAIL` defaults to test sender (`onboarding@resend.dev`)
+
+#### Top 3 Actions to Fix Immediately
+1. **Fix AddPetModal column names** — `pet_name`→`name`, `age`→`age_years`, `weight`→`weight_kg` (CRITICAL #1)
+2. **Remove `parseInt()` from `pet_id` in booking-modal** — pass UUID string directly (CRITICAL #6)
+3. **Add `admin` role to Hasura metadata** with unrestricted booking select + site_content write (CRITICAL #2 + #3)
+
+---
+
 ## Security Posture
 
 ### Current Protections (Active)
@@ -1483,4 +1540,4 @@ Set in Nhost Dashboard -> Environment Variables:
 
 ---
 
-*Last updated: June 11, 2026 (session 14)*
+*Last updated: June 11, 2026 (session 15)*
