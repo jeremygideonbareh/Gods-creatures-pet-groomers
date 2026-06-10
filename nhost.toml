@@ -1,4 +1,4 @@
 [hasura]
-metadata_directory = "hasura/metadata"
+metadata_directory = "metadata"
 migrations_directory = "hasura/migrations"
 seeds_directory = "hasura/seeds"
