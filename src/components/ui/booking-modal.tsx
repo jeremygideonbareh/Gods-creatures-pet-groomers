@@ -15,7 +15,7 @@ const CREATE_BOOKING = gql`
     $email: String!
     $phone: String!
     $service: String!
-    $preferred_date: String!
+    $preferred_date: date!
     $notes: String!
     $advance_paid: numeric!
     $transaction_id: String!
