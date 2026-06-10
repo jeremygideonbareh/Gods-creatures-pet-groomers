@@ -1,0 +1,7 @@
+version: 3
+endpoint: https://ukuqslqvwovrukooziwf.graphql.ap-south-1.nhost.run
+# admin_secret: <get from Nhost Dashboard -> Settings -> Hasura -> Admin Secret>
+metadata_directory: metadata
+actions:
+  kind: synchronous
+  handler_webhook_baseurl: ""

@@ -1,0 +1,40 @@
+table:
+  schema: public
+  name: site_content
+object_relationships: []
+array_relationships: []
+insert_permissions:
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - content
+        - section
+      backend_only: false
+select_permissions:
+  - role: public
+    permission:
+      columns:
+        - content
+        - id
+        - section
+        - updated_at
+      filter: {}
+      allow_aggregations: false
+  - role: user
+    permission:
+      columns:
+        - content
+        - id
+        - section
+        - updated_at
+      filter: {}
+      allow_aggregations: false
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - content
+      filter: {}
+      check: null
+delete_permissions: []
