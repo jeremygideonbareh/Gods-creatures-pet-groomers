@@ -87,7 +87,7 @@ array_relationships:
         table:
           name: pkce_authorization_codes
           schema: auth
-  - name: refresh_tokens
+  - name: refreshTokens
     using:
       foreign_key_constraint_on:
         column: user_id
@@ -101,14 +101,14 @@ array_relationships:
         table:
           name: user_roles
           schema: auth
-  - name: user_providers
+  - name: userProviders
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
           name: user_providers
           schema: auth
-  - name: user_security_keys
+  - name: userSecurityKeys
     using:
       foreign_key_constraint_on:
         column: user_id
