@@ -285,7 +285,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       });
 
       if (result.error) {
-        const msg = result.error.message.toLowerCase();
+        console.error("GRAPHQL ERROR:", result.error);
+        const raw = result.error.message;
+        const msg = raw.toLowerCase();
         if (
           msg.includes("unique constraint") ||
           msg.includes("unique_transaction_id")
@@ -294,7 +296,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
             "This UPI Reference Number has already been used. Please check your details or contact support."
           );
         } else {
-          setErrorMessage("Unable to process booking. Please try again.");
+          setErrorMessage(raw);
         }
         setSubmitStatus("error");
         return;
@@ -305,7 +307,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         onClose();
       }, 1500);
     } catch (err) {
-      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      console.error("GRAPHQL ERROR:", err);
+      const raw = err instanceof Error ? err.message : JSON.stringify(err);
+      const msg = raw.toLowerCase();
       if (
         msg.includes("unique constraint") ||
         msg.includes("unique_transaction_id")
@@ -314,7 +318,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           "This UPI Reference Number has already been used. Please check your details or contact support."
         );
       } else {
-        setErrorMessage("Unable to process booking. Please try again.");
+        setErrorMessage(raw);
       }
       setSubmitStatus("error");
     }
