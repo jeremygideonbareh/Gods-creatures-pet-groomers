@@ -160,7 +160,11 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 
   const totalPrice = packageTotal + addonTotal;
 
-  const [createBooking] = useMutation(CREATE_BOOKING);
+  interface CreateBookingResponse {
+  insert_bookings_one: { id: string; customer_name: string };
+}
+
+const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
 
   useEffect(() => {
     if (!isOpen) {
