@@ -13,3 +13,9 @@ export const NHOST_GRAPHQL_URL = generateServiceUrl(
   NHOST_SUBDOMAIN,
   NHOST_REGION,
 );
+
+export const NHOST_FUNCTIONS_URL = generateServiceUrl(
+  "functions",
+  NHOST_SUBDOMAIN,
+  NHOST_REGION,
+);

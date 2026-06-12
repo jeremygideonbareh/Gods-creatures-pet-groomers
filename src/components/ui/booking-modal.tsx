@@ -7,6 +7,7 @@ import { designTokens, PRICING_MENU, RUPEESIGN } from "@/config/site-content";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
+import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
 import type { PricingMenuContent } from "@/lib/content-service";
 
 const CREATE_BOOKING = gql`
@@ -300,6 +301,51 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         }
         setSubmitStatus("error");
         return;
+      }
+
+      const bookingData = result.data?.insert_bookings_one;
+
+      if (!bookingData?.id) {
+        console.error("No booking data returned from mutation — email receipt skipped", result);
+      } else {
+        console.log("Booking created with id:", bookingData.id);
+        try {
+          const session = nhost.getUserSession();
+          const token = session?.accessToken;
+          const webhookUrl = `${NHOST_FUNCTIONS_URL}/v1/send-booking-receipt`;
+          console.log("Triggering email receipt via:", webhookUrl);
+          const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              event: {
+                data: {
+                  new: {
+                    customer_name: nameRef.current?.value || "",
+                    email,
+                    service: selectedPackage.label + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
+                    preferred_date: dateRef.current?.value || "",
+                    total_price: totalPrice,
+                    addons: addonLabels,
+                    transaction_id: transactionId,
+                    advance_paid: 500,
+                  },
+                },
+              },
+            }),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Email receipt function returned", response.status, errorText);
+          } else {
+            console.log("Email receipt triggered successfully");
+          }
+        } catch (emailErr) {
+          console.error("Failed to trigger email receipt:", emailErr);
+        }
       }
 
       setSubmitStatus("success");

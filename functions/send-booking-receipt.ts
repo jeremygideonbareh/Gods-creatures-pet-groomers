@@ -43,7 +43,15 @@ interface HasuraEvent {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.FROM_EMAIL || "onboarding@resend.dev";
+
+const REQUIRED_BOOKING_FIELDS: (keyof BookingData)[] = [
+  "customer_name",
+  "email",
+  "service",
+  "transaction_id",
+  "advance_paid",
+];
 
 function buildHtmlEmail(data: BookingData): string {
   const addonsList = data.addons && data.addons.length > 0
@@ -169,19 +177,52 @@ function buildHtmlEmail(data: BookingData): string {
 }
 
 export default async function handler(req: any, res: any) {
+  console.log("=== send-booking-receipt invoked ===");
+  console.log("Method:", req.method);
+  console.log("Headers:", JSON.stringify(req.headers));
+  console.log("Raw body (truncated):", JSON.stringify(req.body).slice(0, 1000));
+
   if (req.method !== "POST") {
+    console.log("Rejected: method not allowed");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  console.log("RESEND_API_KEY exists?", !!RESEND_API_KEY);
+  console.log("FROM_EMAIL:", FROM_EMAIL);
+
   if (!RESEND_API_KEY) {
-    console.error("RESEND_API_KEY is not set");
+    console.error("FATAL: RESEND_API_KEY is not set");
     return res.status(500).json({ error: "Missing RESEND_API_KEY" });
   }
 
-  const payload: HasuraEvent = req.body;
-  const booking = payload.event.data.new;
+  // --- Payload extraction: support both Hasura Event Trigger & direct API ---
+  let booking: BookingData | null = null;
 
-  if (!booking?.email) {
+  if (req.body?.event?.data?.new) {
+    console.log("Payload format: Hasura Event Trigger");
+    booking = req.body.event.data.new as BookingData;
+  } else if (req.body?.customer_name) {
+    console.log("Payload format: Direct API call");
+    booking = req.body as BookingData;
+  } else {
+    console.error("FATAL: Unrecognized payload structure");
+    return res.status(400).json({
+      error: "Unrecognized payload structure",
+      receivedKeys: Object.keys(req.body),
+    });
+  }
+
+  console.log("Extracted booking:", JSON.stringify(booking));
+
+  // --- Validate required fields ---
+  const missing = REQUIRED_BOOKING_FIELDS.filter((f) => !booking![f]);
+  if (missing.length > 0) {
+    console.error("FATAL: Missing fields:", missing.join(", "));
+    return res.status(400).json({ error: `Missing fields: ${missing.join(", ")}` });
+  }
+
+  if (!booking.email) {
+    console.error("FATAL: Missing customer email");
     return res.status(400).json({ error: "Missing customer email" });
   }
 
@@ -189,6 +230,11 @@ export default async function handler(req: any, res: any) {
 
   try {
     const emailHtml = buildHtmlEmail(booking);
+
+    console.log("Attempting to send email via Resend...");
+    console.log("  from:", FROM_EMAIL);
+    console.log("  to:", booking.email);
+    console.log("  subject includes:", booking.customer_name);
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
@@ -198,13 +244,18 @@ export default async function handler(req: any, res: any) {
     });
 
     if (error) {
-      console.error("Resend error:", error);
-      return res.status(500).json({ error: error.message });
+      console.error("Resend API returned an error:", JSON.stringify(error));
+      return res.status(500).json({ error: error.message, details: error });
     }
 
+    console.log("Email sent successfully. Resend response data:", JSON.stringify(data));
     return res.json({ message: "Email sent", id: data?.id });
   } catch (err) {
-    console.error("Failed to send email:", err);
-    return res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error" });
+    console.error("Exception in send-booking-receipt:", err);
+    console.error("Stack:", err instanceof Error ? err.stack : "N/A");
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Unknown error",
+      ...(err instanceof Error ? { stack: err.stack } : {}),
+    });
   }
 }
