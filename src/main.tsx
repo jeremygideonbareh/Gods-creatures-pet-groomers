@@ -7,7 +7,7 @@ import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { ApolloProvider } from "@apollo/client/react";
 import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { adminEmail } from "@/config/site-content";
+import { isAdmin } from "@/config/site-content";
 import "./index.css";
 import App from "./App.tsx";
 
@@ -17,7 +17,7 @@ const authLink = setContext(async (_, { headers }) => {
   const session = nhost.getUserSession();
   const token = session?.accessToken;
   const email = session?.user?.email ?? null;
-  const role = email === adminEmail ? "admin" : "user";
+  const role = isAdmin(email) ? "admin" : "user";
   return {
     headers: {
       ...headers,

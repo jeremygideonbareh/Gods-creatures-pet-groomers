@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { designTokens, adminEmail, RUPEESIGN } from "@/config/site-content";
+import { designTokens, isAdmin, RUPEESIGN } from "@/config/site-content";
 import ContentEditor from "@/components/sections/ContentEditor";
 import { GET_ADMIN_BOOKINGS, UPDATE_BOOKING_STATUS } from "@/lib/graphql";
 
@@ -60,9 +60,9 @@ export function AdminDashboard() {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
 
-  const isAdmin = user?.email === adminEmail;
+  const isUserAdmin = isAdmin(user?.email);
 
-  if (!isAdmin) {
+  if (!isUserAdmin) {
     if (error) console.error("GraphQL Admin Error:", error);
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: BRAND_PINK }}>

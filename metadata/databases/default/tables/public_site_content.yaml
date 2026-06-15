@@ -1,13 +1,6 @@
 table:
   name: site_content
   schema: public
-insert_permissions:
-  - role: admin
-    permission:
-      check: {}
-      columns:
-        - content
-        - section
 select_permissions:
   - role: public
     permission:
@@ -25,10 +18,4 @@ select_permissions:
         - section
         - updated_at
       filter: {}
-update_permissions:
-  - role: admin
-    permission:
-      columns:
-        - content
-      filter: {}
-      check: null
+

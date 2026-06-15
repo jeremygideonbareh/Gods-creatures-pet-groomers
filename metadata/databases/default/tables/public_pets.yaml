@@ -28,23 +28,6 @@ insert_permissions:
         - vet_contact
         - weight_kg
 select_permissions:
-  - role: admin
-    permission:
-      columns:
-        - age_years
-        - behavioral_notes
-        - breed
-        - coat_condition
-        - created_at
-        - id
-        - medical_history
-        - name
-        - species
-        - user_id
-        - vet_contact
-        - weight_kg
-      filter: {}
-      allow_aggregations: true
   - role: user
     permission:
       columns:

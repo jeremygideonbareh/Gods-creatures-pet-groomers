@@ -9,7 +9,7 @@ import AuthModal from "@/components/ui/AuthModal";
 import AddPetModal from "@/components/ui/AddPetModal";
 import UserMenu from "@/components/ui/UserMenu";
 import { useAuth } from "@/context/AuthContext";
-import { adminEmail } from "@/config/site-content";
+import { isAdmin } from "@/config/site-content";
 import HeroSection from "@/components/sections/HeroSection";
 import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
 import ServicesSection from "@/components/sections/ServicesSection";
@@ -128,7 +128,7 @@ export default function ScrollAdventure() {
         )}
       </div>
 
-      {user?.email === adminEmail && (
+      {isAdmin(user?.email) && (
         <div className="fixed top-4 left-4 z-50">
           <button
             onClick={() => navigate("/admin")}

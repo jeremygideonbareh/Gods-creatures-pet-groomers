@@ -1,4 +1,11 @@
-export const adminEmail = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
+const raw = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
+const adminEmailList = raw.split(",").map((s: string) => s.trim().toLowerCase());
+export const adminEmails = [...new Set([...adminEmailList, "cloudlyconfusing@gmail.com"])];
+
+export function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return adminEmails.includes(email.toLowerCase());
+}
 
 export const RUPEESIGN = "\u20B9";
 
