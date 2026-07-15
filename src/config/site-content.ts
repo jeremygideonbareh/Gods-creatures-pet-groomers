@@ -1,6 +1,6 @@
 const raw = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
 const adminEmailList = raw.split(",").map((s: string) => s.trim().toLowerCase());
-export const adminEmails = [...new Set([...adminEmailList, "cloudlyconfusing@gmail.com"])];
+export const adminEmails = [...new Set([...adminEmailList, "cloudlyconfusing@gmail.com", "vivecablah@gmail.com"])];
 
 export function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
