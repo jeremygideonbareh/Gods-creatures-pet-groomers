@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens, isAdmin, RUPEESIGN } from "@/config/site-content";
 import ContentEditor from "@/components/sections/ContentEditor";
@@ -20,10 +20,20 @@ const statusBadge: Record<string, { label: string; color: string; icon: React.Re
     color: "bg-green-500/20 text-green-200",
     icon: <CheckCircle size={14} />,
   },
-  cancelled: {
-    label: "Cancelled",
+  pending_payment: {
+    label: "Payment Pending",
+    color: "bg-blue-500/20 text-blue-200",
+    icon: <Clock size={14} />,
+  },
+  payment_failed: {
+    label: "Payment Failed",
     color: "bg-red-500/20 text-red-200",
     icon: <AlertTriangle size={14} />,
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "bg-gray-500/20 text-gray-200",
+    icon: <X size={14} />,
   },
 };
 
@@ -179,7 +189,7 @@ export function AdminDashboard() {
                         </p>
                         {booking.notes && <p className="text-white/40 text-[10px] mt-0.5">📝 {booking.notes}</p>}
                         <p className="text-white/30 text-[10px] mt-0.5">
-                          {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} • UPI: {booking.transaction_id}
+                          {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} • Transaction: {booking.transaction_id}
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0">

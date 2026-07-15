@@ -8,7 +8,17 @@ import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
 import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
+import { useBookingConflict } from "@/hooks/useBookingConflict";
 import type { PricingMenuContent } from "@/lib/content-service";
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, handler: (response: any) => void) => void;
+    };
+  }
+}
 
 const CREATE_BOOKING = gql`
   mutation CreateBooking(
@@ -23,6 +33,7 @@ const CREATE_BOOKING = gql`
     $pet_id: uuid
     $addons: jsonb
     $total_price: Int
+    $status: String!
   ) {
     insert_bookings_one(
       object: {
@@ -37,6 +48,7 @@ const CREATE_BOOKING = gql`
         pet_id: $pet_id
         addons: $addons
         total_price: $total_price
+        status: $status
       }
     ) {
       id
@@ -114,8 +126,6 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const phoneRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
-  const transactionIdRef = useRef<HTMLInputElement>(null);
-
   const { user } = useAuth();
   const { content } = useSiteContent();
   const booking = content.booking;
@@ -165,6 +175,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 }
 
 const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
+
+  const { checking: conflictChecking, checkConflict } = useBookingConflict();
 
   useEffect(() => {
     if (!isOpen) {
@@ -227,9 +239,37 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
     );
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
+
+  const loadRazorpayScript = useCallback((): Promise<void> => {
+    if (document.getElementById("razorpay-script")) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.id = "razorpay-script";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => {
+        setRazorpayReady(true);
+        resolve();
+      };
+      script.onerror = () => {
+        setErrorMessage("Failed to load payment gateway. Please try again.");
+        setSubmitStatus("error");
+        reject();
+      };
+      document.body.appendChild(script);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !document.getElementById("razorpay-script")) {
+      loadRazorpayScript().catch(console.warn);
+    }
+  }, [isOpen, loadRazorpayScript]);
+
+  const handleRazorpayPayment = async () => {
     setErrorMessage("");
+    setSubmitStatus("idle");
 
     const email = emailRef.current?.value.trim() || "";
     const phone = phoneRef.current?.value.trim() || "";
@@ -253,16 +293,115 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       return;
     }
 
-    const transactionId = transactionIdRef.current?.value.trim();
-    if (!transactionId) {
-      setErrorMessage(
-        `Please enter the UPI Transaction ID to confirm your ${RUPEESIGN}500 advance payment.`
-      );
+    if (!effectiveSize) {
+      setErrorMessage("Please select your pet's size.");
       setSubmitStatus("error");
       return;
     }
 
-    const selectedPetUuid = selectedPetId || null;
+    if (!window.Razorpay) {
+      await loadRazorpayScript().catch(() => {});
+      if (!window.Razorpay) {
+        setErrorMessage("Payment gateway failed to load. Please refresh and try again.");
+        setSubmitStatus("error");
+        return;
+      }
+    }
+
+    setRazorpayLoading(true);
+
+    try {
+      const token = nhost.getUserSession()?.accessToken;
+      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/create-razorpay-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ amount: 50000 }),
+      });
+
+      if (!orderRes.ok) {
+        const errBody = await orderRes.json().catch(() => ({}));
+        throw new Error(errBody.message || "Failed to create payment order");
+      }
+
+      const orderData = await orderRes.json();
+
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!keyId || keyId === "rzp_test_placeholder") {
+        setErrorMessage(
+          "Razorpay is not configured yet. Please set VITE_RAZORPAY_KEY_ID in your .env file."
+        );
+        setRazorpayLoading(false);
+        return;
+      }
+
+      const options = {
+        key: keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Gods Creatures Pet Groomers",
+        description: "Booking Fee (Deposit)",
+        order_id: orderData.order_id,
+        prefill: {
+          name: nameRef.current?.value || "",
+          email,
+          contact: phone,
+        },
+        theme: { color: "#d0999a" },
+        handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) {
+          setRazorpayLoading(false);
+          try {
+            const token = nhost.getUserSession()?.accessToken;
+            const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/verify-razorpay-payment`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.verified) {
+              const transactionId = response.razorpay_payment_id;
+              await submitBooking(transactionId);
+            } else {
+              setErrorMessage("Payment verification failed. Please contact support.");
+            }
+          } catch (err) {
+            console.error("Payment verification error:", err);
+            setErrorMessage("Payment verification failed. Please contact support.");
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setRazorpayLoading(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", function (response: { error: { description: string } }) {
+        setErrorMessage(response.error?.description || "Payment failed. Please try again.");
+        setRazorpayLoading(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("Razorpay error:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
+      setRazorpayLoading(false);
+    }
+  };
+
+  const submitBooking = async (transactionId: string) => {
+    setSubmitStatus("loading");
+
+    const email = emailRef.current?.value.trim() || "";
 
     const addonLabels = selectedAddOns
       .map((id) => {
@@ -270,22 +409,38 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
         return addon?.label || id;
       });
 
-    setSubmitStatus("loading");
+    const serviceLabel = selectedPackage?.label || "";
+    const preferredDate = dateRef.current?.value || "";
+    const selectedPetUuid = selectedPetId || null;
+
+    try {
+      const hasConflict = await checkConflict(serviceLabel, preferredDate);
+      if (hasConflict) {
+        setErrorMessage(
+          "This time slot is already booked. Please choose a different date or contact us for availability."
+        );
+        setSubmitStatus("error");
+        return;
+      }
+    } catch (conflictErr) {
+      console.warn("Conflict check failed — allowing booking to proceed:", conflictErr);
+    }
 
     try {
       const result = await createBooking({
         variables: {
           customer_name: nameRef.current?.value || "",
           email,
-          phone,
-          service: selectedPackage.label + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
-          preferred_date: dateRef.current?.value || "",
+          phone: phoneRef.current?.value.trim() || "",
+          service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
+          preferred_date: preferredDate,
           notes: notesRef.current?.value || "",
           advance_paid: 500,
           transaction_id: transactionId,
           pet_id: selectedPetUuid,
           addons: addonLabels,
           total_price: totalPrice,
+          status: "pending_verification",
         },
       });
 
@@ -298,7 +453,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
           msg.includes("unique_transaction_id")
         ) {
           setErrorMessage(
-            "This UPI Reference Number has already been used. Please check your details or contact support."
+            "This payment has already been used. Please contact support."
           );
         } else {
           setErrorMessage(raw);
@@ -310,14 +465,13 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       const bookingData = result.data?.insert_bookings_one;
 
       if (!bookingData?.id) {
-        console.error("No booking data returned from mutation — email receipt skipped", result);
+        console.error("No booking data returned — email receipt skipped", result);
       } else {
         console.log("Booking created with id:", bookingData.id);
         try {
           const session = nhost.getUserSession();
           const token = session?.accessToken;
           const webhookUrl = `${NHOST_FUNCTIONS_URL}/v1/send-booking-receipt`;
-          console.log("Triggering email receipt via:", webhookUrl);
           const response = await fetch(webhookUrl, {
             method: "POST",
             headers: {
@@ -330,8 +484,8 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                   new: {
                     customer_name: nameRef.current?.value || "",
                     email,
-                    service: selectedPackage.label + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
-                    preferred_date: dateRef.current?.value || "",
+                    service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
+                    preferred_date: preferredDate,
                     total_price: totalPrice,
                     addons: addonLabels,
                     transaction_id: transactionId,
@@ -364,9 +518,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
         msg.includes("unique constraint") ||
         msg.includes("unique_transaction_id")
       ) {
-        setErrorMessage(
-          "This UPI Reference Number has already been used. Please check your details or contact support."
-        );
+        setErrorMessage("This payment has already been used. Please contact support.");
       } else {
         setErrorMessage(raw);
       }
@@ -427,6 +579,9 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                   <p className="text-white/80">
                     {booking.successMessage}
                   </p>
+                  <p className="text-amber-200 text-xs bg-amber-500/20 rounded-full px-3 py-1 inline-block mt-2">
+                    ⏳ Payment verification in progress
+                  </p>
                 </motion.div>
               ) : step === "info" ? (
                 <motion.div
@@ -476,7 +631,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                     {booking.formSubtitle}
                   </p>
 
-                  <form id="booking-form" onSubmit={handleFormSubmit} className="space-y-3">
+                  <form id="booking-form" onSubmit={(e) => e.preventDefault()} className="space-y-3">
                     <div>
                       <label htmlFor="booking-name" className="sr-only">
                         Your name
@@ -738,36 +893,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                         ⚠️ Please Note
                       </p>
                       <p className="text-amber-100/90 text-xs">
-                        {`Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`}
-                      </p>
-                      <p className="text-amber-100/90 text-xs">
-                        Please GPay advance to: <strong>9089196235@axisbank</strong>
-                      </p>
-                    </div>
-
-                    <div className="bg-white/15 rounded-xl p-3 space-y-2">
-                      <p className="text-white font-semibold text-sm">
-                        💳 {booking.advancePaymentTitle}
-                      </p>
-                      <p className="text-white/60 text-xs">
-                        {booking.advancePaymentDetail}
-                      </p>
-                      <div>
-                        <label htmlFor="booking-transaction" className="sr-only">
-                          UPI Reference Number
-                        </label>
-                        <input
-                          id="booking-transaction"
-                          ref={transactionIdRef}
-                          type="text"
-                          placeholder={booking.upiPlaceholder}
-                          required
-                          maxLength={50}
-                          className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-white/60"
-                        />
-                      </div>
-                      <p className="text-white/50 text-[10px] leading-tight">
-                        💡 {booking.upiTooltip}
+                        {`A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`}
                       </p>
                     </div>
 
@@ -782,20 +908,27 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                     )}
 
                     <button
-                      type="submit"
-                      disabled={submitStatus === "loading"}
+                      type="button"
+                      onClick={handleRazorpayPayment}
+                      disabled={submitStatus === "loading" || conflictChecking || razorpayLoading}
                       className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ color: BRAND_PINK }}
                     >
-                      {submitStatus === "loading" ? (
+                      {submitStatus === "loading" || conflictChecking || razorpayLoading ? (
                         <>
                           <Loader2 size={20} className="animate-spin" />
-                          <span>{booking.submittingLabel}</span>
+                          <span>{conflictChecking ? "Checking availability..." : razorpayLoading ? "Opening Payment..." : booking.submittingLabel}</span>
                         </>
                       ) : (
-                        <>✉️ {booking.submitLabel}</>
+                        <>💳 Pay {RUPEESIGN}500 Advance via Razorpay</>
                       )}
                     </button>
+
+                    {!razorpayReady && (
+                      <p className="text-white/50 text-xs text-center mt-2">
+                        Loading payment gateway...
+                      </p>
+                    )}
                   </form>
                   <p className="text-white/60 text-xs text-center mt-3">
                     We'll contact you to confirm your slot!

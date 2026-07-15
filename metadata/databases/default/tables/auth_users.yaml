@@ -39,9 +39,13 @@ configuration:
     phone_number_verified: phoneNumberVerified
   custom_name: users
   custom_root_fields:
+    delete_by_pk: deleteUser
+    insert: insertUsers
+    insert_one: insertUser
     select: users
     select_aggregate: usersAggregate
     select_by_pk: user
+    update_by_pk: updateUser
 object_relationships:
   - name: role
     using:

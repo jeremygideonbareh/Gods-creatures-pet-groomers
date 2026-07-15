@@ -179,20 +179,29 @@ function buildHtmlEmail(data: BookingData): string {
 export default async function handler(req: any, res: any) {
   console.log("=== send-booking-receipt invoked ===");
   console.log("Method:", req.method);
-  console.log("Headers:", JSON.stringify(req.headers));
-  console.log("Raw body (truncated):", JSON.stringify(req.body).slice(0, 1000));
 
+  // Only allow POST
   if (req.method !== "POST") {
     console.log("Rejected: method not allowed");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  console.log("RESEND_API_KEY exists?", !!RESEND_API_KEY);
+  // Check RESEND_API_KEY
+  if (!RESEND_API_KEY) {
+    console.error("FATAL: RESEND_API_KEY is not set — check Nhost Dashboard env vars");
+    return res.status(500).json({
+      error: "Email service not configured",
+      message: "RESEND_API_KEY is not set. Please add it in Nhost Dashboard → Environment Variables.",
+    });
+  }
+
+  console.log("RESEND_API_KEY exists: true");
   console.log("FROM_EMAIL:", FROM_EMAIL);
 
-  if (!RESEND_API_KEY) {
-    console.error("FATAL: RESEND_API_KEY is not set");
-    return res.status(500).json({ error: "Missing RESEND_API_KEY" });
+  // --- Handle Hasura test ping ---
+  if (req.body?.event?.op === "manual") {
+    console.log("Hasura test ping received — acknowledging");
+    return res.json({ message: "Webhook endpoint is alive", status: "ready" });
   }
 
   // --- Payload extraction: support both Hasura Event Trigger & direct API ---
@@ -205,10 +214,11 @@ export default async function handler(req: any, res: any) {
     console.log("Payload format: Direct API call");
     booking = req.body as BookingData;
   } else {
-    console.error("FATAL: Unrecognized payload structure");
+    console.error("FATAL: Unrecognized payload structure", JSON.stringify(req.body).slice(0, 500));
     return res.status(400).json({
       error: "Unrecognized payload structure",
-      receivedKeys: Object.keys(req.body),
+      message: "Expected Hasura Event Trigger payload or direct booking object",
+      receivedKeys: Object.keys(req.body || {}),
     });
   }
 
@@ -218,7 +228,7 @@ export default async function handler(req: any, res: any) {
   const missing = REQUIRED_BOOKING_FIELDS.filter((f) => !booking![f]);
   if (missing.length > 0) {
     console.error("FATAL: Missing fields:", missing.join(", "));
-    return res.status(400).json({ error: `Missing fields: ${missing.join(", ")}` });
+    return res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
   }
 
   if (!booking.email) {
@@ -234,7 +244,6 @@ export default async function handler(req: any, res: any) {
     console.log("Attempting to send email via Resend...");
     console.log("  from:", FROM_EMAIL);
     console.log("  to:", booking.email);
-    console.log("  subject includes:", booking.customer_name);
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
@@ -245,6 +254,18 @@ export default async function handler(req: any, res: any) {
 
     if (error) {
       console.error("Resend API returned an error:", JSON.stringify(error));
+      // Check for specific Resend errors
+      if (
+        error.message?.includes("domain") ||
+        error.message?.includes("sender") ||
+        error.message?.includes("from")
+      ) {
+        return res.status(500).json({
+          error: "Email sender not verified",
+          message: `The sender email "${FROM_EMAIL}" is not verified in Resend. Verify it at https://resend.com/domains or set the RESEND_FROM_EMAIL env var.`,
+          details: error,
+        });
+      }
       return res.status(500).json({ error: error.message, details: error });
     }
 
@@ -252,10 +273,9 @@ export default async function handler(req: any, res: any) {
     return res.json({ message: "Email sent", id: data?.id });
   } catch (err) {
     console.error("Exception in send-booking-receipt:", err);
-    console.error("Stack:", err instanceof Error ? err.stack : "N/A");
     return res.status(500).json({
-      error: err instanceof Error ? err.message : "Unknown error",
-      ...(err instanceof Error ? { stack: err.stack } : {}),
+      error: "Internal error sending email",
+      message: err instanceof Error ? err.message : "Unknown error",
     });
   }
 }

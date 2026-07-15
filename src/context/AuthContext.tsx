@@ -1,25 +1,36 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { nhost } from "@/lib/nhost";
+import { nhost, isSessionValid } from "@/lib/nhost";
 
 interface AuthState {
   user: { id: string; email: string; displayName: string | null } | null;
   loading: boolean;
+  sessionError: string | null;
 }
 
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
+  sessionError: null,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     loading: true,
+    sessionError: null,
   });
 
   useEffect(() => {
     const initialSession = nhost.getUserSession();
     if (initialSession?.user) {
+      if (!isSessionValid()) {
+        setState({
+          user: null,
+          loading: false,
+          sessionError: "Session expired. Please sign in again.",
+        });
+        return;
+      }
       setState({
         user: {
           id: initialSession.user.id,
@@ -27,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           displayName: initialSession.user.displayName ?? null,
         },
         loading: false,
+        sessionError: null,
       });
     } else {
       setState((s) => ({ ...s, loading: false }));
@@ -41,9 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: session.user.displayName ?? null,
           },
           loading: false,
+          sessionError: null,
         });
       } else {
-        setState({ user: null, loading: false });
+        setState({ user: null, loading: false, sessionError: "Session expired. Please sign in again." });
       }
     });
 

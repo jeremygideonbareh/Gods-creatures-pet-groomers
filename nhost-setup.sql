@@ -116,6 +116,12 @@ CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bookings_transaction_id ON bookings(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_pets_user_id ON pets(user_id);
 
+-- Prevent double-booking: same service + same date can only be booked once
+-- when the booking is pending or confirmed (excludes cancelled)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_service_date_active
+  ON bookings (service, preferred_date)
+  WHERE status IN ('pending_verification', 'confirmed');
+
 -- ============================================================
 -- Add pricing columns (idempotent)
 -- ============================================================

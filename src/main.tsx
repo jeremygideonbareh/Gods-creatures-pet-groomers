@@ -5,8 +5,9 @@ import { setContext } from "@apollo/client/link/context";
 import { ErrorLink } from "@apollo/client/link/error";
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { ApolloProvider } from "@apollo/client/react";
-import { nhost, NHOST_GRAPHQL_URL } from "@/lib/nhost";
+import { nhost, NHOST_GRAPHQL_URL, isSessionValid } from "@/lib/nhost";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SessionErrorBoundary } from "@/components/SessionErrorBoundary";
 import { isAdmin } from "@/config/site-content";
 import "./index.css";
 import App from "./App.tsx";
@@ -15,6 +16,14 @@ const httpLink = createHttpLink({ uri: NHOST_GRAPHQL_URL });
 
 const authLink = setContext(async (_, { headers }) => {
   const session = nhost.getUserSession();
+
+  // Check for expired session — silently clear auth headers if expired
+  if (session?.accessToken && !isSessionValid()) {
+    console.warn("Session token expired — clearing auth headers");
+    await nhost.auth.signOut({});
+    return { headers: { ...headers } };
+  }
+
   const token = session?.accessToken;
   const email = session?.user?.email ?? null;
   const role = isAdmin(email) ? "admin" : "user";
@@ -41,14 +50,21 @@ const apolloClient = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
+function handleSessionExpired() {
+  nhost.auth.signOut({}).catch(console.error);
+  window.location.href = "/";
+}
+
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");
 createRoot(rootEl).render(
   <StrictMode>
     <ErrorBoundary>
-      <ApolloProvider client={apolloClient}>
-        <App />
-      </ApolloProvider>
+      <SessionErrorBoundary onSessionExpired={handleSessionExpired}>
+        <ApolloProvider client={apolloClient}>
+          <App />
+        </ApolloProvider>
+      </SessionErrorBoundary>
     </ErrorBoundary>
   </StrictMode>,
 );

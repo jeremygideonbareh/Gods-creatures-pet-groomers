@@ -82,11 +82,46 @@ export const UPDATE_BOOKING_STATUS = gql`
   }
 `;
 
+export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
+  mutation UpdateBookingPaymentStatus($id: uuid!, $status: String!) {
+    update_bookings_by_pk(pk_columns: { id: $id }, _set: { status: $status }) {
+      id
+      status
+    }
+  }
+`;
+
+export const UPDATE_BOOKING_PAYMENT_DETAILS = gql`
+  mutation UpdateBookingPaymentDetails($id: uuid!, $status: String!, $transaction_id: String!, $advance_paid: numeric!) {
+    update_bookings_by_pk(pk_columns: { id: $id }, _set: { status: $status, transaction_id: $transaction_id, advance_paid: $advance_paid }) {
+      id
+      status
+      transaction_id
+      advance_paid
+    }
+  }
+`;
+
 export const GET_SITE_CONTENT = gql`
   query GetSiteContent {
     site_content {
       section
       content
+    }
+  }
+`;
+
+export const CHECK_BOOKING_CONFLICT = gql`
+  query CheckBookingConflict($service: String!, $preferred_date: date!) {
+    bookings(
+      where: {
+        service: { _eq: $service }
+        preferred_date: { _eq: $preferred_date }
+        status: { _in: ["pending_verification", "confirmed"] }
+      }
+    ) {
+      id
+      status
     }
   }
 `;
