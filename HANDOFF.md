@@ -1543,6 +1543,51 @@ All three specialized agents were run against the full codebase (code-reviewer, 
 
 ---
 
+---
+
+### Session 21 — Razorpay Paywall Completion + Deployment Pipeline Fix (July 15, 2026)
+
+**Phase 24: Razorpay Integration Finalization + Cloudflare Pages CI/CD**
+
+**Razorpay Payment Integration (from completed plan):**
+1. **Create `functions/create-razorpay-order.ts`** — Server-side Razorpay order creation with receipt/idempotency support
+2. **Create `functions/verify-razorpay-payment.ts`** — HMAC SHA256 signature verification with constant-time comparison (`timingSafeEqual`)
+3. **Create `functions/razorpay-webhook.ts`** — Webhook handler for `payment.captured`→`confirmed`, `payment.failed`→`payment_failed` status transitions, with booking_id correlation via payment notes
+4. **Update `booking-modal.tsx`** — Add server-side verification call between Razorpay success and booking creation, payment status state machine, UI indicators
+5. **Update `AdminDashboard.tsx`** — Payment status badges with color coding (pending_payment→yellow, confirmed→green, payment_failed→red, cancelled→gray)
+6. **Add payment status mutations to `graphql.ts`** — `UPDATE_BOOKING_PAYMENT_STATUS` mutation
+7. **Create `docs/env-vars.md`** — Full environment variable reference for frontend, Nhost Functions, Cloudflare, and Razorpay
+8. **Create `.env.example`** — Template with all required VITE_ vars
+
+**Deployment Infrastructure Fixes (CRITICAL findings):**
+9. **Move `wrangler.toml` into repo root** — Was in parent directory (outside the GitHub repo). Cloudflare Pages auto-deploy would fail without it. Copied to `react-app/wrangler.toml`
+10. **Create `.github/workflows/deploy.yml`** — GitHub Actions workflow for Cloudflare Pages deployment with all required env vars from GitHub Secrets
+11. **Fix `README.md`** — Updated to reference Cloudflare Pages (was still pointing to GitHub Pages). Added deployment instructions, GitHub Secrets reference, env var table, and project structure
+12. **Fix `package.json` dependencies** — Moved `@remotion/cli`, `@remotion/player`, `playwright`, `remotion`, `wrangler` from `dependencies` to `devDependencies` (they were bloating the production bundle)
+13. **Commit and push all files** — 30 files (13 new, 17 modified) committed and pushed to `main` on GitHub
+
+**Build status:** `tsc -b && vite build` passes with zero errors.
+
+**Manual steps remaining (require dashboard credentials):**
+1. Set `VITE_RAZORPAY_KEY_ID`, `VITE_NHOST_SUBDOMAIN`, `VITE_NHOST_REGION`, `VITE_ADMIN_EMAIL` in Cloudflare Dashboard → Pages → gods-creatures-pet-groomers → Environment Variables
+2. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RESEND_API_KEY`, `HASURA_GRAPHQL_ADMIN_SECRET` in Nhost Dashboard → Environment Variables
+3. Configure Razorpay Webhook in Razorpay Dashboard → Settings → Webhooks:
+   - URL: `https://{nhost-function-url}/v1/razorpay-webhook`
+   - Secret: Same as `RAZORPAY_WEBHOOK_SECRET`
+   - Events: `payment.captured`, `order.paid`
+4. Run SQL in Nhost Dashboard: `CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_service_date_active ON bookings (service, preferred_date) WHERE status IN ('pending_verification', 'confirmed');`
+5. Apply Hasura metadata: `hasura metadata apply --project hasura` (from inside `react-app/hasura/`)
+6. Set GitHub Secrets (Settings → Secrets and variables → Actions):
+   - `CLOUDFLARE_API_TOKEN` — Cloudflare API token with Pages write
+   - `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID
+   - `VITE_NHOST_SUBDOMAIN`, `VITE_NHOST_REGION`, `VITE_ADMIN_EMAIL`, `VITE_RAZORPAY_KEY_ID`
+
+**Files committed (30):**
+- New: `.env.example`, `.github/workflows/deploy.yml`, `AGENTS.md`, `docs/env-vars.md`, `functions/create-razorpay-order.ts`, `functions/package-lock.json`, `functions/razorpay-webhook.ts`, `functions/verify-razorpay-payment.ts`, `src/__tests__/double-booking.test.ts`, `src/__tests__/session-error.test.ts`, `src/components/SessionErrorBoundary.tsx`, `src/hooks/useBookingConflict.ts`, `vitest.config.ts`
+- Modified: `README.md`, `package.json`, `package-lock.json`, `wrangler.toml`, `HANDOFF.md`, `functions/package.json`, `functions/send-booking-receipt.ts`, `index.html`, `metadata/databases/default/tables/auth_users.yaml`, `metadata/databases/default/tables/public_bookings.yaml`, `nhost-setup.sql`, `src/components/sections/AdminDashboard.tsx`, `src/components/ui/booking-modal.tsx`, `src/context/AuthContext.tsx`, `src/lib/graphql.ts`, `src/lib/nhost.ts`, `src/main.tsx`
+
+---
+
 ## Known Issues & Roadmap
 
 ### Current Limitations
@@ -1834,4 +1879,4 @@ All findings from the code-reviewer, security-reviewer, and database-reviewer ag
 - `functions/send-booking-receipt.ts`
 - `HANDOFF.md`
 
-*Last updated: July 7, 2026 (session 20)*
+*Last updated: July 15, 2026 (session 21)*
