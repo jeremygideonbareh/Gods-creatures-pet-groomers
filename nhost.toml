@@ -2,3 +2,7 @@
 metadata_directory = "metadata"
 migrations_directory = "hasura/migrations"
 seeds_directory = "hasura/seeds"
+
+[functions]
+path = "nhost-functions"
+

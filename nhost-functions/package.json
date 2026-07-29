@@ -1,0 +1,10 @@
+{
+  "name": "gods-creatures-functions",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "razorpay": "^2.9.4",
+    "resend": "^4.0.0"
+  }
+}
