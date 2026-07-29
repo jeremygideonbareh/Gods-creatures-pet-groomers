@@ -1,26 +1,52 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-@theme {
-  --color-background: hsl(350 30% 71%);
-  --color-foreground: hsl(0 0% 100%);
-  --color-card: hsl(350 30% 75%);
-  --color-card-foreground: hsl(0 0% 100%);
-  --color-popover: hsl(350 30% 71%);
-  --color-popover-foreground: hsl(0 0% 100%);
-  --color-primary: hsl(350 25% 60%);
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(30 55% 95%);
+  --color-foreground: hsl(0 0% 11%);
+  --color-card: hsl(30 50% 97%);
+  --color-card-foreground: hsl(0 0% 11%);
+  --color-popover: hsl(30 55% 95%);
+  --color-popover-foreground: hsl(0 0% 11%);
+  --color-primary: hsl(353 35% 71%);
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(350 20% 80%);
-  --color-secondary-foreground: hsl(350 10% 30%);
-  --color-muted: hsl(350 20% 80%);
-  --color-muted-foreground: hsl(350 10% 50%);
-  --color-accent: hsl(350 25% 75%);
+  --color-secondary: hsl(353 25% 85%);
+  --color-secondary-foreground: hsl(353 15% 25%);
+  --color-muted: hsl(30 20% 85%);
+  --color-muted-foreground: hsl(353 10% 40%);
+  --color-accent: hsl(353 30% 78%);
   --color-accent-foreground: hsl(0 0% 100%);
   --color-destructive: hsl(0 84% 60%);
   --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border: hsl(350 20% 65%);
-  --color-input: hsl(350 20% 65%);
-  --color-ring: hsl(350 25% 60%);
-  --radius: 0.5rem;
+  --color-border: hsl(353 20% 70%);
+  --color-input: hsl(353 20% 70%);
+  --color-ring: hsl(353 30% 55%);
+  --color-brand-pink: #d0999a;
+  --color-brand-cream: #faf3ec;
+  --color-brand-charcoal: #1c1c1c;
+  --color-brand-ivory: #f5f0e8;
+  --radius: 0.75rem;
+  --font-heading: "DM Serif Display", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  --animate-marquee: marquee var(--duration) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-shiny-text: shiny-text 8s infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap))); }
+  }
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap))); }
+  }
+  @keyframes shiny-text {
+    0%, 90%, 100% { background-position: calc(-100% - var(--shiny-width)) 0; }
+    30%, 60% { background-position: calc(100% + var(--shiny-width)) 0; }
+  }
 }
 
 * {
@@ -29,20 +55,17 @@
 
 body {
   margin: 0;
-  font-family: "Quicksand", "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
-.fade-section {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-}
-
-.fade-section.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
 
 

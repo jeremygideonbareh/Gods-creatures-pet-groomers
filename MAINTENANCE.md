@@ -13,7 +13,7 @@
 ## Billing
 - Cloudflare Pages: Free tier (paid by developer)
 - Nhost (Hasura/Auth/DB): Free tier (paid by developer)
-- Any future custom domain: TBD
+- Custom domain: godscreaturespet.in (via Cloudflare DNS)
 
 ## Communication
 - **Content changes:** Client emails developer with request → developer handles it

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useApolloClient } from "@apollo/client/react";
@@ -10,11 +10,13 @@ import AddPetModal from "@/components/ui/AddPetModal";
 import UserMenu from "@/components/ui/UserMenu";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin } from "@/config/site-content";
+import { useAnimeScroll } from "@/hooks/use-anime-scroll";
 import HeroSection from "@/components/sections/HeroSection";
 import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
 import ServicesSection from "@/components/sections/ServicesSection";
 import ReviewsSection from "@/components/sections/ReviewsSection";
 import BookingSection from "@/components/sections/BookingSection";
+import { SocialProofBar } from "@/components/ui/social-proof-bar";
 
 const COUNT_MY_PETS = gql`
   query CountMyPetsAfterLogin {
@@ -32,9 +34,10 @@ export default function ScrollAdventure() {
   const [showPetForm, setShowPetForm] = useState(false);
   const bookingIntentRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useAnimeScroll();
   const apolloClient = useApolloClient();
 
+  // ALL EXISTING LOGIC REMAINS IDENTICAL
   const handleAuthSuccess = async () => {
     setAuthOpen(false);
     if (bookingIntentRef.current) {
@@ -72,54 +75,16 @@ export default function ScrollAdventure() {
     }
   };
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    const sections = rootRef.current?.querySelectorAll(".fade-section");
-    sections?.forEach((s) => observer.observe(s));
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div ref={rootRef} className="bg-black select-none">
-      <style>{`
-        @keyframes liquidFlow {
-          0% { background-position: 0% 50%; }
-          25% { background-position: 100% 50%; }
-          50% { background-position: 100% 100%; }
-          75% { background-position: 0% 100%; }
-          100% { background-position: 0% 50%; }
-        }
-        .liquid-glass {
-          background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.2) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.28) 75%, rgba(255,255,255,0.08) 100%);
-          background-size: 400% 400%;
-          animation: liquidFlow 6s ease infinite;
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(255,255,255,0.3);
-          box-shadow: 0 4px 24px rgba(255,255,255,0.08);
-        }
-        .liquid-glass:hover {
-          border-color: rgba(255,255,255,0.5);
-          box-shadow: 0 4px 32px rgba(255,255,255,0.15);
-        }
-      `}</style>
+    <div ref={scrollRef} className="bg-brand-cream select-none">
 
+      {/* Top nav bar */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <UserMenu />
         {user && (
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 hover:border-red-300/50 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-charcoal text-sm font-medium hover:bg-white/30 hover:border-red-300/50 transition-all"
             aria-label="Sign Out"
           >
             <LogOut size={16} />
@@ -132,7 +97,7 @@ export default function ScrollAdventure() {
         <div className="fixed top-4 left-4 z-50">
           <button
             onClick={() => navigate("/admin")}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 hover:border-white/50 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-charcoal text-sm font-medium hover:bg-white/30 hover:border-white/50 transition-all"
           >
             <Shield size={16} />
             Admin Panel
@@ -140,26 +105,48 @@ export default function ScrollAdventure() {
         </div>
       )}
 
+      {/* Section 1: Hero */}
       <section id="hero">
         <HeroSection onBookClick={handleBookClick} heroVideoRef={heroVideoRef} />
       </section>
 
-      <section id="why-choose-us" className="fade-section">
+      {/* Social Proof Bar */}
+      <SocialProofBar />
+
+      {/* Section 2: Why Choose Us */}
+      <section id="why-choose-us">
         <WhyChooseUsSection />
       </section>
 
-      <section id="services" className="fade-section">
+      {/* Section 3: Services */}
+      <section id="services">
         <ServicesSection />
       </section>
 
-      <section id="reviews" className="fade-section">
+      {/* Section 4: Reviews */}
+      <section id="reviews">
         <ReviewsSection />
       </section>
 
-      <section id="booking" className="fade-section">
+      {/* Section 5: Booking */}
+      <section id="booking">
         <BookingSection onBookClick={handleBookClick} />
       </section>
 
+      {/* Footer */}
+      <footer
+        className="w-full py-8 text-center"
+        style={{ backgroundColor: "#1c1c1c" }}
+      >
+        <p className="text-white/40 text-xs">
+          &copy; {new Date().getFullYear()} Gods Creatures Pet Groomers. All rights reserved.
+        </p>
+        <p className="text-white/30 text-[10px] mt-1">
+          Malki, Nongshiliang, Shillong, Meghalaya
+        </p>
+      </footer>
+
+      {/* Modals — EXACTLY AS BEFORE, unchanged */}
       <AuthModal
         isOpen={authOpen}
         onClose={() => { setAuthOpen(false); bookingIntentRef.current = false; }}

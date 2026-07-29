@@ -169,7 +169,7 @@ repo root/
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                    Cloudflare Pages                            │
-│  URL: https://gods-creatures-pet-groomers.pages.dev           │
+│  URL: https://godscreaturespet.in                            │
 │  Build: npm install && npm run build -> dist/                  │
 │  Auto-deploys on push via Cloudflare Git Integration           │
 ├──────────────────────────────────────────────────────────────┤
@@ -1130,7 +1130,7 @@ The `auth` schema (managed by Nhost Auth service) was tracked in Hasura metadata
   - **Build command:** `npm install && npm run build`
   - **Build output directory:** `dist`
   - **Root directory:** *(blank — uses repo root)*
-- **Live URL:** `https://gods-creatures-pet-groomers.pages.dev`
+- **Live URL:** `https://godscreaturespet.in`
 
 **Note:** The `.github/workflows/deploy.yml` (GitHub Actions) was **deleted** because it conflicted with Cloudflare's Git integration. The Git integration is the sole deployment method and handles all pushes automatically.
 

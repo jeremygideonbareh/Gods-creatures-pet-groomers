@@ -227,7 +227,7 @@ export function FeatureCarousel() {
                         >
                           {index + 1} • {feature.label}
                         </div>
-                        <p className="text-white font-normal text-[10px] md:text-2xl leading-tight drop-shadow-md tracking-tight">
+                        <p className="text-white font-heading font-bold text-[10px] md:text-2xl leading-tight drop-shadow-md tracking-tight">
                           {feature.description}
                         </p>
                       </motion.div>

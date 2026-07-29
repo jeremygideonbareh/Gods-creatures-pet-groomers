@@ -25,7 +25,7 @@ export function UserMenu() {
       <>
         <button
           onClick={() => setAuthOpen(true)}
-          className="px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 transition-all"
+          className="px-4 py-1.5 rounded-full bg-brand-pink/20 backdrop-blur-md border border-brand-pink/30 text-brand-charcoal text-sm font-medium hover:bg-brand-pink/30 transition-all"
         >
           Sign In
         </button>
@@ -38,7 +38,7 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium hover:bg-white/30 transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-pink/20 backdrop-blur-md border border-brand-pink/30 text-brand-charcoal text-sm font-medium hover:bg-brand-pink/30 transition-all"
       >
         <User size={16} />
         <span className="max-w-[100px] truncate">
@@ -52,8 +52,8 @@ export function UserMenu() {
             onClick={() => setMenuOpen(false)}
           />
           <div
-            className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/20 backdrop-blur-xl z-50 overflow-hidden"
-            style={{ backgroundColor: `${BRAND_PINK}E6` }}
+            className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-brand-pink/20 backdrop-blur-xl z-50 overflow-hidden"
+            style={{ backgroundColor: `${BRAND_PINK}F2` }}
           >
             <button
               onClick={() => { navigate("/profile"); setMenuOpen(false); }}

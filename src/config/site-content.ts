@@ -12,12 +12,15 @@ export const RUPEESIGN = "\u20B9";
 export const designTokens = {
   brandPink: "#d0999a",
   darkPink: "#c48a8b",
+  brandCream: "#faf3ec",
+  brandCharcoal: "#1c1c1c",
+  brandIvory: "#f5f0e8",
 } as const;
 
 export const hero = {
   title: "Gods Creatures Pet Groomers",
   subtitle:
-    "Luxury grooming by experienced professionals — only the finest for your pet.",
+    "Luxury grooming by experienced professionals \u2014 only the finest for your pet.",
   cta: "Book Appointment",
   video: "herosectionvideo.mp4",
   poster: "hero-poster.jpg",
@@ -51,7 +54,7 @@ export const whyChooseUs = {
       icon: "🕐",
       title: "Years of Expertise",
       description:
-        "Decades of combined experience — our well-trained team brings mastery and passion to every appointment.",
+        "Decades of combined experience \u2014 our well-trained team brings mastery and passion to every appointment.",
     },
     {
       icon: "✨",
@@ -82,7 +85,7 @@ export const services = {
       image:
         "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=900&auto=format&fit=crop&q=60",
       description:
-        "Precision styling by experienced groomers who understand every breed's unique beauty — using professional-grade tools for a flawless finish.",
+        "Precision styling by experienced groomers who understand every breed's unique beauty \u2014 using professional-grade tools for a flawless finish.",
     },
     {
       id: "dental-hygiene",
@@ -114,7 +117,7 @@ export const reviews = {
       tag: "Regular since 2023",
       text: 'The grooming transformed my anxious rescue into a fluffy star. He actually pulls me toward the salon now!',
       textLong:
-        'The level of care and expertise is unmatched. Bruno has never looked more luxurious — the imported products make such a difference!',
+        'The level of care and expertise is unmatched. Bruno has never looked more luxurious \u2014 the imported products make such a difference!',
     },
     {
       emoji: "🐩",
@@ -122,7 +125,7 @@ export const reviews = {
       tag: "Grooming + Wellness",
       text: 'The dental hygiene program saved us a fortune in vet bills. Plus Coco smells amazing for weeks!',
       textLong:
-        "The experienced team transformed Coco's coat completely. Years of expertise really show — we've never been happier!",
+        "The experienced team transformed Coco's coat completely. Years of expertise really show \u2014 we've never been happier!",
     },
   ],
   images: [

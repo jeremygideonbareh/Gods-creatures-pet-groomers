@@ -97,7 +97,7 @@ npx wrangler pages deploy dist --project-name=gods-creatures-pet-groomers
 
 ### Production URL
 ```
-https://gods-creatures-pet-groomers.pages.dev
+https://godscreaturespet.in
 ```
 
 ## Environment Variables
