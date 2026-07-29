@@ -1,22 +1,26 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useApolloClient } from "@apollo/client/react";
-import { Shield, LogOut } from "lucide-react";
-import { nhost } from "@/lib/nhost";
+import { useAuth } from "@/context/AuthContext";
+import { useAnimeScroll } from "@/hooks/use-anime-scroll";
+import { ScrollProgress } from "@/components/ui/scroll-progress";
+import { Navbar } from "@/components/ui/navbar";
+import HeroSection from "@/components/sections/HeroSection";
+import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
+import { SocialProofBar } from "@/components/ui/social-proof-bar";
+import ServicesSection from "@/components/sections/ServicesSection";
+import { GallerySection } from "@/components/sections/GallerySection";
+import ReviewsSection from "@/components/sections/ReviewsSection";
+import { TeamSection } from "@/components/sections/TeamSection";
+import { ProcessSection } from "@/components/sections/ProcessSection";
+import { FAQSection } from "@/components/sections/FAQSection";
+import { BlogSection } from "@/components/sections/BlogSection";
+import BookingSection from "@/components/sections/BookingSection";
+import { EnhancedFooter } from "@/components/ui/footer-enhanced";
 import BookingModal from "@/components/ui/booking-modal";
 import AuthModal from "@/components/ui/AuthModal";
 import AddPetModal from "@/components/ui/AddPetModal";
-import UserMenu from "@/components/ui/UserMenu";
-import { useAuth } from "@/context/AuthContext";
-import { isAdmin } from "@/config/site-content";
-import { useAnimeScroll } from "@/hooks/use-anime-scroll";
-import HeroSection from "@/components/sections/HeroSection";
-import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
-import ServicesSection from "@/components/sections/ServicesSection";
-import ReviewsSection from "@/components/sections/ReviewsSection";
-import BookingSection from "@/components/sections/BookingSection";
-import { SocialProofBar } from "@/components/ui/social-proof-bar";
 
 const COUNT_MY_PETS = gql`
   query CountMyPetsAfterLogin {
@@ -26,12 +30,24 @@ const COUNT_MY_PETS = gql`
   }
 `;
 
+const NAV_ITEMS = [
+  { id: "hero", label: "Home" },
+  { id: "why-choose-us", label: "About" },
+  { id: "services", label: "Services" },
+  { id: "gallery", label: "Gallery" },
+  { id: "reviews", label: "Reviews" },
+  { id: "team", label: "Team" },
+  { id: "booking", label: "Book" },
+];
+
 export default function ScrollAdventure() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [showPetForm, setShowPetForm] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("hero");
   const bookingIntentRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const scrollRef = useAnimeScroll();
@@ -61,9 +77,32 @@ export default function ScrollAdventure() {
     }
   };
 
-  const handleLogout = async () => {
-    await nhost.auth.signOut({});
-    navigate("/");
+  // Scroll-aware navbar + active section tracking
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 80);
+
+      // Update active section based on scroll position
+      const sections = NAV_ITEMS.map((item) => document.getElementById(item.id)).filter(Boolean);
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i];
+        if (!section) continue;
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= 200) {
+          setActiveSection(NAV_ITEMS[i].id);
+          break;
+        }
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   const handleBookClick = () => {
@@ -77,74 +116,68 @@ export default function ScrollAdventure() {
 
   return (
     <div ref={scrollRef} className="bg-brand-cream select-none">
+      {/* Scroll progress indicator */}
+      <ScrollProgress />
 
-      {/* Top nav bar */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <UserMenu />
-        {user && (
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-charcoal text-sm font-medium hover:bg-white/30 hover:border-red-300/50 transition-all"
-            aria-label="Sign Out"
-          >
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Log Out</span>
-          </button>
-        )}
-      </div>
+      {/* Fixed top navigation bar */}
+      <Navbar
+        scrolled={scrolled}
+        activeSection={activeSection}
+        navItems={NAV_ITEMS}
+        onNavClick={scrollToSection}
+        onBookClick={handleBookClick}
+      />
 
-      {isAdmin(user?.email) && (
-        <div className="fixed top-4 left-4 z-50">
-          <button
-            onClick={() => navigate("/admin")}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-charcoal text-sm font-medium hover:bg-white/30 hover:border-white/50 transition-all"
-          >
-            <Shield size={16} />
-            Admin Panel
-          </button>
-        </div>
-      )}
+      {/* Spacer for fixed nav */}
+      <div className="h-0" />
 
       {/* Section 1: Hero */}
       <section id="hero">
         <HeroSection onBookClick={handleBookClick} heroVideoRef={heroVideoRef} />
       </section>
 
-      {/* Social Proof Bar */}
-      <SocialProofBar />
-
       {/* Section 2: Why Choose Us */}
       <section id="why-choose-us">
         <WhyChooseUsSection />
       </section>
+
+      {/* Social Proof Bar */}
+      <SocialProofBar />
 
       {/* Section 3: Services */}
       <section id="services">
         <ServicesSection />
       </section>
 
-      {/* Section 4: Reviews */}
+      {/* Section 4: Gallery */}
+      <section id="gallery">
+        <GallerySection />
+      </section>
+
+      {/* Section 5: Reviews */}
       <section id="reviews">
         <ReviewsSection />
       </section>
 
-      {/* Section 5: Booking */}
+      {/* NEW: Team Section */}
+      <TeamSection />
+
+      {/* NEW: Process Section */}
+      <ProcessSection />
+
+      {/* NEW: FAQ Section */}
+      <FAQSection />
+
+      {/* NEW: Blog Section */}
+      <BlogSection />
+
+      {/* Section 6: Booking */}
       <section id="booking">
         <BookingSection onBookClick={handleBookClick} />
       </section>
 
       {/* Footer */}
-      <footer
-        className="w-full py-8 text-center"
-        style={{ backgroundColor: "#1c1c1c" }}
-      >
-        <p className="text-white/40 text-xs">
-          &copy; {new Date().getFullYear()} Gods Creatures Pet Groomers. All rights reserved.
-        </p>
-        <p className="text-white/30 text-[10px] mt-1">
-          Malki, Nongshiliang, Shillong, Meghalaya
-        </p>
-      </footer>
+      <EnhancedFooter />
 
       {/* Modals — EXACTLY AS BEFORE, unchanged */}
       <AuthModal

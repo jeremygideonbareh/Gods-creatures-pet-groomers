@@ -15,6 +15,15 @@ export const designTokens = {
   brandCream: "#faf3ec",
   brandCharcoal: "#1c1c1c",
   brandIvory: "#f5f0e8",
+  // NEW semantic tokens
+  brandPinkLight: "#f0e0e0",
+  brandPinkDark: "#a87a7b",
+  brandCreamDark: "#f0e8dc",
+  brandCreamLight: "#fffcf7",
+  fontHeading: "'DM Serif Display', Georgia, serif",
+  fontBody: "'Inter', system-ui, -apple-system, sans-serif",
+  transitionDefault: "cubic-bezier(0.16, 1, 0.3, 1)",
+  transitionBounce: "cubic-bezier(0.34, 1.56, 0.64, 1)",
 } as const;
 
 export const hero = {
@@ -169,6 +178,111 @@ export const bookingSection = {
   successMessage:
     "Your request has been sent. We'll get back to you with a confirmed slot!",
 } as const;
+
+// ========== NEW CONTENT SECTIONS ==========
+
+export const teamMembers = [
+  {
+    name: "Sarah Johnson",
+    role: "Head Groomer",
+    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&auto=format&fit=crop&q=60",
+    bio: "10+ years of professional grooming experience. Certified Master Groomer with a passion for creative styling.",
+    emoji: "🐾",
+  },
+  {
+    name: "Mike Chen",
+    role: "Senior Groomer",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=60",
+    bio: "Specializes in breed-specific cuts and gentle handling of anxious pets. Vet-backed wellness advocate.",
+    emoji: "🩺",
+  },
+  {
+    name: "Emily Rodriguez",
+    role: "Pet Stylist",
+    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=60",
+    bio: "Award-winning creative groomer. Turns every pet into a masterpiece with patience and premium products.",
+    emoji: "✂️",
+  },
+  {
+    name: "Dr. James Park",
+    role: "Veterinary Consultant",
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=60",
+    bio: "Partnership vet ensuring every grooming session meets the highest standards of pet health and safety.",
+    emoji: "🩺",
+  },
+] as const;
+
+export const processSteps = [
+  {
+    step: 1,
+    title: "Book a Session",
+    description: "Choose your preferred service, date, and time. Our booking system makes it easy to schedule your pet's grooming session.",
+    icon: "📅",
+  },
+  {
+    step: 2,
+    title: "Drop Off Your Pet",
+    description: "Bring your furry friend to our salon in Malki. We'll discuss your requirements and take notes on any special needs.",
+    icon: "🚗",
+  },
+  {
+    step: 3,
+    title: "Pamper & Pick Up",
+    description: "We groom with care using premium products. You'll receive a notification when your pet is ready for collection — looking their absolute best!",
+    icon: "✨",
+  },
+] as const;
+
+export const faqItems = [
+  {
+    q: "How long does a grooming session take?",
+    a: "Most sessions take 1.5–3 hours depending on the service and your pet's size, breed, and temperament. Full spa packages may take longer. We'll give you an estimated time when you book.",
+  },
+  {
+    q: "What products do you use?",
+    a: "We use only premium imported shampoos, conditioners, and treatments — all vet-approved and suitable for sensitive skin. We carry hypoallergenic options too.",
+  },
+  {
+    q: "Do I need to book in advance?",
+    a: "Yes, we operate by appointment only to ensure each pet gets undivided attention. A ₹500 booking fee secures your slot and is adjusted in your final bill.",
+  },
+  {
+    q: "What if my pet is anxious or aggressive?",
+    a: "Our team is trained in low-stress handling techniques. We recommend starting with a simple bath and brush session to build trust. Let us know about any behavioral concerns when booking.",
+  },
+  {
+    q: "Do you groom cats too?",
+    a: "Absolutely! We provide gentle grooming services for both dogs and cats. Our feline guests receive extra care in a quiet, separate area to minimize stress.",
+  },
+  {
+    q: "What is your cancellation policy?",
+    a: "We request 24 hours notice for cancellations. Late cancellations may forfeit the booking fee. We understand emergencies happen — just give us a call.",
+  },
+] as const;
+
+export const blogPosts = [
+  {
+    title: "5 Signs Your Pet Needs a Grooming Session",
+    excerpt: "From excessive shedding to visible mats, learn the tell-tale signs that your furry friend is due for a professional grooming session.",
+    date: "2026-06-15",
+    category: "Pet Care Tips",
+    image: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=600&auto=format&fit=crop&q=60",
+  },
+  {
+    title: "The Importance of Dental Hygiene for Pets",
+    excerpt: "Regular dental care isn't just about fresh breath. Discover how professional teeth cleaning can prevent serious health issues in your pet.",
+    date: "2026-05-28",
+    category: "Health & Wellness",
+    image: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&auto=format&fit=crop&q=60",
+  },
+  {
+    title: "Breed-Specific Grooming: A Complete Guide",
+    excerpt: "Different breeds have different grooming needs. Our guide covers everything from Poodle clips to Labradoodle maintenance.",
+    date: "2026-05-10",
+    category: "Grooming Guide",
+    image: "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=600&auto=format&fit=crop&q=60",
+  },
+] as const;
 
 export const PRICING_MENU = {
   rules: `Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`,

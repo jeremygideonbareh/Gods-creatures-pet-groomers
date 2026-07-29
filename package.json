@@ -13,7 +13,7 @@
     "@apollo/client": "^4.2.2",
     "@cashfreepayments/cashfree-js": "^1.0.7",
     "@nhost/nhost-js": "^4.7.2",
-    "animejs": "^3.2.2",
+    "animejs": "^4.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "graphql": "^16.14.1",

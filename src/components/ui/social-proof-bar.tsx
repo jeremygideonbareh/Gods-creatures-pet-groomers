@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useRef } from "react";
-import anime from "animejs";
+import { animate } from "animejs";
 import { designTokens } from "@/config/site-content";
 
 const BRAND_PINK = designTokens.brandPink;
@@ -25,16 +23,20 @@ export function SocialProofBar() {
           if (entry.isIntersecting) {
             const el = entry.target;
             const targetValue = parseFloat(el.getAttribute("data-target") || "0");
-            anime({
-              targets: el,
-              innerHTML: [0, targetValue],
+
+            // Use anime.js v4 - animate a plain object
+            const obj = { value: 0 };
+            const anim = animate(obj, {
+              value: [0, targetValue],
               easing: "easeOutQuad",
-              duration: 2000,
-              round: targetValue % 1 === 0 ? 1 : 10,
-              update: (anim: anime.AnimeInstance) => {
-                if (targetValue % 1 !== 0) {
-                  el.textContent = (anim.animations[0].currentValue as unknown as number).toFixed(1);
-                }
+              duration: 2200,
+              // @ts-expect-error - v4 update callback
+              update: () => {
+                const formatted =
+                  targetValue % 1 === 0
+                    ? Math.round(obj.value)
+                    : obj.value.toFixed(1);
+                el.textContent = String(formatted);
               },
             });
             observer.unobserve(el);
@@ -50,23 +52,41 @@ export function SocialProofBar() {
   return (
     <div
       ref={ref}
-      className="w-full py-8 md:py-10 px-4"
+      className="relative w-full py-10 md:py-12 px-4 overflow-hidden"
       style={{ backgroundColor: BRAND_PINK }}
     >
-      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-        {stats.map((stat) => (
-          <div key={stat.label} className="text-center" data-anime="fadeInUp">
-            <div className="text-2xl md:text-4xl font-heading font-bold text-white">
-              <span className="stat-value" data-target={stat.value}>
-                0
-              </span>
-              {stat.suffix}
+      {/* Decorative pattern overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `radial-gradient(circle at 50% 50%, white 1px, transparent 1px)`,
+          backgroundSize: "40px 40px",
+        }}
+      />
+
+      <div className="relative z-10 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="text-center group"
+              data-anime="scaleIn"
+            >
+              <div className="text-3xl md:text-5xl font-heading font-bold text-white mb-1">
+                <span
+                  className="stat-value inline-block tabular-nums"
+                  data-target={stat.value}
+                >
+                  0
+                </span>
+                <span className="text-white/90">{stat.suffix}</span>
+              </div>
+              <p className="text-white/70 text-xs md:text-sm font-medium tracking-wide uppercase">
+                {stat.label}
+              </p>
             </div>
-            <p className="text-white/70 text-sm mt-1 font-medium tracking-wide uppercase">
-              {stat.label}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
