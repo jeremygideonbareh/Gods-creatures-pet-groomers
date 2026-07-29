@@ -6,6 +6,7 @@ const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 
 interface CreateOrderBody {
   amount?: number;
+  booking_id?: string;
   customer_details?: {
     customer_id?: string;
     customer_email?: string;
@@ -32,11 +33,16 @@ export default async function handler(req: any, res: any) {
   const body = req.body as CreateOrderBody;
   const amount = body?.amount ?? 50000;
 
+  // If booking_id is provided at top level, include it in order_tags
+  if (body.booking_id) {
+    body.order_tags = { ...body.order_tags, booking_id: body.booking_id };
+  }
+
   // Build Cashfree order payload
   const orderPayload: Record<string, unknown> = {
     order_amount: amount / 100, // Cashfree expects in rupees (not paise)
     order_currency: "INR",
-    order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+    order_id: `bkg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
     customer_details: {
       customer_id: body.customer_details?.customer_id ?? `cust_${Date.now()}`,
       customer_email: body.customer_details?.customer_email ?? "",

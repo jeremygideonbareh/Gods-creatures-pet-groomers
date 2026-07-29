@@ -17,6 +17,19 @@ declare global {
       open: () => void;
       on: (event: string, handler: (response: any) => void) => void;
     };
+    Cashfree: (config: { mode: string }) => {
+      checkout: (options: {
+        paymentSessionId: string;
+        redirectTarget: string;
+      }) => Promise<{
+        error?: boolean;
+        paymentDetails?: {
+          orderId: string;
+          paymentId: string;
+          paymentMessage: string;
+        };
+      }>;
+    };
   }
 }
 
@@ -267,6 +280,30 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
     }
   }, [isOpen, loadRazorpayScript]);
 
+  const loadCashfreeScript = useCallback((): Promise<void> => {
+    if (document.getElementById("cashfree-sdk")) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.id = "cashfree-sdk";
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        setErrorMessage("Failed to load Cashfree payment gateway.");
+        setSubmitStatus("error");
+        reject();
+      };
+      document.body.appendChild(script);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !document.getElementById("cashfree-sdk")) {
+      loadCashfreeScript().catch(console.warn);
+    }
+  }, [isOpen, loadCashfreeScript]);
+
   const handleRazorpayPayment = async () => {
     setErrorMessage("");
     setSubmitStatus("idle");
@@ -395,6 +432,115 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       console.error("Razorpay error:", err);
       setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
       setRazorpayLoading(false);
+    }
+  };
+
+  const handleCashfreePayment = async () => {
+    setErrorMessage("");
+    setSubmitStatus("idle");
+
+    const email = emailRef.current?.value.trim() || "";
+    const phone = phoneRef.current?.value.trim() || "";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage("Please enter a valid email address.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    if (phone && !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
+      setErrorMessage("Please enter a valid phone number (7-15 digits).");
+      setSubmitStatus("error");
+      return;
+    }
+
+    if (!selectedPackage) {
+      setErrorMessage("Please select a grooming package.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    if (!effectiveSize) {
+      setErrorMessage("Please select your pet's size.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    if (!window.Cashfree) {
+      await loadCashfreeScript().catch(() => {});
+      if (!window.Cashfree) {
+        setErrorMessage("Cashfree payment gateway failed to load. Please refresh and try again.");
+        setSubmitStatus("error");
+        return;
+      }
+    }
+
+    setRazorpayLoading(true);
+
+    try {
+      const token = nhost.getUserSession()?.accessToken;
+      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/create-cashfree-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          amount: 50000,
+          customer_details: {
+            customer_id: user?.id || `guest_${Date.now()}`,
+            customer_email: email,
+            customer_phone: phone,
+            customer_name: nameRef.current?.value || "",
+          },
+        }),
+      });
+
+      if (!orderRes.ok) {
+        const errBody = await orderRes.json().catch(() => ({}));
+        throw new Error(errBody.message || "Failed to create payment order");
+      }
+
+      const orderData = await orderRes.json();
+
+      const cashfree = window.Cashfree({ mode: "sandbox" });
+      const result = await cashfree.checkout({
+        paymentSessionId: orderData.payment_session_id,
+        redirectTarget: "_modal",
+      });
+
+      setRazorpayLoading(false);
+
+      if (result.error) {
+        setErrorMessage("Payment was cancelled or failed. Please try again.");
+        return;
+      }
+
+      // Payment successful — verify
+      const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/verify-cashfree-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          order_id: result.paymentDetails?.orderId,
+          payment_id: result.paymentDetails?.paymentId,
+          order_amount: 500,
+        }),
+      });
+      const verifyData = await verifyRes.json();
+      if (verifyData.verified) {
+        const transactionId = result.paymentDetails?.paymentId || "";
+        await submitBooking(transactionId);
+      } else {
+        setErrorMessage("Payment verification failed. Please contact support.");
+      }
+    } catch (err) {
+      setRazorpayLoading(false);
+      console.error("Cashfree error:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
     }
   };
 
@@ -921,6 +1067,23 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                         </>
                       ) : (
                         <>💳 Pay {RUPEESIGN}500 Advance via Razorpay</>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCashfreePayment}
+                      disabled={submitStatus === "loading" || conflictChecking || razorpayLoading}
+                      className="w-full py-3 rounded-full border-2 border-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3"
+                      style={{ color: "white" }}
+                    >
+                      {submitStatus === "loading" || conflictChecking || razorpayLoading ? (
+                        <>
+                          <Loader2 size={20} className="animate-spin" />
+                          <span>{conflictChecking ? "Checking availability..." : razorpayLoading ? "Opening Payment..." : booking.submittingLabel}</span>
+                        </>
+                      ) : (
+                        <>💳 Pay {RUPEESIGN}500 via Cashfree</>
                       )}
                     </button>
 
