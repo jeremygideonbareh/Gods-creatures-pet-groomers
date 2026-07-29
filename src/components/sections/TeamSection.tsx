@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { animate } from "animejs";
+import { animate, stagger } from "animejs";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
 import { teamMembers, designTokens } from "@/config/site-content";
 
@@ -18,7 +18,7 @@ export function TeamSection() {
             animate(items, {
               opacity: [0, 1],
               translateY: [40, 0],
-              delay: (_el: Element, i: number) => i * 100,
+              delay: stagger(100),
               easing: "cubicBezier(0.16, 1, 0.3, 1)",
               duration: 700,
             });

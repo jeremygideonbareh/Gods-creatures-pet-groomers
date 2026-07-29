@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
-import { animate, type AnimeParams } from "animejs";
+import { animate } from "animejs";
+
+type AnimeParams = Parameters<typeof animate>[1];
 
 type AnimePreset =
   | "fadeInUp"
@@ -73,7 +75,6 @@ const PRESETS: Record<AnimePreset, AnimeParams> = {
   },
   blurIn: {
     opacity: [0, 1],
-    // @ts-expect-error - anime.js v4 supports filter keyframes
     filter: ["blur(8px)", "blur(0px)"],
     easing: "cubicBezier(0.16, 1, 0.3, 1)",
     duration: 800,

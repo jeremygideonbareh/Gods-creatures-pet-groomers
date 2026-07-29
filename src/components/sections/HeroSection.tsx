@@ -22,12 +22,13 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
 
   useEffect(() => {
     // Entrance animation sequence using anime.js v4 timeline
-    const tl = createTimeline({ easing: "easeOutExpo" });
+    const tl = createTimeline();
 
     if (overlayRef.current) {
       tl.add(overlayRef.current, {
         opacity: [0, 1],
         duration: 1200,
+        easing: "easeOutExpo",
       });
     }
 
@@ -38,6 +39,7 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
         translateY: [50, 0],
         duration: 900,
         delay: stagger(180, { from: "first" }),
+        easing: "easeOutExpo",
       }, "-=800");
     }
 
@@ -45,6 +47,7 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
       opacity: [0, 1],
       scale: [0.92, 1],
       duration: 700,
+      easing: "easeOutExpo",
     }, "-=500");
 
     if (scrollIndicatorRef.current) {
@@ -52,6 +55,7 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
         opacity: [0, 1],
         translateY: [-20, 0],
         duration: 600,
+        easing: "easeOutExpo",
       }, "-=300");
     }
 

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { animate } from "animejs";
+import { animate, stagger } from "animejs";
 import { ArrowRight } from "lucide-react";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
 import { blogPosts, designTokens } from "@/config/site-content";
@@ -19,7 +19,7 @@ export function BlogSection() {
             animate(items, {
               opacity: [0, 1],
               translateY: [40, 0],
-              delay: (_el: Element, i: number) => i * 120,
+              delay: stagger(120),
               easing: "cubicBezier(0.16, 1, 0.3, 1)",
               duration: 700,
             });

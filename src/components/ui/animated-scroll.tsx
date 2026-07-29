@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useApolloClient } from "@apollo/client/react";
 import { useAuth } from "@/context/AuthContext";
@@ -42,7 +41,6 @@ const NAV_ITEMS = [
 
 export default function ScrollAdventure() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [showPetForm, setShowPetForm] = useState(false);

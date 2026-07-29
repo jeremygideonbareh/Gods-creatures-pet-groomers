@@ -26,11 +26,10 @@ export function SocialProofBar() {
 
             // Use anime.js v4 - animate a plain object
             const obj = { value: 0 };
-            const anim = animate(obj, {
+            animate(obj, {
               value: [0, targetValue],
               easing: "easeOutQuad",
               duration: 2200,
-              // @ts-expect-error - v4 update callback
               update: () => {
                 const formatted =
                   targetValue % 1 === 0
