@@ -23,6 +23,7 @@ insert_permissions:
         - phone
         - preferred_date
         - service
+        - status
         - total_price
         - transaction_id
 select_permissions:
@@ -48,31 +49,4 @@ select_permissions:
         user_id:
           _eq: X-Hasura-User-Id
       allow_aggregations: true
-  - role: admin
-    permission:
-      columns:
-        - addons
-        - advance_paid
-        - created_at
-        - customer_name
-        - email
-        - id
-        - notes
-        - pet_id
-        - phone
-        - preferred_date
-        - service
-        - status
-        - total_price
-        - transaction_id
-        - user_id
-      filter: {}
-      allow_aggregations: true
-update_permissions:
-  - role: admin
-    permission:
-      columns:
-        - status
-      filter: {}
-      check: null
 
