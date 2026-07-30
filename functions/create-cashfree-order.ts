@@ -4,6 +4,12 @@ const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 // Use sandbox for test mode, switch to api.cashfree.com for production
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 interface CreateOrderBody {
   amount?: number;
   booking_id?: string;
@@ -18,13 +24,18 @@ interface CreateOrderBody {
 }
 
 export default async function handler(req: any, res: any) {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).set(CORS_HEADERS).send("");
+  }
+
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).set(CORS_HEADERS).json({ error: "Method not allowed" });
   }
 
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
     console.error("CASHFREE_APP_ID or CASHFREE_SECRET_KEY is not set");
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Cashfree not configured",
       message: "CASHFREE_APP_ID and CASHFREE_SECRET_KEY must be set in Nhost Dashboard → Environment Variables.",
     });
@@ -72,7 +83,7 @@ export default async function handler(req: any, res: any) {
     if (!response.ok) {
       const errBody = await response.text();
       console.error("Cashfree order creation failed:", response.status, errBody);
-      return res.status(response.status).json({
+      return res.status(response.status).set(CORS_HEADERS).json({
         error: "Failed to create payment order",
         message: `Cashfree API returned ${response.status}: ${errBody}`,
       });
@@ -81,7 +92,7 @@ export default async function handler(req: any, res: any) {
     const data = await response.json();
     console.log("Cashfree order created:", data.order_id);
 
-    return res.json({
+    return res.set(CORS_HEADERS).json({
       payment_session_id: data.payment_session_id,
       order_id: data.order_id,
       amount: amount,
@@ -89,7 +100,7 @@ export default async function handler(req: any, res: any) {
     });
   } catch (err) {
     console.error("Cashfree order creation error:", err);
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Failed to create payment order",
       message: err instanceof Error ? err.message : "Unknown error",
     });
