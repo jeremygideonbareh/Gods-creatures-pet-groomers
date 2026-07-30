@@ -26,6 +26,8 @@ Environment variables are managed in three primary contexts:
 | `VITE_NHOST_SUBDOMAIN` | .env (local), Cloudflare | Frontend | Nhost project subdomain | Yes | `ukuqslqvwovrukooziwf` |
 | `VITE_NHOST_REGION` | .env (local), Cloudflare | Frontend | Nhost project region | Yes | `ap-south-1` |
 | `VITE_ADMIN_EMAIL` | .env (local), Cloudflare | Frontend | Comma-separated list of admin emails | Yes | `admin@godscreatures.com,cloudlyconfusing@gmail.com` |
+| `CASHFREE_APP_ID` | Nhost Dashboard | Nhost Functions | Cashfree App ID for payment API authentication | Yes (for Cashfree) | `CF12345678ABCD` |
+| `CASHFREE_SECRET_KEY` | Nhost Dashboard | Nhost Functions | Cashfree Secret Key for payment API authentication | Yes (for Cashfree) | `sk_test_xxxxxxxxxxxxxxxxxxxx` |
 
 ## Setup Instructions
 

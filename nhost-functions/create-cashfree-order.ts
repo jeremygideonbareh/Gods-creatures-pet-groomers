@@ -67,15 +67,14 @@ export default async function handler(req: any, res: any) {
     order_tags: body.order_tags ?? {},
   };
 
-  const auth = Buffer.from(`${CASHFREE_APP_ID}:${CASHFREE_SECRET_KEY}`).toString("base64");
-
   try {
     const response = await fetch(`${CASHFREE_API_URL}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-version": "2025-01-01",
-        "Authorization": `Basic ${auth}`,
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
       },
       body: JSON.stringify(orderPayload),
     });
