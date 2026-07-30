@@ -4,6 +4,12 @@ const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const HASURA_GRAPHQL_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 interface CashfreeOrder {
   order_id: string;
   order_amount: number;
@@ -94,17 +100,22 @@ async function updateBookingStatus(
 }
 
 export default async function handler(req: any, res: any) {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).set(CORS_HEADERS).send("");
+  }
+
   console.log("=== cashfree-webhook invoked ===");
   console.log("Method:", req.method);
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).set(CORS_HEADERS).json({ error: "Method not allowed" });
   }
 
   // Verify required env vars are present
   if (!CASHFREE_SECRET_KEY) {
     console.error("FATAL: CASHFREE_SECRET_KEY is not set");
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Webhook not configured",
       message: "CASHFREE_SECRET_KEY must be set in Nhost Dashboard → Environment Variables.",
     });
@@ -112,7 +123,7 @@ export default async function handler(req: any, res: any) {
 
   if (!NHOST_GRAPHQL_URL) {
     console.error("FATAL: NHOST_GRAPHQL_URL is not set");
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Hasura not configured",
       message: "NHOST_GRAPHQL_URL must be set in Nhost Dashboard → Environment Variables.",
     });
@@ -120,7 +131,7 @@ export default async function handler(req: any, res: any) {
 
   if (!HASURA_GRAPHQL_ADMIN_SECRET) {
     console.error("FATAL: HASURA_GRAPHQL_ADMIN_SECRET is not set");
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Hasura not configured",
       message: "HASURA_GRAPHQL_ADMIN_SECRET must be set in Nhost Dashboard → Environment Variables.",
     });
@@ -131,7 +142,7 @@ export default async function handler(req: any, res: any) {
 
   if (!signature) {
     console.error("Missing x-webhook-signature header");
-    return res.status(400).json({ error: "Missing webhook signature" });
+    return res.status(400).set(CORS_HEADERS).json({ error: "Missing webhook signature" });
   }
 
   // Reconstruct the raw body from the parsed JSON to verify the signature
@@ -141,7 +152,7 @@ export default async function handler(req: any, res: any) {
 
   if (!isValid) {
     console.error("Invalid webhook signature — possible tampering");
-    return res.status(400).json({ error: "Invalid webhook signature" });
+    return res.status(400).set(CORS_HEADERS).json({ error: "Invalid webhook signature" });
   }
 
   console.log("Webhook signature verified successfully");
@@ -154,7 +165,7 @@ export default async function handler(req: any, res: any) {
 
   if (!HANDLED_EVENTS.includes(event as HandledEvent)) {
     console.log(`Ignoring unhandled event: ${event}`);
-    return res.status(200).json({ ok: true, message: `Ignored event: ${event}` });
+    return res.set(CORS_HEADERS).json({ ok: true, message: `Ignored event: ${event}` });
   }
 
   // Extract booking_id from order tags
@@ -166,7 +177,7 @@ export default async function handler(req: any, res: any) {
       "Missing booking_id in order tags. Order:",
       JSON.stringify(payload.data?.order),
     );
-    return res.status(400).json({
+    return res.status(400).set(CORS_HEADERS).json({
       error: "Missing booking_id in order tags",
       message:
         "The order must include order_tags.booking_id to correlate with a booking record.",
@@ -185,17 +196,17 @@ export default async function handler(req: any, res: any) {
       console.warn(`Booking not found for id: ${bookingId} — possible orphan payment`);
       // Still return 200 because the webhook was valid and processed;
       // the booking might have been deleted manually.
-      return res.json({ ok: true, warning: "Booking not found" });
+      return res.set(CORS_HEADERS).json({ ok: true, warning: "Booking not found" });
     }
 
     console.log(
       `Booking ${updatedBooking.id} status updated to ${updatedBooking.status}`,
     );
 
-    return res.json({ ok: true });
+    return res.set(CORS_HEADERS).json({ ok: true });
   } catch (err) {
     console.error("Failed to update booking status:", err);
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Failed to update booking status",
       message: err instanceof Error ? err.message : "Unknown error",
     });

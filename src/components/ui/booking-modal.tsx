@@ -13,10 +13,6 @@ import type { PricingMenuContent } from "@/lib/content-service";
 
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-      on: (event: string, handler: (response: any) => void) => void;
-    };
     Cashfree: (config: { mode: string }) => {
       checkout: (options: {
         paymentSessionId: string;
@@ -252,33 +248,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
     );
   };
 
-  const [razorpayReady, setRazorpayReady] = useState(false);
-  const [razorpayLoading, setRazorpayLoading] = useState(false);
-
-  const loadRazorpayScript = useCallback((): Promise<void> => {
-    if (document.getElementById("razorpay-script")) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.id = "razorpay-script";
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => {
-        setRazorpayReady(true);
-        resolve();
-      };
-      script.onerror = () => {
-        setErrorMessage("Failed to load payment gateway. Please try again.");
-        setSubmitStatus("error");
-        reject();
-      };
-      document.body.appendChild(script);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && !document.getElementById("razorpay-script")) {
-      loadRazorpayScript().catch(console.warn);
-    }
-  }, [isOpen, loadRazorpayScript]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const loadCashfreeScript = useCallback((): Promise<void> => {
     if (document.getElementById("cashfree-sdk")) return Promise.resolve();
@@ -303,137 +273,6 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       loadCashfreeScript().catch(console.warn);
     }
   }, [isOpen, loadCashfreeScript]);
-
-  const handleRazorpayPayment = async () => {
-    setErrorMessage("");
-    setSubmitStatus("idle");
-
-    const email = emailRef.current?.value.trim() || "";
-    const phone = phoneRef.current?.value.trim() || "";
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrorMessage("Please enter a valid email address.");
-      setSubmitStatus("error");
-      return;
-    }
-
-    if (phone && !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
-      setErrorMessage("Please enter a valid phone number (7-15 digits).");
-      setSubmitStatus("error");
-      return;
-    }
-
-    if (!selectedPackage) {
-      setErrorMessage("Please select a grooming package.");
-      setSubmitStatus("error");
-      return;
-    }
-
-    if (!effectiveSize) {
-      setErrorMessage("Please select your pet's size.");
-      setSubmitStatus("error");
-      return;
-    }
-
-    if (!window.Razorpay) {
-      await loadRazorpayScript().catch(() => {});
-      if (!window.Razorpay) {
-        setErrorMessage("Payment gateway failed to load. Please refresh and try again.");
-        setSubmitStatus("error");
-        return;
-      }
-    }
-
-    setRazorpayLoading(true);
-
-    try {
-      const token = nhost.getUserSession()?.accessToken;
-      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/create-razorpay-order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ amount: 50000 }),
-      });
-
-      if (!orderRes.ok) {
-        const errBody = await orderRes.json().catch(() => ({}));
-        throw new Error(errBody.message || "Failed to create payment order");
-      }
-
-      const orderData = await orderRes.json();
-
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
-      if (!keyId || keyId === "rzp_test_placeholder") {
-        setErrorMessage(
-          "Razorpay is not configured yet. Please set VITE_RAZORPAY_KEY_ID in your .env file."
-        );
-        setRazorpayLoading(false);
-        return;
-      }
-
-      const options = {
-        key: keyId,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Gods Creatures Pet Groomers",
-        description: "Booking Fee (Deposit)",
-        order_id: orderData.order_id,
-        prefill: {
-          name: nameRef.current?.value || "",
-          email,
-          contact: phone,
-        },
-        theme: { color: "#d0999a" },
-        handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) {
-          setRazorpayLoading(false);
-          try {
-            const token = nhost.getUserSession()?.accessToken;
-            const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/verify-razorpay-payment`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-            const verifyData = await verifyRes.json();
-            if (verifyData.verified) {
-              const transactionId = response.razorpay_payment_id;
-              await submitBooking(transactionId);
-            } else {
-              setErrorMessage("Payment verification failed. Please contact support.");
-            }
-          } catch (err) {
-            console.error("Payment verification error:", err);
-            setErrorMessage("Payment verification failed. Please contact support.");
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setRazorpayLoading(false);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response: { error: { description: string } }) {
-        setErrorMessage(response.error?.description || "Payment failed. Please try again.");
-        setRazorpayLoading(false);
-      });
-      rzp.open();
-    } catch (err) {
-      console.error("Razorpay error:", err);
-      setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
-      setRazorpayLoading(false);
-    }
-  };
 
   const handleCashfreePayment = async () => {
     setErrorMessage("");
@@ -476,11 +315,11 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       }
     }
 
-    setRazorpayLoading(true);
+    setPaymentLoading(true);
 
     try {
       const token = nhost.getUserSession()?.accessToken;
-      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/create-cashfree-order`, {
+      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/create-cashfree-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -510,7 +349,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
         redirectTarget: "_modal",
       });
 
-      setRazorpayLoading(false);
+      setPaymentLoading(false);
 
       if (result.error) {
         setErrorMessage("Payment was cancelled or failed. Please try again.");
@@ -518,7 +357,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
       }
 
       // Payment successful — verify
-      const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/v1/verify-cashfree-payment`, {
+        const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/verify-cashfree-payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -538,7 +377,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
         setErrorMessage("Payment verification failed. Please contact support.");
       }
     } catch (err) {
-      setRazorpayLoading(false);
+      setPaymentLoading(false);
       console.error("Cashfree error:", err);
       setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
     }
@@ -617,7 +456,7 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
         try {
           const session = nhost.getUserSession();
           const token = session?.accessToken;
-          const webhookUrl = `${NHOST_FUNCTIONS_URL}/v1/send-booking-receipt`;
+          const webhookUrl = `${NHOST_FUNCTIONS_URL}/send-booking-receipt`;
           const response = await fetch(webhookUrl, {
             method: "POST",
             headers: {
@@ -1055,43 +894,20 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
 
                     <button
                       type="button"
-                      onClick={handleRazorpayPayment}
-                      disabled={submitStatus === "loading" || conflictChecking || razorpayLoading}
+                      onClick={handleCashfreePayment}
+                      disabled={submitStatus === "loading" || conflictChecking || paymentLoading}
                       className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ color: BRAND_PINK }}
                     >
-                      {submitStatus === "loading" || conflictChecking || razorpayLoading ? (
+                      {submitStatus === "loading" || conflictChecking || paymentLoading ? (
                         <>
                           <Loader2 size={20} className="animate-spin" />
-                          <span>{conflictChecking ? "Checking availability..." : razorpayLoading ? "Opening Payment..." : booking.submittingLabel}</span>
-                        </>
-                      ) : (
-                        <>💳 Pay {RUPEESIGN}500 Advance via Razorpay</>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleCashfreePayment}
-                      disabled={submitStatus === "loading" || conflictChecking || razorpayLoading}
-                      className="w-full py-3 rounded-full border-2 border-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3"
-                      style={{ color: "white" }}
-                    >
-                      {submitStatus === "loading" || conflictChecking || razorpayLoading ? (
-                        <>
-                          <Loader2 size={20} className="animate-spin" />
-                          <span>{conflictChecking ? "Checking availability..." : razorpayLoading ? "Opening Payment..." : booking.submittingLabel}</span>
+                          <span>{conflictChecking ? "Checking availability..." : paymentLoading ? "Opening Payment..." : booking.submittingLabel}</span>
                         </>
                       ) : (
                         <>💳 Pay {RUPEESIGN}500 via Cashfree</>
                       )}
                     </button>
-
-                    {!razorpayReady && (
-                      <p className="text-white/50 text-xs text-center mt-2">
-                        Loading payment gateway...
-                      </p>
-                    )}
                   </form>
                   <p className="text-white/60 text-xs text-center mt-3">
                     We'll contact you to confirm your slot!
