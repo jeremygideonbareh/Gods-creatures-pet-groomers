@@ -15,7 +15,7 @@ export function UserMenu() {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await nhost.auth.signOut({});
+    await nhost.auth.signOut({ all: true });
     setMenuOpen(false);
     navigate("/");
   };

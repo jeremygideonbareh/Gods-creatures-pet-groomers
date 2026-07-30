@@ -20,7 +20,7 @@ const authLink = setContext(async (_, { headers }) => {
   // Check for expired session — silently clear auth headers if expired
   if (session?.accessToken && !isSessionValid()) {
     console.warn("Session token expired — clearing auth headers");
-    await nhost.auth.signOut({});
+    await nhost.auth.signOut({ all: true });
     return { headers: { ...headers } };
   }
 
@@ -51,7 +51,7 @@ const apolloClient = new ApolloClient({
 });
 
 function handleSessionExpired() {
-  nhost.auth.signOut({}).catch(console.error);
+  nhost.auth.signOut({ all: true }).catch(console.error);
   window.location.href = "/";
 }
 

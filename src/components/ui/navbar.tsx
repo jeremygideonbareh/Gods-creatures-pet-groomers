@@ -22,7 +22,7 @@ export function Navbar({ scrolled, activeSection, navItems, onNavClick, onBookCl
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    await nhost.auth.signOut({});
+    await nhost.auth.signOut({ all: true });
     navigate("/");
   };
 
