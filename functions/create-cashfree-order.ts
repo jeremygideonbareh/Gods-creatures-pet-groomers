@@ -61,7 +61,7 @@ export default async function handler(req: any, res: any) {
     customer_details: {
       customer_id: body.customer_details?.customer_id ?? `cust_${Date.now()}`,
       customer_email: body.customer_details?.customer_email ?? "",
-      customer_phone: body.customer_details?.customer_phone ?? "",
+      customer_phone: body.customer_details?.customer_phone?.trim() || "9999999999",
       customer_name: body.customer_details?.customer_name ?? "",
     },
     order_meta: {
