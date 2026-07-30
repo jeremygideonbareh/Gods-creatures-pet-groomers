@@ -1,6 +1,10 @@
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 
+// Debug: log env var info at module load time
+console.log("[DEBUG] CASHFREE_APP_ID loaded:", CASHFREE_APP_ID ? `${CASHFREE_APP_ID.substring(0, 20)}... (len=${CASHFREE_APP_ID.length})` : "NOT SET");
+console.log("[DEBUG] CASHFREE_SECRET_KEY loaded:", CASHFREE_SECRET_KEY ? `${CASHFREE_SECRET_KEY.substring(0, 25)}... (len=${CASHFREE_SECRET_KEY.length})` : "NOT SET");
+
 // Use sandbox for test mode, switch to api.cashfree.com for production
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 
