@@ -41,6 +41,10 @@ export default async function handler(req: any, res: any) {
     });
   }
 
+  console.error("[DEBUG] CASHFREE_APP_ID loaded:", CASHFREE_APP_ID ? `${CASHFREE_APP_ID.substring(0, 20)}...` : "NOT SET");
+  console.error("[DEBUG] CASHFREE_SECRET_KEY loaded:", CASHFREE_SECRET_KEY ? `${CASHFREE_SECRET_KEY.substring(0, 25)}...` : "NOT SET");
+  console.error("[DEBUG] CASHFREE_API_URL:", CASHFREE_API_URL);
+
   const body = req.body as CreateOrderBody;
   const amount = body?.amount ?? 50000;
 
@@ -67,15 +71,14 @@ export default async function handler(req: any, res: any) {
     order_tags: body.order_tags ?? {},
   };
 
-  const auth = Buffer.from(`${CASHFREE_APP_ID}:${CASHFREE_SECRET_KEY}`).toString("base64");
-
   try {
     const response = await fetch(`${CASHFREE_API_URL}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-version": "2025-01-01",
-        "Authorization": `Basic ${auth}`,
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
       },
       body: JSON.stringify(orderPayload),
     });
