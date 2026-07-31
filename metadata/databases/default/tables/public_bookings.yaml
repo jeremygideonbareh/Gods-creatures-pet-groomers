@@ -19,6 +19,7 @@ select_permissions:
         - pet_id
         - phone
         - preferred_date
+        - preferred_time
         - service
         - status
         - total_price

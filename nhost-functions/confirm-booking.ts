@@ -165,6 +165,7 @@ export default async function handler(req: any, res: any) {
                 email
                 service
                 preferred_date
+                preferred_time
                 total_price
                 addons
                 advance_paid

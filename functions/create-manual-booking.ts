@@ -1,8 +1,5 @@
 import { createHmac, timingSafeEqual, createPublicKey, createVerify } from "crypto";
 
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
@@ -12,13 +9,14 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-interface CreateBookingOrderBody {
+interface CreateManualBookingBody {
   customer_name?: string;
   customer_email?: string;
   customer_phone?: string;
   service?: string;
   preferred_date?: string;
   preferred_time?: string;
+  upi_reference?: string;
   notes?: string;
   pet_id?: string | null;
   addons?: string[];
@@ -106,12 +104,6 @@ export default async function handler(req: any, res: any) {
     return res.status(405).set(CORS_HEADERS).json({ error: "Method not allowed" });
   }
 
-  // Check required env vars
-  if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
-    console.error("CASHFREE_APP_ID or CASHFREE_SECRET_KEY is not set");
-    return res.status(500).set(CORS_HEADERS).json({ error: "Cashfree not configured" });
-  }
-
   if (!NHOST_GRAPHQL_URL || !NHOST_ADMIN_SECRET) {
     console.error("NHOST_GRAPHQL_URL or NHOST_ADMIN_SECRET is not set");
     return res.status(500).set(CORS_HEADERS).json({ error: "Hasura not configured" });
@@ -129,17 +121,22 @@ export default async function handler(req: any, res: any) {
     return res.status(401).set(CORS_HEADERS).json({ error: "Invalid authentication token." });
   }
 
-  const body = req.body as CreateBookingOrderBody;
+  const body = req.body as CreateManualBookingBody;
 
-  // Validate required fields
+  // Validate required fields (preferred_time required — slot-based booking)
   if (!body.customer_name || !body.customer_email || !body.customer_phone || !body.service || !body.preferred_date || !body.preferred_time) {
     return res.status(400).set(CORS_HEADERS).json({
       error: "Missing required fields: customer_name, customer_email, customer_phone, service, preferred_date, preferred_time",
     });
   }
 
+  if (!body.upi_reference) {
+    return res.status(400).set(CORS_HEADERS).json({
+      error: "Missing required field: upi_reference (the GPay transaction reference number)",
+    });
+  }
+
   const preferredDate = body.preferred_date;
-  const service = body.service;
 
   try {
     // Step 1: Check for booking conflict (date + time slot, any service)
@@ -173,10 +170,12 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // Step 2: Insert booking via GraphQL admin secret
+    // Step 2: Insert booking via GraphQL admin secret (UPI fallback path —
+    // status pending_verification until admin confirms payment from dashboard)
+    const upiPrefix = `UPI Ref: ${body.upi_reference} | `;
     const insertMutation = {
       query: `
-        mutation CreatePendingBooking($object: bookings_insert_input!) {
+        mutation CreateManualBooking($object: bookings_insert_input!) {
           insert_bookings_one(object: $object) { id }
         }
       `,
@@ -185,19 +184,19 @@ export default async function handler(req: any, res: any) {
           customer_name: body.customer_name,
           email: body.customer_email,
           phone: body.customer_phone,
-          service: service,
+          service: body.service,
           preferred_date: preferredDate,
           preferred_time: body.preferred_time,
-          notes: body.notes || "",
+          notes: upiPrefix + (body.notes || ""),
           user_id: userInfo.user_id,
           pet_id: body.pet_id || null,
           addons: body.addons || [],
           total_price: body.total_price || 0,
           advance_paid: 500,
           // Unique placeholder: live DB requires transaction_id <> '' (check_valid_transaction_id)
-          // and UNIQUE (unique_transaction_id). Replaced with the real payment id by confirm-booking.
-          transaction_id: `pending_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-          status: "pending_payment",
+          // and UNIQUE (unique_transaction_id). "upi_" prefix distinguishes manual path.
+          transaction_id: `upi_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+          status: "pending_verification",
         },
       },
     };
@@ -228,65 +227,15 @@ export default async function handler(req: any, res: any) {
       return res.status(500).set(CORS_HEADERS).json({ error: "Failed to create booking record." });
     }
 
-    const bookingId = newBooking.id;
-
-    // Step 3: Create Cashfree order with booking_id in order_tags
-    const orderId = `bkg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    const orderPayload = {
-      order_amount: 500, // ₹500 booking fee (in rupees)
-      order_currency: "INR",
-      order_id: orderId,
-      customer_details: {
-        customer_id: userInfo.user_id,
-        customer_email: body.customer_email,
-        customer_phone: body.customer_phone,
-        customer_name: body.customer_name,
-      },
-      order_meta: {
-        return_url: "",
-        // CRITICAL: Cashfree NOTIFY_URL webhooks are PER-ORDER — they only fire
-        // when notify_url is passed in the Create Order API for that payment
-        // (dashboard NOTIFY_URL entry cannot be edited). Without this, a paid
-        // booking stays pending_payment forever (failure mode F-B).
-        notify_url:
-          "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/cashfree-webhook",
-      },
-      order_tags: {
-        booking_id: bookingId,
-      },
-    };
-
-    const cashfreeRes = await fetch(`${CASHFREE_API_URL}/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-version": "2025-01-01",
-        "x-client-id": CASHFREE_APP_ID,
-        "x-client-secret": CASHFREE_SECRET_KEY,
-      },
-      body: JSON.stringify(orderPayload),
-    });
-
-    if (!cashfreeRes.ok) {
-      const errBody = await cashfreeRes.text();
-      console.error("Cashfree order creation failed:", cashfreeRes.status, errBody);
-      // Booking was created but Cashfree order failed — leave it as pending_payment for retry
-      return res.status(502).set(CORS_HEADERS).json({
-        error: "Payment gateway order creation failed. Your booking draft has been saved.",
-        booking_id: bookingId,
-      });
-    }
-
-    const cashfreeData = await cashfreeRes.json();
-    console.log("Cashfree order created:", cashfreeData.order_id, "for booking:", bookingId);
+    console.log("Manual (UPI) booking created:", newBooking.id);
 
     return res.set(CORS_HEADERS).json({
-      payment_session_id: cashfreeData.payment_session_id,
-      booking_id: bookingId,
-      cashfree_order_id: orderId,
+      success: true,
+      booking_id: newBooking.id,
+      status: "pending_verification",
     });
   } catch (err) {
-    console.error("create-booking-order error:", err);
+    console.error("create-manual-booking error:", err);
     return res.status(500).set(CORS_HEADERS).json({
       error: err instanceof Error ? err.message : "Failed to process booking",
     });

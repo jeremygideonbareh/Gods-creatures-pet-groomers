@@ -18,6 +18,7 @@ interface CreateBookingOrderBody {
   customer_phone?: string;
   service?: string;
   preferred_date?: string;
+  preferred_time?: string;
   notes?: string;
   pet_id?: string | null;
   addons?: string[];
@@ -131,9 +132,9 @@ export default async function handler(req: any, res: any) {
   const body = req.body as CreateBookingOrderBody;
 
   // Validate required fields
-  if (!body.customer_name || !body.customer_email || !body.customer_phone || !body.service || !body.preferred_date) {
+  if (!body.customer_name || !body.customer_email || !body.customer_phone || !body.service || !body.preferred_date || !body.preferred_time) {
     return res.status(400).set(CORS_HEADERS).json({
-      error: "Missing required fields: customer_name, customer_email, customer_phone, service, preferred_date",
+      error: "Missing required fields: customer_name, customer_email, customer_phone, service, preferred_date, preferred_time",
     });
   }
 
@@ -141,18 +142,18 @@ export default async function handler(req: any, res: any) {
   const service = body.service;
 
   try {
-    // Step 1: Check for booking conflict
+    // Step 1: Check for booking conflict (date + time slot, any service)
     const conflictQuery = {
       query: `
-        query CheckConflict($service: String!, $preferred_date: date!) {
+        query CheckSlot($preferred_date: date!, $preferred_time: String!) {
           bookings(where: {
-            service: { _eq: $service },
             preferred_date: { _eq: $preferred_date },
+            preferred_time: { _eq: $preferred_time },
             status: { _in: ["pending_verification", "confirmed", "pending_payment"] }
           }) { id }
         }
       `,
-      variables: { service, preferred_date: preferredDate },
+      variables: { preferred_date: preferredDate, preferred_time: body.preferred_time },
     };
 
     const conflictRes = await fetch(NHOST_GRAPHQL_URL!, {
@@ -168,7 +169,7 @@ export default async function handler(req: any, res: any) {
     const existingBookings = conflictData?.data?.bookings;
     if (existingBookings && existingBookings.length > 0) {
       return res.status(409).set(CORS_HEADERS).json({
-        error: "This time slot is already booked. Please choose a different date or time.",
+        error: "This time slot is already booked. Please choose a different time.",
       });
     }
 
@@ -186,6 +187,7 @@ export default async function handler(req: any, res: any) {
           phone: body.customer_phone,
           service: service,
           preferred_date: preferredDate,
+          preferred_time: body.preferred_time,
           notes: body.notes || "",
           user_id: userInfo.user_id,
           pet_id: body.pet_id || null,
