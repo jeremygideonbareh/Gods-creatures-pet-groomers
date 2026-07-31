@@ -148,7 +148,7 @@ export const reviews = {
 export const bookingSection = {
   heading: "Book Now",
   location: "Malki, Nongshiliang, Shillong, Meghalaya - 793001",
-  hours: "Mon–Sat 8am–4pm | Sunday closed",
+  hours: "Mon/Tue/Thu/Fri 9–11am & 2–7pm · Wed 9am–1pm · Sat 1–5pm · Sun by appointment",
   phone: "8798897732",
   cta: "Book a Session",
   subtitle: "Walk-ins possible? Just give us a ring!",
@@ -183,32 +183,28 @@ export const bookingSection = {
 
 export const teamMembers = [
   {
-    name: "Sarah Johnson",
-    role: "Head Groomer",
-    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&auto=format&fit=crop&q=60",
-    bio: "10+ years of professional grooming experience. Certified Master Groomer with a passion for creative styling.",
+    name: "The Boy Who Helps",
+    role: "Grooming Assistant",
+    image: "",
+    bio: "Our ever-helpful assistant — washes, dries, preps, and keeps the salon running smoothly. Photo coming soon.",
     emoji: "🐾",
+    mapLink: "",
   },
   {
-    name: "Mike Chen",
-    role: "Senior Groomer",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=60",
-    bio: "Specializes in breed-specific cuts and gentle handling of anxious pets. Vet-backed wellness advocate.",
+    name: "Dr. Kakoty",
+    role: "Go-To Vet · Animal Concern, Motinagar",
+    image: "",
+    bio: "Senior-most private vet in Shillong. Diagnoses by symptoms and refers for blood tests/equipment when needed. Google his location to find the clinic.",
     emoji: "🩺",
+    mapLink: "https://www.google.com/maps/search/Animal+Concern+Motinagar+Shillong",
   },
   {
-    name: "Emily Rodriguez",
-    role: "Pet Stylist",
-    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=60",
-    bio: "Award-winning creative groomer. Turns every pet into a masterpiece with patience and premium products.",
-    emoji: "✂️",
-  },
-  {
-    name: "Dr. James Park",
-    role: "Veterinary Consultant",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=60",
-    bio: "Partnership vet ensuring every grooming session meets the highest standards of pet health and safety.",
+    name: "Dr. Warjri",
+    role: "Veterinary Partner",
+    image: "",
+    bio: "Our trusted veterinary partner ensuring every grooming session meets the highest standards of pet health and safety. Photo coming soon.",
     emoji: "🩺",
+    mapLink: "",
   },
 ] as const;
 
@@ -284,51 +280,111 @@ export const blogPosts = [
   },
 ] as const;
 
+/**
+ * Opening hours → 2-hour online booking slots (D11).
+ * Keyed by JS getDay(): 0 = Sunday, 1 = Monday, ... 6 = Saturday.
+ * Slots are precomputed so they can be unit-tested against the plan table (3.1).
+ */
+export const OPENING_HOURS: Record<
+  number,
+  { label: string; windows: [string, string][]; slots: string[]; note?: string }
+> = {
+  0: { label: "Sunday", windows: [], slots: [], note: "Open by consideration — call us" },
+  1: {
+    label: "Monday",
+    windows: [["09:00", "11:00"], ["14:00", "19:00"]],
+    slots: ["09:00", "14:00", "16:00"],
+  },
+  2: {
+    label: "Tuesday",
+    windows: [["09:00", "11:00"], ["14:00", "19:00"]],
+    slots: ["09:00", "14:00", "16:00"],
+  },
+  3: {
+    label: "Wednesday",
+    windows: [["09:00", "13:00"]],
+    slots: ["09:00", "11:00"],
+  },
+  4: {
+    label: "Thursday",
+    windows: [["09:00", "11:00"], ["14:00", "19:00"]],
+    slots: ["09:00", "14:00", "16:00"],
+  },
+  5: {
+    label: "Friday",
+    windows: [["09:00", "11:00"], ["14:00", "19:00"]],
+    slots: ["09:00", "14:00", "16:00"],
+  },
+  6: {
+    label: "Saturday",
+    windows: [["13:00", "17:00"]],
+    slots: ["13:00", "15:00"],
+  },
+};
+
+/**
+ * Price shape per plan 3.2 / D9:
+ * - `cat` is a species tier (not a weight category)
+ * - `medium` is OPTIONAL — when absent, the modal falls back to the `small` bracket (D9)
+ */
+export type Prices = {
+  cat?: number;
+  small: number;
+  medium?: number;
+  large: number;
+  xlarge: number;
+} | { flat: number };
+
 export const PRICING_MENU = {
   rules: `Booking by appointment only. A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill).`,
   basicServices: [
     {
-      id: "bath-brush-nail-ear",
-      label: "Bath + Brush + Nail Trim + Ear Cleaning",
-      prices: { small: 1800, medium: 2100, large: 2400, xlarge: 2800 },
+      id: "bath-brush-drying",
+      label: "Bath + Brush + Drying",
+      // no medium key → medium dogs billed at the small bracket (D9)
+      prices: { cat: 1600, small: 1800, large: 2200, xlarge: 2600 },
     },
     {
       id: "haircut-styling",
       label: "Haircut / Styling Only",
-      prices: { small: 1200, medium: 1400, large: 1600, xlarge: 1800 },
-    },
-    {
-      id: "nail-trim-ear-cleaning",
-      label: "Nail Trim + Ear Cleaning Only",
-      flat: 500,
+      prices: { cat: 1000, small: 1500, medium: 2000, large: 2500, xlarge: 3000 },
     },
   ],
   completePackages: [
     {
       id: "full-groom",
       label: "Full Groom (Bath + Haircut + Nails + Ears)",
-      prices: { small: 2500, medium: 2900, large: 3300, xlarge: 3800 },
+      // no medium key → medium dogs billed at the small bracket (D9)
+      prices: { cat: 2000, small: 2500, large: 3000, xlarge: 3800 },
     },
     {
       id: "full-spa",
-      label: "Full Spa Package (Everything included)",
-      prices: { small: 2900, medium: 3400, large: 3900, xlarge: 4500 },
+      label: "Spa Package (Keratin/Detox; massage optional same price)",
+      // no medium key → medium dogs billed at the small bracket (D9)
+      prices: { cat: 2500, small: 2900, large: 3500, xlarge: 4000 },
     },
   ],
   addOnServices: [
+    { id: "nail-trim-ear-cleaning", label: "Nail Trim + Ear Cleaning", flat: 500 },
     { id: "teeth-cleaning", label: "Teeth Cleaning", flat: 400 },
-    { id: "flea-tick", label: "Flea & Tick Removal Treatment", flat: 500 },
     {
       id: "deshedding",
       label: "De-shedding Treatment",
-      prices: { small: 500, medium: 600, large: 700, xlarge: 800 },
+      prices: { cat: 500, small: 600, medium: 600, large: 600, xlarge: 600 },
     },
     {
-      id: "spa-massage",
-      label: "Spa with Massage & Conditioning",
-      prices: { small: 700, medium: 800, large: 900, xlarge: 1000 },
+      id: "flea-tick",
+      label: "Flea & Tick Removal Treatment",
+      prices: { cat: 400, small: 500, medium: 500, large: 500, xlarge: 500 },
     },
   ],
+  boardingRates: {
+    label: "Boarding (per day)",
+    note: "Discount on grooming prices given for boarding pets only.",
+    cta: "Call to book",
+    phone: "8798897732",
+    rates: { small: 600, medium: 650, large: 700, xlarge: 750 },
+  },
   weightCategories: {
     small: { label: "Small (Up to 10kg)", maxKg: 10 },
     medium: { label: "Medium (10-20kg)", maxKg: 20 },
