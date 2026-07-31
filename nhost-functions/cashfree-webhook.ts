@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-const CASHFREE_WEBHOOK_SECRET = process.env.CASHFREE_WEBHOOK_SECRET;
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
@@ -47,18 +47,29 @@ function getStatusForEvent(event: HandledEvent): string {
   }
 }
 
-function verifySignature(rawBody: string, signature: string, secret: string): boolean {
+function verifySignature(
+  timestamp: string,
+  rawBody: string,
+  signature: string,
+  secret: string,
+): boolean {
+  // Cashfree docs: expectedSignature = Base64(HMAC-SHA256(timestamp + rawBody, API secret key))
+  const signedPayload = timestamp + rawBody;
   const expectedSignature = createHmac("sha256", secret)
-    .update(rawBody, "utf8")
-    .digest();
+    .update(signedPayload, "utf8")
+    .digest("base64");
 
-  const actualSignature = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "base64");
+  const actualBuffer = Buffer.from(signature, "base64");
 
-  if (expectedSignature.length !== actualSignature.length) {
+  if (expectedBuffer.length !== actualBuffer.length) {
+    console.error(
+      `Signature length mismatch. Expected ${expectedBuffer.length} bytes, received ${actualBuffer.length} bytes`,
+    );
     return false;
   }
 
-  return timingSafeEqual(expectedSignature, actualSignature);
+  return timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
 async function updateBookingStatus(
@@ -118,11 +129,11 @@ export default async function handler(req: any, res: any) {
   }
 
   // Verify required env vars are present
-  if (!CASHFREE_WEBHOOK_SECRET) {
-    console.error("FATAL: CASHFREE_WEBHOOK_SECRET is not set");
+  if (!CASHFREE_SECRET_KEY) {
+    console.error("FATAL: CASHFREE_SECRET_KEY is not set");
     return res.status(500).set(CORS_HEADERS).json({
       error: "Webhook not configured",
-      message: "CASHFREE_WEBHOOK_SECRET must be set in Nhost Dashboard → Environment Variables.",
+      message: "CASHFREE_SECRET_KEY must be set in Nhost Dashboard → Environment Variables.",
     });
   }
 
@@ -143,20 +154,36 @@ export default async function handler(req: any, res: any) {
   }
 
   // --- Webhook signature verification ---
+  // Cashfree signs: Base64(HMAC-SHA256(x-webhook-timestamp + rawBody, API secret key)).
   const signature = req.headers["x-webhook-signature"] as string | undefined;
+  const timestamp = req.headers["x-webhook-timestamp"] as string | undefined;
 
   if (!signature) {
     console.error("Missing x-webhook-signature header");
     return res.status(400).set(CORS_HEADERS).json({ error: "Missing webhook signature" });
   }
 
-  // Reconstruct the raw body from the parsed JSON to verify the signature
-  const rawBody = JSON.stringify(req.body);
+  if (!timestamp) {
+    console.error("Missing x-webhook-timestamp header");
+    return res.status(400).set(CORS_HEADERS).json({ error: "Missing webhook timestamp" });
+  }
 
-  const isValid = verifySignature(rawBody, signature, CASHFREE_WEBHOOK_SECRET);
+  // Prefer the raw request body (docs: never re-serialize a parsed object);
+  // fall back to re-serializing the parsed body if the runtime doesn't expose rawBody.
+  const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+  if (!(req as any).rawBody) {
+    console.warn("req.rawBody unavailable — verifying against JSON.stringify(req.body)");
+  }
+
+  const isValid = verifySignature(timestamp, rawBody, signature, CASHFREE_SECRET_KEY);
 
   if (!isValid) {
-    console.error("Invalid webhook signature — possible tampering");
+    const expected = createHmac("sha256", CASHFREE_SECRET_KEY)
+      .update(timestamp + rawBody, "utf8")
+      .digest("base64");
+    console.error(
+      `Invalid webhook signature — possible tampering. Expected: ${expected}, Received: ${signature}`,
+    );
     return res.status(400).set(CORS_HEADERS).json({ error: "Invalid webhook signature" });
   }
 
