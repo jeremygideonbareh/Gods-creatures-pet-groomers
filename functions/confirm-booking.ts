@@ -186,10 +186,15 @@ export default async function handler(req: any, res: any) {
         const bookingRow = rowData?.data?.bookings_by_pk;
 
         if (bookingRow) {
+          // Derive the functions base from the GraphQL URL. This Nhost project
+          // uses the `.graphql.` subdomain (e.g. https://<sub>.graphql.ap-south-1.nhost.run/v1),
+          // so handle BOTH forms (.hasura. legacy and .graphql.) → .functions.
           const functionsBase = NHOST_GRAPHQL_URL!.replace(
             ".hasura.",
             ".functions.",
-          ).replace(/\/v1\/graphql\/?$/, "/v1");
+          )
+            .replace(".graphql.", ".functions.")
+            .replace(/\/v1\/graphql\/?$/, "/v1");
           const emailRes = await fetch(`${functionsBase}/send-booking-receipt`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
