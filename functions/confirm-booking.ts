@@ -97,6 +97,23 @@ export default async function handler(req: any, res: any) {
     const paymentStatus = latestPayment.payment_status;
 
     if (paymentStatus === "SUCCESS") {
+      // Resolve the real Cashfree payment id. API version 2025-01-01 returns
+      // cf_payment_id (there is no payment_id field), so fall back across both.
+      const resolvedPaymentId =
+        payment_id || latestPayment?.cf_payment_id || latestPayment?.payment_id || "";
+
+      if (!resolvedPaymentId) {
+        console.error(
+          "No payment id found for order:",
+          order_id,
+          JSON.stringify(latestPayment),
+        );
+        return res.status(502).set(CORS_HEADERS).json({
+          success: false,
+          error: "No payment id found for order.",
+        });
+      }
+
       // Step 2: Update booking to confirmed
       const confirmMutation = {
         query: `
@@ -109,7 +126,7 @@ export default async function handler(req: any, res: any) {
         `,
         variables: {
           id: booking_id,
-          transaction_id: payment_id || latestPayment.payment_id || "",
+          transaction_id: resolvedPaymentId,
           status: "confirmed",
         },
       };
@@ -136,10 +153,74 @@ export default async function handler(req: any, res: any) {
       const updatedBooking = updateData?.data?.update_bookings_by_pk;
       console.log("Booking confirmed:", booking_id, "status:", updatedBooking?.status);
 
+      // Step 3: Send the receipt email server-side (best-effort — confirming a
+      // booking must never fail because of email). Recipient is the admin (TO_EMAIL).
+      let emailSent = false;
+      try {
+        const bookingQuery = {
+          query: `
+            query GetBookingForReceipt($id: uuid!) {
+              bookings_by_pk(id: $id) {
+                customer_name
+                email
+                service
+                preferred_date
+                total_price
+                addons
+                advance_paid
+              }
+            }
+          `,
+          variables: { id: booking_id },
+        };
+
+        const rowRes = await fetch(NHOST_GRAPHQL_URL!, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-hasura-admin-secret": NHOST_ADMIN_SECRET!,
+          },
+          body: JSON.stringify(bookingQuery),
+        });
+        const rowData = await rowRes.json();
+        const bookingRow = rowData?.data?.bookings_by_pk;
+
+        if (bookingRow) {
+          const functionsBase = NHOST_GRAPHQL_URL!.replace(
+            ".hasura.",
+            ".functions.",
+          ).replace(/\/v1\/graphql\/?$/, "/v1");
+          const emailRes = await fetch(`${functionsBase}/send-booking-receipt`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...bookingRow,
+              transaction_id: resolvedPaymentId,
+            }),
+          });
+          const emailData = await emailRes.json();
+          emailSent = emailRes.ok;
+          if (!emailSent) {
+            console.error(
+              "Receipt email not sent:",
+              emailRes.status,
+              JSON.stringify(emailData),
+            );
+          }
+        } else {
+          console.warn("Booking row not found for email payload:", booking_id);
+        }
+      } catch (emailErr) {
+        console.error("Receipt email failed (non-fatal):", emailErr);
+        emailSent = false;
+      }
+
       return res.set(CORS_HEADERS).json({
         success: true,
         booking_id,
         status: "confirmed",
+        transaction_id: resolvedPaymentId,
+        emailSent,
       });
     } else {
       // Payment not yet successful

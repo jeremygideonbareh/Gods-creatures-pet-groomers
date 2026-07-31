@@ -44,6 +44,13 @@ interface HasuraEvent {
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.FROM_EMAIL || "onboarding@resend.dev";
+const TO_EMAIL = process.env.TO_EMAIL || "cloudlyconfusing@gmail.com";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
 const REQUIRED_BOOKING_FIELDS: (keyof BookingData)[] = [
   "customer_name",
@@ -180,16 +187,21 @@ export default async function handler(req: any, res: any) {
   console.log("=== send-booking-receipt invoked ===");
   console.log("Method:", req.method);
 
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).set(CORS_HEADERS).send("");
+  }
+
   // Only allow POST
   if (req.method !== "POST") {
     console.log("Rejected: method not allowed");
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).set(CORS_HEADERS).json({ error: "Method not allowed" });
   }
 
   // Check RESEND_API_KEY
   if (!RESEND_API_KEY) {
     console.error("FATAL: RESEND_API_KEY is not set — check Nhost Dashboard env vars");
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Email service not configured",
       message: "RESEND_API_KEY is not set. Please add it in Nhost Dashboard → Environment Variables.",
     });
@@ -201,7 +213,7 @@ export default async function handler(req: any, res: any) {
   // --- Handle Hasura test ping ---
   if (req.body?.event?.op === "manual") {
     console.log("Hasura test ping received — acknowledging");
-    return res.json({ message: "Webhook endpoint is alive", status: "ready" });
+    return res.set(CORS_HEADERS).json({ message: "Webhook endpoint is alive", status: "ready" });
   }
 
   // --- Payload extraction: support both Hasura Event Trigger & direct API ---
@@ -215,7 +227,7 @@ export default async function handler(req: any, res: any) {
     booking = req.body as BookingData;
   } else {
     console.error("FATAL: Unrecognized payload structure", JSON.stringify(req.body).slice(0, 500));
-    return res.status(400).json({
+    return res.status(400).set(CORS_HEADERS).json({
       error: "Unrecognized payload structure",
       message: "Expected Hasura Event Trigger payload or direct booking object",
       receivedKeys: Object.keys(req.body || {}),
@@ -228,12 +240,12 @@ export default async function handler(req: any, res: any) {
   const missing = REQUIRED_BOOKING_FIELDS.filter((f) => !booking![f]);
   if (missing.length > 0) {
     console.error("FATAL: Missing fields:", missing.join(", "));
-    return res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
+    return res.status(400).set(CORS_HEADERS).json({ error: `Missing required fields: ${missing.join(", ")}` });
   }
 
   if (!booking.email) {
     console.error("FATAL: Missing customer email");
-    return res.status(400).json({ error: "Missing customer email" });
+    return res.status(400).set(CORS_HEADERS).json({ error: "Missing customer email" });
   }
 
   const resend = new Resend(RESEND_API_KEY);
@@ -243,11 +255,11 @@ export default async function handler(req: any, res: any) {
 
     console.log("Attempting to send email via Resend...");
     console.log("  from:", FROM_EMAIL);
-    console.log("  to:", booking.email);
+    console.log("  to:", TO_EMAIL);
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: booking.email,
+      to: TO_EMAIL,
       subject: `🐾 Booking Received — ${escapeHtml(booking.customer_name)}, your grooming request is confirmed!`,
       html: emailHtml,
     });
@@ -260,20 +272,20 @@ export default async function handler(req: any, res: any) {
         error.message?.includes("sender") ||
         error.message?.includes("from")
       ) {
-        return res.status(500).json({
+        return res.status(500).set(CORS_HEADERS).json({
           error: "Email sender not verified",
           message: `The sender email "${FROM_EMAIL}" is not verified in Resend. Verify it at https://resend.com/domains or set the RESEND_FROM_EMAIL env var.`,
           details: error,
         });
       }
-      return res.status(500).json({ error: error.message, details: error });
+      return res.status(500).set(CORS_HEADERS).json({ error: error.message, details: error });
     }
 
     console.log("Email sent successfully. Resend response data:", JSON.stringify(data));
-    return res.json({ message: "Email sent", id: data?.id });
+    return res.set(CORS_HEADERS).json({ message: "Email sent", id: data?.id });
   } catch (err) {
     console.error("Exception in send-booking-receipt:", err);
-    return res.status(500).json({
+    return res.status(500).set(CORS_HEADERS).json({
       error: "Internal error sending email",
       message: err instanceof Error ? err.message : "Unknown error",
     });

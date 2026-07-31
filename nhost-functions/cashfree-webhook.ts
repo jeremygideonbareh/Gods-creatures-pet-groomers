@@ -18,6 +18,7 @@ interface CashfreeOrder {
 }
 
 interface CashfreePayment {
+  cf_payment_id?: string;
   payment_id: string;
   payment_status: string;
   payment_amount: number;
@@ -77,12 +78,16 @@ async function updateBookingStatus(
   status: string,
   transactionId?: string,
 ): Promise<{ id: string; status: string } | null> {
+  // Only set transaction_id when present — never write null/empty (the bookings
+  // table has a CHECK constraint rejecting empty transaction ids).
+  const setFields: Record<string, unknown> = { status };
+  if (transactionId) {
+    setFields.transaction_id = transactionId;
+  }
+
   const mutation = `
-    mutation UpdateBookingStatus($id: uuid!, $status: String!, $transaction_id: String) {
-      update_bookings_by_pk(
-        pk_columns: { id: $id }
-        _set: { status: $status, transaction_id: $transaction_id }
-      ) {
+    mutation UpdateBookingStatus($id: uuid!, $_set: bookings_set_input!) {
+      update_bookings_by_pk(pk_columns: { id: $id }, _set: $_set) {
         id
         status
       }
@@ -99,8 +104,7 @@ async function updateBookingStatus(
       query: mutation,
       variables: {
         id: bookingId,
-        status,
-        transaction_id: transactionId ?? null,
+        _set: setFields,
       },
     }),
   });
@@ -193,9 +197,19 @@ export default async function handler(req: any, res: any) {
   const payload = req.body as CashfreeWebhookPayload;
   const event = payload.event;
 
-  console.log("Cashfree event received:", event);
+  console.log("Cashfree event received:", event, "| type:", payload.type);
 
-  if (!HANDLED_EVENTS.includes(event as HandledEvent)) {
+  // Cashfree can deliver the event as `event` ("payment.success"/"payment.failed")
+  // OR as `type` ("PAYMENT_SUCCESS_WEBHOOK"/"PAYMENT_FAILED_WEBHOOK").
+  const normalizedEvent: HandledEvent | null = HANDLED_EVENTS.includes(event as HandledEvent)
+    ? (event as HandledEvent)
+    : payload.type === "PAYMENT_SUCCESS_WEBHOOK"
+      ? "payment.success"
+      : payload.type === "PAYMENT_FAILED_WEBHOOK"
+        ? "payment.failed"
+        : null;
+
+  if (!normalizedEvent) {
     console.log(`Ignoring unhandled event: ${event}`);
     return res.set(CORS_HEADERS).json({ ok: true, message: `Ignored event: ${event}` });
   }
@@ -216,17 +230,29 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  const newStatus = getStatusForEvent(event as HandledEvent);
+  const newStatus = getStatusForEvent(normalizedEvent);
   console.log(
     `Processing event: ${event} → booking_id: ${bookingId} → status: ${newStatus}`,
   );
 
   try {
-    const paymentId = payload.data?.payment?.payment_id;
+    const paymentId =
+      payload.data?.payment?.cf_payment_id ?? payload.data?.payment?.payment_id;
+
+    if (newStatus === "confirmed" && !paymentId) {
+      console.error(
+        "Payment id missing for successful payment — refusing to write null/empty transaction_id. Order:",
+        JSON.stringify(payload.data?.order),
+      );
+      return res.status(500).set(CORS_HEADERS).json({
+        error: "Payment id missing for successful payment",
+      });
+    }
+
     const updatedBooking = await updateBookingStatus(
       bookingId,
       newStatus,
-      newStatus === "confirmed" ? paymentId : undefined,
+      paymentId || undefined,
     );
 
     if (!updatedBooking) {
