@@ -2,7 +2,7 @@ const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
-const HASURA_GRAPHQL_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
+const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -62,8 +62,8 @@ export default async function handler(req: any, res: any) {
     return res.status(500).set(CORS_HEADERS).json({ error: "Cashfree not configured" });
   }
 
-  if (!NHOST_GRAPHQL_URL || !HASURA_GRAPHQL_ADMIN_SECRET) {
-    console.error("NHOST_GRAPHQL_URL or HASURA_GRAPHQL_ADMIN_SECRET is not set");
+  if (!NHOST_GRAPHQL_URL || !NHOST_ADMIN_SECRET) {
+    console.error("NHOST_GRAPHQL_URL or NHOST_ADMIN_SECRET is not set");
     return res.status(500).set(CORS_HEADERS).json({ error: "Hasura not configured" });
   }
 
@@ -110,7 +110,7 @@ export default async function handler(req: any, res: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-hasura-admin-secret": HASURA_GRAPHQL_ADMIN_SECRET!,
+        "x-hasura-admin-secret": NHOST_ADMIN_SECRET!,
       },
       body: JSON.stringify(conflictQuery),
     });
@@ -153,7 +153,7 @@ export default async function handler(req: any, res: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-hasura-admin-secret": HASURA_GRAPHQL_ADMIN_SECRET!,
+        "x-hasura-admin-secret": NHOST_ADMIN_SECRET!,
       },
       body: JSON.stringify(insertMutation),
     });
