@@ -44,7 +44,7 @@ interface HasuraEvent {
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.FROM_EMAIL || "onboarding@resend.dev";
-const TO_EMAIL = process.env.TO_EMAIL || "cloudlyconfusing@gmail.com";
+const TO_EMAIL = process.env.TO_EMAIL || "vivecablah@gmail.com";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
