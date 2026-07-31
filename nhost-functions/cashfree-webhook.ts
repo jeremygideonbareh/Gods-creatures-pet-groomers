@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+const CASHFREE_WEBHOOK_SECRET = process.env.CASHFREE_WEBHOOK_SECRET;
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
@@ -64,12 +64,13 @@ function verifySignature(rawBody: string, signature: string, secret: string): bo
 async function updateBookingStatus(
   bookingId: string,
   status: string,
+  transactionId?: string,
 ): Promise<{ id: string; status: string } | null> {
   const mutation = `
-    mutation UpdateBookingStatus($id: uuid!, $status: String!) {
+    mutation UpdateBookingStatus($id: uuid!, $status: String!, $transaction_id: String) {
       update_bookings_by_pk(
         pk_columns: { id: $id }
-        _set: { status: $status }
+        _set: { status: $status, transaction_id: $transaction_id }
       ) {
         id
         status
@@ -85,7 +86,11 @@ async function updateBookingStatus(
     },
     body: JSON.stringify({
       query: mutation,
-      variables: { id: bookingId, status },
+      variables: {
+        id: bookingId,
+        status,
+        transaction_id: transactionId ?? null,
+      },
     }),
   });
 
@@ -113,11 +118,11 @@ export default async function handler(req: any, res: any) {
   }
 
   // Verify required env vars are present
-  if (!CASHFREE_SECRET_KEY) {
-    console.error("FATAL: CASHFREE_SECRET_KEY is not set");
+  if (!CASHFREE_WEBHOOK_SECRET) {
+    console.error("FATAL: CASHFREE_WEBHOOK_SECRET is not set");
     return res.status(500).set(CORS_HEADERS).json({
       error: "Webhook not configured",
-      message: "CASHFREE_SECRET_KEY must be set in Nhost Dashboard → Environment Variables.",
+      message: "CASHFREE_WEBHOOK_SECRET must be set in Nhost Dashboard → Environment Variables.",
     });
   }
 
@@ -148,7 +153,7 @@ export default async function handler(req: any, res: any) {
   // Reconstruct the raw body from the parsed JSON to verify the signature
   const rawBody = JSON.stringify(req.body);
 
-  const isValid = verifySignature(rawBody, signature, CASHFREE_SECRET_KEY);
+  const isValid = verifySignature(rawBody, signature, CASHFREE_WEBHOOK_SECRET);
 
   if (!isValid) {
     console.error("Invalid webhook signature — possible tampering");
@@ -190,7 +195,12 @@ export default async function handler(req: any, res: any) {
   );
 
   try {
-    const updatedBooking = await updateBookingStatus(bookingId, newStatus);
+    const paymentId = payload.data?.payment?.payment_id;
+    const updatedBooking = await updateBookingStatus(
+      bookingId,
+      newStatus,
+      newStatus === "confirmed" ? paymentId : undefined,
+    );
 
     if (!updatedBooking) {
       console.warn(`Booking not found for id: ${bookingId} — possible orphan payment`);
