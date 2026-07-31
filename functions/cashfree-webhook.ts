@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
-const HASURA_GRAPHQL_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
+const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -81,7 +81,7 @@ async function updateBookingStatus(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-hasura-admin-secret": HASURA_GRAPHQL_ADMIN_SECRET!,
+      "x-hasura-admin-secret": NHOST_ADMIN_SECRET!,
     },
     body: JSON.stringify({
       query: mutation,
@@ -129,11 +129,11 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  if (!HASURA_GRAPHQL_ADMIN_SECRET) {
-    console.error("FATAL: HASURA_GRAPHQL_ADMIN_SECRET is not set");
+  if (!NHOST_ADMIN_SECRET) {
+    console.error("FATAL: NHOST_ADMIN_SECRET is not set");
     return res.status(500).set(CORS_HEADERS).json({
       error: "Hasura not configured",
-      message: "HASURA_GRAPHQL_ADMIN_SECRET must be set in Nhost Dashboard → Environment Variables.",
+      message: "NHOST_ADMIN_SECRET must be set in Nhost Dashboard → Environment Variables.",
     });
   }
 
