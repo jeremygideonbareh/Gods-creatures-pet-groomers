@@ -1,7 +1,6 @@
+/// DEPRECATED — use create-booking-order.ts instead. This function is no longer called from the frontend.
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-
-// Use sandbox for test mode, switch to api.cashfree.com for production
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
 
 const CORS_HEADERS = {
@@ -41,9 +40,10 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  console.error("[DEBUG] CASHFREE_APP_ID loaded:", CASHFREE_APP_ID ? `${CASHFREE_APP_ID.substring(0, 20)}...` : "NOT SET");
-  console.error("[DEBUG] CASHFREE_SECRET_KEY loaded:", CASHFREE_SECRET_KEY ? `${CASHFREE_SECRET_KEY.substring(0, 25)}...` : "NOT SET");
-  console.error("[DEBUG] CASHFREE_API_URL:", CASHFREE_API_URL);
+  // Debug: log env var info at runtime
+  console.log("[DEBUG] CASHFREE_APP_ID loaded:", CASHFREE_APP_ID ? `${CASHFREE_APP_ID.substring(0, 20)}... (len=${CASHFREE_APP_ID.length})` : "NOT SET");
+  console.log("[DEBUG] CASHFREE_SECRET_KEY loaded:", CASHFREE_SECRET_KEY ? `${CASHFREE_SECRET_KEY.substring(0, 25)}... (len=${CASHFREE_SECRET_KEY.length})` : "NOT SET");
+  console.log("[DEBUG] CASHFREE_API_URL:", CASHFREE_API_URL);
 
   const body = req.body as CreateOrderBody;
   const amount = body?.amount ?? 50000;
@@ -61,7 +61,7 @@ export default async function handler(req: any, res: any) {
     customer_details: {
       customer_id: body.customer_details?.customer_id ?? `cust_${Date.now()}`,
       customer_email: body.customer_details?.customer_email ?? "",
-      customer_phone: body.customer_details?.customer_phone?.trim() || "9999999999",
+      customer_phone: body.customer_details?.customer_phone ?? "",
       customer_name: body.customer_details?.customer_name ?? "",
     },
     order_meta: {

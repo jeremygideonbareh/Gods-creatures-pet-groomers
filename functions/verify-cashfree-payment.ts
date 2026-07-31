@@ -1,3 +1,4 @@
+/// DEPRECATED — payment verification now happens inside confirm-booking.ts via the Cashfree API. This function was a no-op that never actually called Cashfree.
 import { createHmac } from "crypto";
 
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
