@@ -115,6 +115,13 @@ export interface PricingMenuContent {
   basicServices: PricingServiceItem[];
   completePackages: PricingServiceItem[];
   addOnServices: PricingServiceItem[];
+  boardingRates?: {
+    label: string;
+    note: string;
+    cta: string;
+    phone: string;
+    rates: { small: number; medium: number; large: number; xlarge: number };
+  };
   weightCategories: PricingWeightCategories;
 }
 

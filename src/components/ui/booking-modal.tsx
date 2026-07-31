@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, Check } from "lucide-react";
-import { designTokens, PRICING_MENU, RUPEESIGN } from "@/config/site-content";
+import { designTokens, OPENING_HOURS, PRICING_MENU, RUPEESIGN } from "@/config/site-content";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
@@ -32,11 +32,12 @@ interface BookingModalProps {
   onClose: () => void;
 }
 
-type PetSize = "small" | "medium" | "large" | "xlarge";
+type PetSize = "cat" | "small" | "medium" | "large" | "xlarge";
 
 const BRAND_PINK = designTokens.brandPink;
 
 const SIZE_LABELS: Record<PetSize, string> = {
+  cat: "Cat",
   small: "Small (Up to 10kg)",
   medium: "Medium (10-20kg)",
   large: "Large (20-35kg)",
@@ -51,11 +52,14 @@ function getPetSize(weightKg: number | null): PetSize {
 }
 
 function getPrice(
-  item: { prices?: { small: number; medium: number; large: number; xlarge: number }; flat?: number },
+  item: { prices?: { cat?: number; small?: number; medium?: number; large?: number; xlarge?: number }; flat?: number },
   size: PetSize,
 ): number {
   if (item.flat !== undefined) return item.flat;
-  return item.prices?.[size] ?? 0;
+  const p = item.prices;
+  if (!p) return 0;
+  if (size === "medium" && !p.medium) return p.small ?? 0;
+  return (p[size] || p.small) ?? 0;
 }
 
 const springTransition = {
@@ -89,6 +93,10 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string>("");
   const [manualSize, setManualSize] = useState<PetSize | null>(null);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [slotLoading, setSlotLoading] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -113,7 +121,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     return getPetSize(selectedPet.weight_kg ?? null);
   }, [selectedPet]);
 
-  const effectiveSize = petSize || manualSize;
+  const effectiveSize = selectedPet?.species?.toLowerCase() === "cat" ? "cat" : (petSize || manualSize);
 
   const allServices = useMemo(() => {
     return [...pricing.basicServices, ...pricing.completePackages];
@@ -149,6 +157,9 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       setSelectedAddOns([]);
       setSelectedPetId("");
       setManualSize(null);
+      setSelectedDate("");
+      setSelectedSlot(null);
+      setBookedSlots([]);
     }
   }, [isOpen]);
 
@@ -162,6 +173,31 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!selectedDate) {
+      setBookedSlots([]);
+      return;
+    }
+    const day = new Date(selectedDate + "T00:00:00").getDay();
+    const info = OPENING_HOURS[day];
+    if (!info || info.slots.length === 0) {
+      setBookedSlots([]);
+      return;
+    }
+    let cancelled = false;
+    setSlotLoading(true);
+    fetch(`${NHOST_FUNCTIONS_URL}/get-booked-slots`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferred_date: selectedDate }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setBookedSlots(d?.booked ?? []); })
+      .catch(() => { if (!cancelled) setBookedSlots([]); })
+      .finally(() => { if (!cancelled) setSlotLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedDate]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -241,8 +277,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       return;
     }
 
-    if (phone && !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
-      setErrorMessage("Please enter a valid phone number (7-15 digits).");
+if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
+          setErrorMessage("Please enter your phone number (7-15 digits).");
       setSubmitStatus("error");
       return;
     }
@@ -255,6 +291,12 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 
     if (!effectiveSize) {
       setErrorMessage("Please select your pet's size.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    if (!selectedSlot) {
+      setErrorMessage("Please select a time slot.");
       setSubmitStatus("error");
       return;
     }
@@ -285,7 +327,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         });
 
       const serviceLabel = selectedPackage?.label || "";
-      const preferredDate = dateRef.current?.value || "";
+      const preferredDate = selectedDate;
       const selectedPetUuid = selectedPetId || null;
 
       // Step A: Create booking + Cashfree order server-side
@@ -298,6 +340,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           customer_phone: phone,
           service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
           preferred_date: preferredDate,
+          preferred_time: selectedSlot,
           notes: notesRef.current?.value || "",
           pet_id: selectedPetUuid,
           addons: addonLabels,
@@ -658,6 +701,27 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                           </div>
                         </div>
 
+                        <div className="bg-white/10 rounded-xl p-3 border border-white/15">
+                          <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            🐾 {pricing.boardingRates?.label ?? "Boarding (per day)"}
+                          </p>
+                          <div className="space-y-1">
+                            {(["small", "medium", "large", "xlarge"] as const).map((k) => (
+                              <div key={k} className="flex justify-between text-white/80 text-sm">
+                                <span className="capitalize">{k === "xlarge" ? "Extra Large" : k}</span>
+                                <span className="tabular-nums">{RUPEESIGN}{(pricing.boardingRates?.rates?.[k] ?? 0).toLocaleString("en-IN")}/day</span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-white/60 text-[11px] mt-2">{pricing.boardingRates?.note ?? "Discount on grooming prices given for boarding pets only."}</p>
+                          <a
+                            href={`tel:${pricing.boardingRates?.phone ?? "8798897732"}`}
+                            className="inline-block mt-2 px-4 py-2 rounded-full bg-white text-pink-700 font-semibold text-sm"
+                          >
+                            📞 {pricing.boardingRates?.cta ?? "Call to book"}
+                          </a>
+                        </div>
+
                         {totalPrice > 0 && (
                           <div className="bg-white/20 rounded-xl p-3 space-y-1">
                             <p className="text-white/70 text-xs font-semibold uppercase tracking-wider">
@@ -701,9 +765,58 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         type="date"
                         required
                         min={new Date().toISOString().split("T")[0]}
+                        value={selectedDate}
+                        onChange={(e) => {
+                          setSelectedDate(e.target.value);
+                          setSelectedSlot(null);
+                        }}
                         className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white outline-none focus:border-white/60 [color-scheme:dark]"
                       />
                     </div>
+
+                    {selectedDate && (() => {
+                      const day = new Date(selectedDate + "T00:00:00").getDay();
+                      const info = OPENING_HOURS[day];
+                      if (!info) return null;
+                      if (info.slots.length === 0) {
+                        return (
+                          <div className="bg-white/15 rounded-xl px-3 py-3 text-center">
+                            <p className="text-white text-sm font-semibold">📞 {info.label} — {info.note}</p>
+                            <a href="tel:8798897732" className="inline-block mt-1 text-white underline text-sm">Call us: 8798897732</a>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div>
+                          <p className="text-white/80 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            🕐 {info.label} — Available Slots{slotLoading ? " (checking…)" : ""}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {info.slots.map((slot) => {
+                              const isBooked = bookedSlots.includes(slot);
+                              const isSelected = selectedSlot === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  disabled={isBooked}
+                                  onClick={() => setSelectedSlot(slot)}
+                                  className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                                    isBooked
+                                      ? "bg-white/10 text-white/40 line-through cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-white text-pink-700 font-semibold"
+                                        : "bg-white/15 text-white hover:bg-white/25"
+                                  }`}
+                                >
+                                  {slot}{isBooked ? " · Booked" : ""}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div>
                       <label htmlFor="booking-notes" className="sr-only">
                         Notes about your pet

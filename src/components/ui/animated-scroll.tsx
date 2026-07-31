@@ -15,6 +15,7 @@ import { TeamSection } from "@/components/sections/TeamSection";
 import { ProcessSection } from "@/components/sections/ProcessSection";
 import { FAQSection } from "@/components/sections/FAQSection";
 import { BlogSection } from "@/components/sections/BlogSection";
+import { StoreSection } from "@/components/sections/StoreSection";
 import BookingSection from "@/components/sections/BookingSection";
 import { EnhancedFooter } from "@/components/ui/footer-enhanced";
 import BookingModal from "@/components/ui/booking-modal";
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { id: "gallery", label: "Gallery" },
   { id: "reviews", label: "Reviews" },
   { id: "team", label: "Team" },
+  { id: "store", label: "Store" },
   { id: "booking", label: "Book" },
 ];
 
@@ -168,6 +170,9 @@ export default function ScrollAdventure() {
 
       {/* NEW: Blog Section */}
       <BlogSection />
+
+      {/* NEW: Store Section */}
+      <StoreSection />
 
       {/* Section 6: Booking */}
       <section id="booking">
