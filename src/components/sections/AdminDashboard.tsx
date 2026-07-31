@@ -156,62 +156,97 @@ export function AdminDashboard() {
             </p>
           )}
 
-          {!loading && !error && data?.bookings?.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-white/60">No bookings yet.</p>
-            </div>
-          )}
-
           {!loading && data?.bookings && (
-            <div className="space-y-3">
-              {data.bookings.map((booking: Booking) => {
-                const pet = booking.pet;
-                const badge = statusBadge[booking.status ?? "pending_verification"] ?? statusBadge.pending_verification;
+            <div className="space-y-6">
+              {(() => {
+                const confirmed = data.bookings.filter((b) => b.status === "confirmed");
+                const others = data.bookings.filter((b) => b.status !== "confirmed");
 
-                return (
-                  <div key={booking.id} className="bg-white/10 rounded-2xl p-4 md:p-5 border border-white/20">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-white font-semibold text-sm">{booking.customer_name}</span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
-                            {badge.icon} {badge.label}
-                          </span>
+                const renderBookingCard = (booking: Booking) => {
+                  const pet = booking.pet;
+                  const badge = statusBadge[booking.status ?? "pending_verification"] ?? statusBadge.pending_verification;
+
+                  return (
+                    <div key={booking.id} className="bg-white/10 rounded-2xl p-4 md:p-5 border border-white/20">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-white font-semibold text-sm">{booking.customer_name}</span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
+                              {badge.icon} {badge.label}
+                            </span>
+                          </div>
+                          <p className="text-white/50 text-xs">
+                            {booking.email}
+                            {booking.phone ? ` • ${booking.phone}` : ""}
+                          </p>
+                          <p className="text-white/60 text-xs mt-1">
+                            {booking.service}
+                            {booking.preferred_date ? ` • ${booking.preferred_date}` : ""}
+                            {pet ? ` • ${pet.name}${pet.breed ? ` (${pet.breed})` : ""}` : ""}
+                          </p>
+                          {booking.notes && <p className="text-white/40 text-[10px] mt-0.5">📝 {booking.notes}</p>}
+                          <p className="text-white/30 text-[10px] mt-0.5">
+                            {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} • Transaction: {booking.transaction_id}
+                          </p>
                         </div>
-                        <p className="text-white/50 text-xs">
-                          {booking.email}
-                          {booking.phone ? ` • ${booking.phone}` : ""}
-                        </p>
-                        <p className="text-white/60 text-xs mt-1">
-                          {booking.service}
-                          {booking.preferred_date ? ` • ${booking.preferred_date}` : ""}
-                          {pet ? ` • ${pet.name}${pet.breed ? ` (${pet.breed})` : ""}` : ""}
-                        </p>
-                        {booking.notes && <p className="text-white/40 text-[10px] mt-0.5">📝 {booking.notes}</p>}
-                        <p className="text-white/30 text-[10px] mt-0.5">
-                          {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} • Transaction: {booking.transaction_id}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        {booking.status === "pending_verification" && (
-                          <button
-                            onClick={() => handleConfirm(booking.id)}
-                            disabled={confirmingId === booking.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white font-semibold text-xs transition-transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
-                            style={{ color: BRAND_PINK }}
-                          >
-                            {confirmingId === booking.id ? (
-                              <><Loader2 size={14} className="animate-spin" /> Confirming</>
-                            ) : (
-                              <><CheckCircle size={14} /> Confirm</>
-                            )}
-                          </button>
-                        )}
+                        <div className="flex gap-2 shrink-0">
+                          {booking.status === "pending_verification" && (
+                            <button
+                              onClick={() => handleConfirm(booking.id)}
+                              disabled={confirmingId === booking.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white font-semibold text-xs transition-transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+                              style={{ color: BRAND_PINK }}
+                            >
+                              {confirmingId === booking.id ? (
+                                <><Loader2 size={14} className="animate-spin" /> Confirming</>
+                              ) : (
+                                <><CheckCircle size={14} /> Confirm</>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  );
+                };
+
+                return (
+                  <>
+                    <section>
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-white font-semibold text-lg">Confirmed</h2>
+                        <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-medium">
+                          {confirmed.length}
+                        </span>
+                      </div>
+                      {confirmed.length === 0 ? (
+                        <div className="text-center py-8 bg-white/5 rounded-2xl border border-white/10">
+                          <p className="text-white/60 text-sm">No confirmed bookings yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">{confirmed.map(renderBookingCard)}</div>
+                      )}
+                    </section>
+
+                    <section>
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-white font-semibold text-lg">Others (not confirmed / failed)</h2>
+                        <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-medium">
+                          {others.length}
+                        </span>
+                      </div>
+                      {others.length === 0 ? (
+                        <div className="text-center py-8 bg-white/5 rounded-2xl border border-white/10">
+                          <p className="text-white/60 text-sm">No failed or pending bookings.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">{others.map(renderBookingCard)}</div>
+                      )}
+                    </section>
+                  </>
                 );
-              })}
+              })()}
             </div>
           )}
             </>

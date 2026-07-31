@@ -48,7 +48,12 @@ export const INSERT_PET = gql`
 
 export const GET_ADMIN_BOOKINGS = gql`
   query GetAdminBookings {
-    bookings(order_by: { created_at: desc }) {
+    bookings(
+      where: {
+        status: { _in: ["confirmed", "payment_failed", "cancelled", "pending_verification"] }
+      }
+      order_by: { created_at: desc }
+    ) {
       id
       customer_name
       email

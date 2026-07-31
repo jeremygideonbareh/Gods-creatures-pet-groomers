@@ -341,38 +341,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       const confirmData = await confirmRes.json();
 
       if (confirmData.success) {
-        // Trigger email receipt
-        try {
-          const session = nhost.getUserSession();
-          const receiptToken = session?.accessToken;
-          const webhookUrl = `${NHOST_FUNCTIONS_URL}/send-booking-receipt`;
-          await fetch(webhookUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(receiptToken ? { Authorization: `Bearer ${receiptToken}` } : {}),
-            },
-            body: JSON.stringify({
-              event: {
-                data: {
-                  new: {
-                    customer_name: nameRef.current?.value || "",
-                    email,
-                    service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
-                    preferred_date: preferredDate,
-                    total_price: totalPrice,
-                    addons: addonLabels,
-                    transaction_id: confirmData.booking_id,
-                    advance_paid: 500,
-                  },
-                },
-              },
-            }),
-          });
-        } catch (emailErr) {
-          console.error("Failed to trigger email receipt:", emailErr);
-        }
-
+        // Receipt email is now sent server-side by confirm-booking — nothing to do here.
         setSubmitStatus("success");
         setTimeout(() => {
           onClose();
