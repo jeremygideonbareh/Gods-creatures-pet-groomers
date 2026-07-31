@@ -192,7 +192,9 @@ export default async function handler(req: any, res: any) {
           addons: body.addons || [],
           total_price: body.total_price || 0,
           advance_paid: 500,
-          transaction_id: "",
+          // Unique placeholder: live DB requires transaction_id <> '' (check_valid_transaction_id)
+          // and UNIQUE (unique_transaction_id). Replaced with the real payment id by confirm-booking.
+          transaction_id: `pending_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
           status: "pending_payment",
         },
       },
