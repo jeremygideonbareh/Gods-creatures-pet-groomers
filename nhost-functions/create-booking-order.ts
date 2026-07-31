@@ -242,7 +242,12 @@ export default async function handler(req: any, res: any) {
       },
       order_meta: {
         return_url: "",
-        notify_url: "",
+        // CRITICAL: Cashfree NOTIFY_URL webhooks are PER-ORDER — they only fire
+        // when notify_url is passed in the Create Order API for that payment
+        // (dashboard NOTIFY_URL entry cannot be edited). Without this, a paid
+        // booking stays pending_payment forever (failure mode F-B).
+        notify_url:
+          "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/cashfree-webhook",
       },
       order_tags: {
         booking_id: bookingId,
