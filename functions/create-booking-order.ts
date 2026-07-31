@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual, createPublicKey, createVerify } from "crypto";
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
@@ -25,17 +25,22 @@ interface CreateBookingOrderBody {
 }
 
 /**
- * Verify the JWT HMAC-SHA256 signature using the Nhost JWT secret.
- * Nhost signs tokens with HS256 using NHOST_JWT_SECRET, which may be a raw
- * key string or a JSON config blob like {"type":"HS256","key":"..."}.
- * Constant-time comparison prevents timing attacks.
+ * Verify a JWT's signature using the Nhost JWT secret.
+ * Nhost provides NHOST_JWT_SECRET as a JSON blob like
+ * {"type":"RS256","key":"-----BEGIN PUBLIC KEY-----...","kid":"..."}.
+ * RS256 (RSA) tokens are verified with createVerify; HS256 tokens fall back
+ * to HMAC with a constant-time comparison. Returns false on any failure.
  */
 function verifyJwtSignature(token: string, jwtSecret: string): boolean {
   try {
     let secret = jwtSecret;
+    let algorithm = "HS256";
     try {
       const parsed = JSON.parse(jwtSecret);
-      if (typeof parsed?.key === "string") secret = parsed.key;
+      if (typeof parsed?.key === "string") {
+        secret = parsed.key;
+        algorithm = parsed?.type || "HS256";
+      }
     } catch {
       // Not JSON — use the raw value
     }
@@ -47,8 +52,13 @@ function verifyJwtSignature(token: string, jwtSecret: string): boolean {
     // Base64url → base64
     const sigBase64 = parts[2].replace(/-/g, "+").replace(/_/g, "/");
     const receivedSig = Buffer.from(sigBase64, "base64");
-    const expectedSig = createHmac("sha256", secret).update(signingInput).digest();
 
+    if (algorithm.toUpperCase() === "RS256" || secret.includes("BEGIN")) {
+      const publicKey = createPublicKey(secret);
+      return createVerify("sha256").update(signingInput).verify(publicKey, receivedSig);
+    }
+
+    const expectedSig = createHmac("sha256", secret).update(signingInput).digest();
     if (receivedSig.length !== expectedSig.length) return false;
     return timingSafeEqual(receivedSig, expectedSig);
   } catch {
