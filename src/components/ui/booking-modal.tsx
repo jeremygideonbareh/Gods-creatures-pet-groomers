@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { gql } from "@apollo/client";
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useQuery } from "@apollo/client/react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, Check } from "lucide-react";
 import { designTokens, PRICING_MENU, RUPEESIGN } from "@/config/site-content";
@@ -8,7 +7,6 @@ import { useSiteContent } from "@/context/SiteContentContext";
 import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
 import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
-import { useBookingConflict } from "@/hooks/useBookingConflict";
 import type { PricingMenuContent } from "@/lib/content-service";
 
 declare global {
@@ -28,43 +26,6 @@ declare global {
     };
   }
 }
-
-const CREATE_BOOKING = gql`
-  mutation CreateBooking(
-    $customer_name: String!
-    $email: String!
-    $phone: String!
-    $service: String!
-    $preferred_date: date!
-    $notes: String!
-    $advance_paid: numeric!
-    $transaction_id: String!
-    $pet_id: uuid
-    $addons: jsonb
-    $total_price: Int
-    $status: String!
-  ) {
-    insert_bookings_one(
-      object: {
-        customer_name: $customer_name
-        email: $email
-        phone: $phone
-        service: $service
-        preferred_date: $preferred_date
-        notes: $notes
-        advance_paid: $advance_paid
-        transaction_id: $transaction_id
-        pet_id: $pet_id
-        addons: $addons
-        total_price: $total_price
-        status: $status
-      }
-    ) {
-      id
-      customer_name
-    }
-  }
-`;
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -178,14 +139,6 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   }, [selectedPackage, effectiveSize]);
 
   const totalPrice = packageTotal + addonTotal;
-
-  interface CreateBookingResponse {
-  insert_bookings_one: { id: string; customer_name: string };
-}
-
-const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
-
-  const { checking: conflictChecking, checkConflict } = useBookingConflict();
 
   useEffect(() => {
     if (!isOpen) {
@@ -319,149 +272,85 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
 
     try {
       const token = nhost.getUserSession()?.accessToken;
-      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/create-cashfree-order`, {
+      if (!token) {
+        setErrorMessage("Please sign in to book an appointment.");
+        setPaymentLoading(false);
+        return;
+      }
+
+      const addonLabels = selectedAddOns
+        .map((id) => {
+          const addon = pricing.addOnServices.find((a) => a.id === id);
+          return addon?.label || id;
+        });
+
+      const serviceLabel = selectedPackage?.label || "";
+      const preferredDate = dateRef.current?.value || "";
+      const selectedPetUuid = selectedPetId || null;
+
+      // Step A: Create booking + Cashfree order server-side
+      const orderRes = await fetch(`${NHOST_FUNCTIONS_URL}/create-booking-order`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          amount: 50000,
-          customer_details: {
-            customer_id: user?.id || `guest_${Date.now()}`,
-            customer_email: email,
-            customer_phone: phone,
-            customer_name: nameRef.current?.value || "",
-          },
+          customer_name: nameRef.current?.value || "",
+          customer_email: email,
+          customer_phone: phone,
+          service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
+          preferred_date: preferredDate,
+          notes: notesRef.current?.value || "",
+          pet_id: selectedPetUuid,
+          addons: addonLabels,
+          total_price: totalPrice,
         }),
       });
 
       if (!orderRes.ok) {
         const errBody = await orderRes.json().catch(() => ({}));
-        throw new Error(errBody.message || "Failed to create payment order");
+        throw new Error(errBody.error || "Failed to create booking");
       }
 
-      const orderData = await orderRes.json();
+      const { payment_session_id, booking_id, cashfree_order_id } = await orderRes.json();
 
+      // Step B: Open Cashfree checkout
       const cashfree = window.Cashfree({ mode: "sandbox" });
       const result = await cashfree.checkout({
-        paymentSessionId: orderData.payment_session_id,
+        paymentSessionId: payment_session_id,
         redirectTarget: "_modal",
       });
 
       setPaymentLoading(false);
 
       if (result.error) {
-        setErrorMessage("Payment was cancelled or failed. Please try again.");
+        // Payment cancelled or failed — booking stays as "pending_payment"
+        setErrorMessage("Payment was cancelled or failed. Your booking draft has been saved. Please try again.");
         return;
       }
 
-      // Payment successful — verify
-        const verifyRes = await fetch(`${NHOST_FUNCTIONS_URL}/verify-cashfree-payment`, {
+      // Step C: Confirm booking server-side via Cashfree API
+      const confirmRes = await fetch(`${NHOST_FUNCTIONS_URL}/confirm-booking`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_id: result.paymentDetails?.orderId,
+          booking_id,
+          order_id: cashfree_order_id,
           payment_id: result.paymentDetails?.paymentId,
-          order_amount: 500,
         }),
       });
-      const verifyData = await verifyRes.json();
-      if (verifyData.verified) {
-        const transactionId = result.paymentDetails?.paymentId || "";
-        await submitBooking(transactionId);
-      } else {
-        setErrorMessage("Payment verification failed. Please contact support.");
-      }
-    } catch (err) {
-      setPaymentLoading(false);
-      console.error("Cashfree error:", err);
-      setErrorMessage(err instanceof Error ? err.message : "Payment initiation failed. Please try again.");
-    }
-  };
 
-  const submitBooking = async (transactionId: string) => {
-    setSubmitStatus("loading");
+      const confirmData = await confirmRes.json();
 
-    const email = emailRef.current?.value.trim() || "";
-
-    const addonLabels = selectedAddOns
-      .map((id) => {
-        const addon = pricing.addOnServices.find((a) => a.id === id);
-        return addon?.label || id;
-      });
-
-    const serviceLabel = selectedPackage?.label || "";
-    const preferredDate = dateRef.current?.value || "";
-    const selectedPetUuid = selectedPetId || null;
-
-    try {
-      const hasConflict = await checkConflict(serviceLabel, preferredDate);
-      if (hasConflict) {
-        setErrorMessage(
-          "This time slot is already booked. Please choose a different date or contact us for availability."
-        );
-        setSubmitStatus("error");
-        return;
-      }
-    } catch (conflictErr) {
-      console.warn("Conflict check failed — allowing booking to proceed:", conflictErr);
-    }
-
-    try {
-      const result = await createBooking({
-        variables: {
-          customer_name: nameRef.current?.value || "",
-          email,
-          phone: phoneRef.current?.value.trim() || "",
-          service: serviceLabel + (effectiveSize ? ` - ${SIZE_LABELS[effectiveSize]}` : ""),
-          preferred_date: preferredDate,
-          notes: notesRef.current?.value || "",
-          advance_paid: 500,
-          transaction_id: transactionId,
-          pet_id: selectedPetUuid,
-          addons: addonLabels,
-          total_price: totalPrice,
-          status: "pending_verification",
-        },
-      });
-
-      if (result.error) {
-        console.error("GRAPHQL ERROR:", result.error);
-        const raw = result.error.message;
-        const msg = raw.toLowerCase();
-        if (
-          msg.includes("unique constraint") ||
-          msg.includes("unique_transaction_id")
-        ) {
-          setErrorMessage(
-            "This payment has already been used. Please contact support."
-          );
-        } else {
-          setErrorMessage(raw);
-        }
-        setSubmitStatus("error");
-        return;
-      }
-
-      const bookingData = result.data?.insert_bookings_one;
-
-      if (!bookingData?.id) {
-        console.error("No booking data returned — email receipt skipped", result);
-      } else {
-        console.log("Booking created with id:", bookingData.id);
+      if (confirmData.success) {
+        // Trigger email receipt
         try {
           const session = nhost.getUserSession();
-          const token = session?.accessToken;
+          const receiptToken = session?.accessToken;
           const webhookUrl = `${NHOST_FUNCTIONS_URL}/send-booking-receipt`;
-          const response = await fetch(webhookUrl, {
+          await fetch(webhookUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...(receiptToken ? { Authorization: `Bearer ${receiptToken}` } : {}),
             },
             body: JSON.stringify({
               event: {
@@ -473,41 +362,31 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                     preferred_date: preferredDate,
                     total_price: totalPrice,
                     addons: addonLabels,
-                    transaction_id: transactionId,
+                    transaction_id: confirmData.booking_id,
                     advance_paid: 500,
                   },
                 },
               },
             }),
           });
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Email receipt function returned", response.status, errorText);
-          } else {
-            console.log("Email receipt triggered successfully");
-          }
         } catch (emailErr) {
           console.error("Failed to trigger email receipt:", emailErr);
         }
-      }
 
-      setSubmitStatus("success");
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (err) {
-      console.error("GRAPHQL ERROR:", err);
-      const raw = err instanceof Error ? err.message : JSON.stringify(err);
-      const msg = raw.toLowerCase();
-      if (
-        msg.includes("unique constraint") ||
-        msg.includes("unique_transaction_id")
-      ) {
-        setErrorMessage("This payment has already been used. Please contact support.");
+        setSubmitStatus("success");
+        setTimeout(() => {
+          onClose();
+        }, 1500);
       } else {
-        setErrorMessage(raw);
+        setErrorMessage(
+          "Payment was received but booking confirmation is pending. " +
+          "Your booking will be confirmed shortly. Please contact us if this persists."
+        );
       }
-      setSubmitStatus("error");
+    } catch (err) {
+      setPaymentLoading(false);
+      console.error("Booking error:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Failed to process booking");
     }
   };
 
@@ -563,9 +442,6 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                   </h2>
                   <p className="text-white/80">
                     {booking.successMessage}
-                  </p>
-                  <p className="text-amber-200 text-xs bg-amber-500/20 rounded-full px-3 py-1 inline-block mt-2">
-                    ⏳ Payment verification in progress
                   </p>
                 </motion.div>
               ) : step === "info" ? (
@@ -895,14 +771,14 @@ const [createBooking] = useMutation<CreateBookingResponse>(CREATE_BOOKING);
                     <button
                       type="button"
                       onClick={handleCashfreePayment}
-                      disabled={submitStatus === "loading" || conflictChecking || paymentLoading}
+                      disabled={submitStatus === "loading" || paymentLoading}
                       className="w-full py-3 rounded-full bg-white font-semibold text-lg transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ color: BRAND_PINK }}
                     >
-                      {submitStatus === "loading" || conflictChecking || paymentLoading ? (
+                      {submitStatus === "loading" || paymentLoading ? (
                         <>
                           <Loader2 size={20} className="animate-spin" />
-                          <span>{conflictChecking ? "Checking availability..." : paymentLoading ? "Opening Payment..." : booking.submittingLabel}</span>
+                          <span>{paymentLoading ? "Opening Payment..." : booking.submittingLabel}</span>
                         </>
                       ) : (
                         <>💳 Pay {RUPEESIGN}500 via Cashfree</>

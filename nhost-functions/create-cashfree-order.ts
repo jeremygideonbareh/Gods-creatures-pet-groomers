@@ -1,3 +1,4 @@
+/// DEPRECATED — use create-booking-order.ts instead. This function is no longer called from the frontend.
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
