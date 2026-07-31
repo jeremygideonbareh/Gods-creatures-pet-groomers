@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "crypto";
+
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
@@ -23,12 +25,49 @@ interface CreateBookingOrderBody {
 }
 
 /**
+ * Verify the JWT HMAC-SHA256 signature using the Nhost JWT secret.
+ * Nhost signs tokens with HS256 using NHOST_JWT_SECRET, which may be a raw
+ * key string or a JSON config blob like {"type":"HS256","key":"..."}.
+ * Constant-time comparison prevents timing attacks.
+ */
+function verifyJwtSignature(token: string, jwtSecret: string): boolean {
+  try {
+    let secret = jwtSecret;
+    try {
+      const parsed = JSON.parse(jwtSecret);
+      if (typeof parsed?.key === "string") secret = parsed.key;
+    } catch {
+      // Not JSON — use the raw value
+    }
+
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+
+    const signingInput = `${parts[0]}.${parts[1]}`;
+    // Base64url → base64
+    const sigBase64 = parts[2].replace(/-/g, "+").replace(/_/g, "/");
+    const receivedSig = Buffer.from(sigBase64, "base64");
+    const expectedSig = createHmac("sha256", secret).update(signingInput).digest();
+
+    if (receivedSig.length !== expectedSig.length) return false;
+    return timingSafeEqual(receivedSig, expectedSig);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Decode JWT payload to extract user_id and email from Hasura claims.
  * JWT format: header.payload.signature
  * The payload is base64url-encoded JSON.
+ * The signature is VERIFIED against NHOST_JWT_SECRET before claims are trusted.
  */
 function decodeJwtPayload(token: string): { user_id: string; email: string } | null {
   try {
+    const jwtSecret = process.env.NHOST_JWT_SECRET;
+    if (!jwtSecret) return null;
+    if (!verifyJwtSignature(token, jwtSecret)) return null;
+
     const parts = token.split(".");
     if (parts.length !== 3) return null;
     const payload = parts[1];
