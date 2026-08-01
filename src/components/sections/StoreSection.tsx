@@ -3,16 +3,14 @@ import { Phone, ArrowRight } from "lucide-react";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
 import { designTokens } from "@/config/site-content";
 import { STORE_PHONE } from "@/config/store-products";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
-const TEASER_HIGHLIGHTS = [
-  { emoji: "🛁", label: "Coats & Shampoos" },
-  { emoji: "✨", label: "Wellness Essentials" },
-  { emoji: "🎾", label: "Play & Treats" },
-];
-
 export function StoreSection() {
+  const { content } = useSiteContent();
+  const highlights = content.store.highlights;
+
   return (
     <section
       id="store"
@@ -29,8 +27,8 @@ export function StoreSection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="Pet Store"
-          subtitle="Coats, shampoos and wellness essentials for your furry friend — call to order and we'll have it ready for pickup."
+          heading={content.store.heading}
+          subtitle={content.store.subtitle}
           align="center"
           badge="Store"
         />
@@ -41,7 +39,7 @@ export function StoreSection() {
         <div className="rounded-3xl bg-white shadow-md hover:shadow-xl transition-shadow duration-500 overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="grid grid-cols-3 gap-4 md:gap-6">
-              {TEASER_HIGHLIGHTS.map((item) => (
+              {highlights.map((item) => (
                 <div key={item.label} className="text-center">
                   <div className="w-12 h-12 md:w-14 md:h-14 mx-auto rounded-2xl flex items-center justify-center text-2xl md:text-3xl bg-brand-pink/10">
                     {item.emoji}

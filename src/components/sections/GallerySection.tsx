@@ -2,46 +2,14 @@ import { useEffect, useRef } from "react";
 import { animate } from "animejs";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
 import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
-const GALLERY_IMAGES = [
-  {
-    url: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=600&auto=format&fit=crop&q=60",
-    alt: "Happy dog after grooming",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=600&auto=format&fit=crop&q=60",
-    alt: "Dog getting haircut",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1517423738875-5ce310acd3da?w=600&auto=format&fit=crop&q=60",
-    alt: "Puppy in bath",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop&q=60",
-    alt: "Dog with bow tie",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1544568100-847a948585b9?w=600&auto=format&fit=crop&q=60",
-    alt: "Happy puppy",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&auto=format&fit=crop&q=60",
-    alt: "Dog smiling",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&auto=format&fit=crop&q=60",
-    alt: "Dog dental care",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=600&auto=format&fit=crop&q=60",
-    alt: "Dog brush",
-  },
-];
-
 export function GallerySection() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { content } = useSiteContent();
+  const images = content.gallery.images;
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -86,8 +54,8 @@ export function GallerySection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="Pet Gallery"
-          subtitle="A glimpse into the love and care we pour into every grooming session."
+          heading={content.gallery.heading}
+          subtitle={content.gallery.subtitle}
           align="center"
           badge="Gallery"
         />
@@ -99,7 +67,7 @@ export function GallerySection() {
           className="flex gap-4 animate-marquee"
           style={{ "--duration": "35s" } as React.CSSProperties}
         >
-          {[...GALLERY_IMAGES, ...GALLERY_IMAGES].map((img: typeof GALLERY_IMAGES[0], i: number) => (
+          {[...images, ...images].map((img, i) => (
             <div
               key={i}
               className="gallery-item opacity-0 flex-shrink-0 w-40 md:w-56 aspect-[4/5] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 cursor-pointer"
@@ -123,7 +91,7 @@ export function GallerySection() {
             animation: `marquee-reverse 40s linear infinite`,
           } as React.CSSProperties}
         >
-          {[...GALLERY_IMAGES].reverse().concat([...GALLERY_IMAGES].reverse()).map((img, i) => (
+          {[...images].reverse().concat([...images].reverse()).map((img, i) => (
             <div
               key={i}
               className="gallery-item opacity-0 flex-shrink-0 w-32 md:w-48 aspect-[3/4] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 cursor-pointer"

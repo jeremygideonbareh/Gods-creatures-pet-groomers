@@ -1,18 +1,14 @@
 import { useEffect, useRef } from "react";
 import { animate } from "animejs";
 import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
-const stats = [
-  { value: 500, suffix: "+", label: "Pets Groomed" },
-  { value: 8, suffix: "+", label: "Years Experience" },
-  { value: 98, suffix: "%", label: "Happy Clients" },
-  { value: 4.4, suffix: "★", label: "Avg. Rating" },
-];
-
 export function SocialProofBar() {
   const ref = useRef<HTMLDivElement>(null);
+  const { content } = useSiteContent();
+  const stats = content.socialProof.stats;
 
   useEffect(() => {
     if (!ref.current) return;

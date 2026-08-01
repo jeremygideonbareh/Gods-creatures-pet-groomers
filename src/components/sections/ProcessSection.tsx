@@ -1,13 +1,16 @@
 import { useRef, useEffect } from "react";
 import { animate, stagger } from "animejs";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
-import { processSteps, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
 export function ProcessSection() {
   const stepsRef = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
+  const { content } = useSiteContent();
+  const steps = content.process.steps;
 
   useEffect(() => {
     if (!stepsRef.current) return;
@@ -59,8 +62,8 @@ export function ProcessSection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="How It Works"
-          subtitle="Getting your pet the grooming they deserve is as easy as one-two-three."
+          heading={content.process.heading}
+          subtitle={content.process.subtitle}
           align="center"
           badge="Process"
         />
@@ -78,7 +81,7 @@ export function ProcessSection() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 lg:gap-10">
-          {processSteps.map((step) => (
+          {steps.map((step) => (
             <div key={step.step} className="process-step opacity-0 relative">
               <div className="flex flex-col items-center text-center">
                 {/* Step number circle */}
@@ -108,7 +111,7 @@ export function ProcessSection() {
               </div>
 
               {/* Arrow connector (mobile) */}
-              {step.step < processSteps.length && (
+              {step.step < steps.length && (
                 <div className="md:hidden flex justify-center my-4">
                   <div
                     className="w-[2px] h-8"

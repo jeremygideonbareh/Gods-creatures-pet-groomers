@@ -2,12 +2,15 @@ import { useRef, useEffect } from "react";
 import { animate, stagger } from "animejs";
 import { ArrowRight } from "lucide-react";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
-import { blogPosts, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
 export function BlogSection() {
   const gridRef = useRef<HTMLDivElement>(null);
+  const { content } = useSiteContent();
+  const posts = content.blog.posts;
 
   useEffect(() => {
     if (!gridRef.current) return;
@@ -59,8 +62,8 @@ export function BlogSection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="Tips & Articles"
-          subtitle="Expert advice and insights to keep your pet happy, healthy, and looking their best."
+          heading={content.blog.heading}
+          subtitle={content.blog.subtitle}
           align="center"
           badge="Blog"
         />
@@ -68,7 +71,7 @@ export function BlogSection() {
 
       <div ref={gridRef} className="max-w-6xl mx-auto px-4 md:px-8 mt-4 md:mt-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-          {blogPosts.map((post) => (
+          {posts.map((post) => (
             <div key={post.title} className="blog-card opacity-0 group cursor-pointer">
               <div className="rounded-2xl overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
                 {/* Image */}

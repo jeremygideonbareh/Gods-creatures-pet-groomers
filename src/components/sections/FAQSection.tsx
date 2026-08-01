@@ -2,13 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { animate, stagger } from "animejs";
 import { ChevronDown } from "lucide-react";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
-import { faqItems, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
 export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const { content } = useSiteContent();
+  const items = content.faq.items;
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -64,8 +67,8 @@ export function FAQSection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="Frequently Asked Questions"
-          subtitle="Everything you need to know before your visit. Still have questions? Give us a call!"
+          heading={content.faq.heading}
+          subtitle={content.faq.subtitle}
           align="center"
           badge="FAQ"
         />
@@ -73,7 +76,7 @@ export function FAQSection() {
 
       <div ref={headerRef} className="max-w-3xl mx-auto px-4 md:px-8 mt-4 md:mt-6">
         <div className="space-y-3">
-          {faqItems.map((item, index) => {
+          {items.map((item, index) => {
             const isOpen = openIndex === index;
 
             return (

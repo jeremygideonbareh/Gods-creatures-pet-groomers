@@ -2,7 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import { animate, stagger } from "animejs";
 import { MapPin } from "lucide-react";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
-import { teamMembers, designTokens } from "@/config/site-content";
+import { designTokens } from "@/config/site-content";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
 
@@ -18,6 +19,8 @@ function initialsOf(name: string): string {
 export function TeamSection() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const { content } = useSiteContent();
+  const members = content.team.members;
 
   // Kinetic loading — skeleton shimmer on section mount
   useEffect(() => {
@@ -62,8 +65,8 @@ export function TeamSection() {
 
       <div className="px-4 md:px-8">
         <SectionHeaderEnhanced
-          heading="Meet Our Team"
-          subtitle="Passionate professionals dedicated to your pet's happiness and well-being."
+          heading={content.team.heading}
+          subtitle={content.team.subtitle}
           align="center"
           badge="Team"
         />
@@ -81,7 +84,7 @@ export function TeamSection() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {teamMembers.map((member) => (
+            {members.map((member) => (
               <div
                 key={member.name}
                 className="team-card opacity-0 group"
