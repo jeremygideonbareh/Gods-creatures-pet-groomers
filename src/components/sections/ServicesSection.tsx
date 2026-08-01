@@ -1,12 +1,16 @@
 import { useSiteContent } from "@/context/SiteContentContext";
 import { SectionHeaderEnhanced } from "@/components/ui/section-header-enhanced";
-import FeatureCarousel from "@/components/ui/feature-carousel";
+import BounceCardsFeatures from "@/components/ui/bounce-card-features";
 import { designTokens } from "@/config/site-content";
 
 const BRAND_PINK = designTokens.brandPink;
 const BRAND_CREAM = designTokens.brandCream;
 
-export function ServicesSection() {
+export function ServicesSection({
+  onBookClick,
+}: {
+  onBookClick?: () => void;
+}) {
   const { content } = useSiteContent();
   const services = content.services;
 
@@ -41,7 +45,7 @@ export function ServicesSection() {
       />
 
       <div className="w-full max-w-7xl mx-auto mt-2 md:mt-6" data-anime="fadeInUp">
-        <FeatureCarousel />
+        <BounceCardsFeatures onBookClick={onBookClick} />
       </div>
 
       {/* Decorative bottom border */}
