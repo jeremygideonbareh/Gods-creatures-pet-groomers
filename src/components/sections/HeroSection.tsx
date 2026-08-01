@@ -158,9 +158,9 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
       {/* Content */}
       <div
         ref={textRef}
-        className="relative z-20 flex flex-col items-center justify-center h-full text-white p-6 md:p-12 lg:p-20"
+        className="relative z-20 flex flex-col items-center justify-center min-h-[100dvh] text-white p-6 pt-28 sm:pt-32 md:p-12 lg:p-20"
       >
-        <div className="max-w-5xl mx-auto text-center">
+        <div className="max-w-5xl mx-auto text-center mt-12 md:mt-0">
           {/* Main Heading */}
           <h1 className="hero-line opacity-0 font-heading text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-bold leading-[1.05] tracking-tight drop-shadow-2xl">
             {hero.title.split(" ").map((word, i) => (

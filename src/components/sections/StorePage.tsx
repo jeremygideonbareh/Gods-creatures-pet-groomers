@@ -177,8 +177,14 @@ export function StorePage() {
                             </div>
                             <div className="mt-3 flex items-center justify-between">
                               <p className="text-white font-bold text-lg tabular-nums">
-                                {RUPEESIGN}
-                                {product.price.toLocaleString("en-IN")}
+                                {typeof product.price === "number" ? (
+                                  <>
+                                    {RUPEESIGN}
+                                    {product.price.toLocaleString("en-IN")}
+                                  </>
+                                ) : (
+                                  product.price
+                                )}
                               </p>
                               <a
                                 href={`tel:${STORE_PHONE}`}

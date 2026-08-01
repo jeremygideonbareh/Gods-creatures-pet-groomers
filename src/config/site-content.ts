@@ -381,9 +381,9 @@ export const store: StoreContent = {
   subtitle:
     "Coats, shampoos and wellness essentials for your furry friend \u2014 call to order and we'll have it ready for pickup.",
   highlights: [
-    { emoji: "\U0001F6C1", label: "Coats & Shampoos" },
-    { emoji: "\u2728", label: "Wellness Essentials" },
-    { emoji: "\U0001F3BE", label: "Play & Treats" },
+    { emoji: "🛁", label: "Coats & Shampoos" },
+    { emoji: "✨", label: "Wellness Essentials" },
+    { emoji: "🎾", label: "Play & Treats" },
   ],
 };
 
@@ -398,15 +398,15 @@ export const storeCatalog: StoreCatalogContent = {
   subtitle:
     "Display-only catalog \u2014 call to order, we'll have it ready.",
   categories: [
-    { id: "clothes", name: "Clothes", emoji: "\U0001F9E5" },
-    { id: "products", name: "Wellness & Medicines", emoji: "\U0001F9F4" },
+    { id: "clothes", name: "Clothes", emoji: "🧥" },
+    { id: "products", name: "Wellness & Medicines", emoji: "🧴" },
   ],
   products: [
     {
       id: "cozy-winter-jacket",
       name: "Cozy Winter Jacket",
       category: "clothes",
-      price: 899,
+      price: "TBD",
       image:
         "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80",
       badge: "New",
@@ -415,7 +415,7 @@ export const storeCatalog: StoreCatalogContent = {
       id: "rain-coat",
       name: "Rain Coat",
       category: "clothes",
-      price: 749,
+      price: "TBD",
       image:
         "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=600&q=80",
     },
@@ -423,7 +423,7 @@ export const storeCatalog: StoreCatalogContent = {
       id: "hypoallergenic-shampoo",
       name: "Hypoallergenic Shampoo",
       category: "products",
-      price: 450,
+      price: "TBD",
       image:
         "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=600&q=80",
       badge: "Vet recommended",
@@ -432,7 +432,7 @@ export const storeCatalog: StoreCatalogContent = {
       id: "tick-flea-spray",
       name: "Tick & Flea Spray",
       category: "products",
-      price: 320,
+      price: "TBD",
       image:
         "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=600&q=80",
     },

@@ -1248,7 +1248,7 @@ function StoreProductEditor({
         <div className="flex gap-2 items-center">
           <div className="w-28">
             <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Price (₹)</label>
-            <NumInput value={product.price} onChange={(v) => onChange({ ...product, price: v })} step={10} />
+            <input type="text" value={product.price} onChange={(e) => onChange({ ...product, price: e.target.value })} className="w-full px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs outline-none focus:border-white/50" />
           </div>
           <div className="flex-1">
             <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Badge (optional)</label>

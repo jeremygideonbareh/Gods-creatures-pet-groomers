@@ -227,7 +227,7 @@ export interface StoreCatalogProduct {
   id: string;
   name: string;
   category: string;
-  price: number;
+  price: number | string;
   image: string;
   badge?: string;
   soldOut?: boolean;

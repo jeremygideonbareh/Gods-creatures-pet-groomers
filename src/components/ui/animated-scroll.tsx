@@ -7,7 +7,6 @@ import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { Navbar } from "@/components/ui/navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
-import { SocialProofBar } from "@/components/ui/social-proof-bar";
 import ServicesSection from "@/components/sections/ServicesSection";
 import { GallerySection } from "@/components/sections/GallerySection";
 import ReviewsSection from "@/components/sections/ReviewsSection";
@@ -141,8 +140,6 @@ export default function ScrollAdventure() {
         <WhyChooseUsSection onBookClick={handleBookClick} />
       </section>
 
-      {/* Social Proof Bar */}
-      <SocialProofBar />
 
       {/* Section 3: Services */}
       <section id="services">
