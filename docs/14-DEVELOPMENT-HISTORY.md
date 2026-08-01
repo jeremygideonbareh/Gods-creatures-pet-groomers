@@ -22,6 +22,7 @@
 | 19 | Jun 15 | Cleanup | Metadata inconsistency fix, isAdmin() helper |
 | 20 | Jul 7 | Reliability | Session error handling, double-booking prevention, test infrastructure |
 | 21 | Jul 15 | Payments | Razorpay integration, deployment pipeline fix |
+| 22 | Aug 1, 2026 | Content & UI | Added Featured Videos to store, updated CSP for YouTube, removed placeholder team member, completed documentation |
 
 ## Phase Details
 
@@ -96,6 +97,13 @@
 - Deployment pipeline fix (wrangler.toml, deploy.yml)
 - README and package.json cleanup
 - docs/env-vars.md and .env.example created
+
+### Phase 11: Content & UI Updates (Session 22)
+- Added "Featured Videos" section to the Store page using responsive YouTube iframe embeds.
+- Added a video teaser to the home page Store section.
+- Removed "The Boy Who Helps" placeholder from the hardcoded team members default configuration.
+- Updated Content Security Policy (CSP) in `index.html` to permit `frame-src` and `img-src` from YouTube domains.
+- Generated and pushed comprehensive documentation for the entire project.
 
 ## Migration History
 - **Supabase → Nhost**: Auth + database migrated (June 8)
