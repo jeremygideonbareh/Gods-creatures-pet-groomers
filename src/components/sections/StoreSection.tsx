@@ -67,6 +67,31 @@ export function StoreSection() {
                 View Full Catalog <ArrowRight size={16} />
               </Link>
             </div>
+
+            {/* Featured video teaser */}
+            <div className="mt-8 pt-6 border-t border-brand-charcoal/10">
+              <p className="text-center text-xs font-semibold uppercase tracking-wider text-brand-charcoal/50 mb-3">
+                🎬 Featured Video
+              </p>
+              <div className="rounded-2xl overflow-hidden shadow-sm">
+                <div className="aspect-video">
+                  <iframe
+                    src="https://www.youtube.com/embed/se8Gi12ymSk"
+                    title="Professional Pet Grooming"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              </div>
+              <p className="text-center text-[11px] text-brand-charcoal/40 mt-2">
+                More videos on the{" "}
+                <Link to="/store" className="underline hover:text-brand-charcoal/60 transition-colors">
+                  full catalog page
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

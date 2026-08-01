@@ -217,6 +217,29 @@ export interface StoreContent {
   highlights: StoreHighlight[];
 }
 
+export interface StoreCatalogCategory {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
+export interface StoreCatalogProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  badge?: string;
+  soldOut?: boolean;
+}
+
+export interface StoreCatalogContent {
+  heading: string;
+  subtitle: string;
+  categories: StoreCatalogCategory[];
+  products: StoreCatalogProduct[];
+}
+
 export interface SiteContent {
   hero: HeroContent;
   whyChooseUs: WhyChooseUsContent;
@@ -233,6 +256,7 @@ export interface SiteContent {
   faq: FaqContent;
   blog: BlogContent;
   store: StoreContent;
+  storeCatalog: StoreCatalogContent;
 }
 
 export type SectionKey =
@@ -250,7 +274,8 @@ export type SectionKey =
   | "process"
   | "faq"
   | "blog"
-  | "store";
+  | "store"
+  | "store_catalog";
 
 const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   hero: "hero",
@@ -268,6 +293,7 @@ const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   faq: "faq",
   blog: "blog",
   store: "store",
+  store_catalog: "storeCatalog",
 };
 
 export { GET_SITE_CONTENT as GET_ALL_SITE_CONTENT };

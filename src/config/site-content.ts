@@ -6,6 +6,7 @@ import type {
   FaqContent,
   BlogContent,
   StoreContent,
+  StoreCatalogContent,
 } from "@/lib/content-service";
 
 const raw = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
@@ -207,14 +208,6 @@ export const bookingSection = {
 
 export const teamMembers = [
   {
-    name: "The Boy Who Helps",
-    role: "Grooming Assistant",
-    image: "",
-    bio: "Our ever-helpful assistant — washes, dries, preps, and keeps the salon running smoothly. Photo coming soon.",
-    emoji: "🐾",
-    mapLink: "",
-  },
-  {
     name: "Dr. Kakoty",
     role: "Go-To Vet · Animal Concern, Motinagar",
     image: "",
@@ -391,6 +384,58 @@ export const store: StoreContent = {
     { emoji: "\U0001F6C1", label: "Coats & Shampoos" },
     { emoji: "\u2728", label: "Wellness Essentials" },
     { emoji: "\U0001F3BE", label: "Play & Treats" },
+  ],
+};
+
+/**
+ * Admin-editable store catalog (jsonb CMS section `store_catalog`).
+ * Display-only — every card links to "Call to order" (tel:STORE_PHONE).
+ * Products use cinematic placeholder photos (Unsplash-style); the emoji
+ * stays available as a fallback in the UI when image is empty.
+ */
+export const storeCatalog: StoreCatalogContent = {
+  heading: "Pet Store",
+  subtitle:
+    "Display-only catalog \u2014 call to order, we'll have it ready.",
+  categories: [
+    { id: "clothes", name: "Clothes", emoji: "\U0001F9E5" },
+    { id: "products", name: "Wellness & Medicines", emoji: "\U0001F9F4" },
+  ],
+  products: [
+    {
+      id: "cozy-winter-jacket",
+      name: "Cozy Winter Jacket",
+      category: "clothes",
+      price: 899,
+      image:
+        "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80",
+      badge: "New",
+    },
+    {
+      id: "rain-coat",
+      name: "Rain Coat",
+      category: "clothes",
+      price: 749,
+      image:
+        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: "hypoallergenic-shampoo",
+      name: "Hypoallergenic Shampoo",
+      category: "products",
+      price: 450,
+      image:
+        "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=600&q=80",
+      badge: "Vet recommended",
+    },
+    {
+      id: "tick-flea-spray",
+      name: "Tick & Flea Spray",
+      category: "products",
+      price: 320,
+      image:
+        "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=600&q=80",
+    },
   ],
 };
 

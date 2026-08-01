@@ -4,24 +4,10 @@ import { animate, stagger } from "animejs";
 import { animate as motionAnimate, useInView } from "motion/react";
 import { ArrowLeft, Phone, ShoppingBag } from "lucide-react";
 import { designTokens, RUPEESIGN } from "@/config/site-content";
-import { storeProducts, STORE_PHONE, type StoreCategory } from "@/config/store-products";
+import { STORE_PHONE } from "@/config/store-products";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const BRAND_PINK = designTokens.brandPink;
-
-const CATEGORY_META: Record<StoreCategory, { title: string; emoji: string; blurb: string }> = {
-  clothes: {
-    title: "Clothes",
-    emoji: "🧥",
-    blurb: "Coats and apparel to keep your pet warm, dry, and stylish.",
-  },
-  products: {
-    title: "Wellness & Medicines",
-    emoji: "🧴",
-    blurb: "Grooming and wellness essentials, vet-recommended.",
-  },
-};
-
-const CATEGORY_ORDER: StoreCategory[] = ["clothes", "products"];
 
 const PAGE_STATS = [
   { count: 4, suffix: "+", label: "Curated essentials" },
@@ -31,6 +17,8 @@ const PAGE_STATS = [
 
 export function StorePage() {
   const navigate = useNavigate();
+  const { content } = useSiteContent();
+  const { categories, products } = content.storeCatalog;
   const gridRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -100,9 +88,9 @@ export function StorePage() {
               <ShoppingBag size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">Pet Store</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">{content.storeCatalog.heading}</h1>
               <p className="text-white/60 text-sm mt-0.5">
-                Display-only catalog — call to order, we'll have it ready.
+                {content.storeCatalog.subtitle}
               </p>
             </div>
           </div>
@@ -128,8 +116,8 @@ export function StorePage() {
           {/* Catalog */}
           {loading ? (
             <div className="space-y-8">
-              {CATEGORY_ORDER.map((cat) => (
-                <div key={cat}>
+              {categories.map((cat) => (
+                <div key={cat.id}>
                   <div className="h-5 w-40 rounded-full bg-white/25 mb-4" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -144,27 +132,37 @@ export function StorePage() {
             </div>
           ) : (
             <div ref={gridRef} className="space-y-10">
-              {CATEGORY_ORDER.map((cat) => (
-                <section key={cat}>
+              {categories.map((cat) => (
+                <section key={cat.id}>
                   <div className="flex items-center gap-2.5 mb-4">
-                    <span className="text-xl">{CATEGORY_META[cat].emoji}</span>
+                    <span className="text-xl">{cat.emoji}</span>
                     <div>
                       <h2 className="text-white font-heading font-bold text-lg md:text-xl">
-                        {CATEGORY_META[cat].title}
+                        {cat.name}
                       </h2>
-                      <p className="text-white/60 text-xs">{CATEGORY_META[cat].blurb}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                    {storeProducts
-                      .filter((p) => p.category === cat)
+                    {products
+                      .filter((p) => p.category === cat.id)
                       .map((product) => (
                         <div
                           key={product.id}
                           className="store-card opacity-0 group bg-white/15 rounded-2xl overflow-hidden border border-white/20 hover:bg-white/25 transition-all duration-300 hover:-translate-y-1"
                         >
-                          <div className="aspect-[4/3] flex items-center justify-center text-6xl md:text-7xl bg-gradient-to-br from-white/20 to-transparent transition-transform duration-700 group-hover:scale-105">
-                            {product.image}
+                          <div className="aspect-[4/3] overflow-hidden bg-gradient-to-br from-white/20 to-transparent">
+                            {product.image ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                loading="lazy"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-6xl md:text-7xl">
+                                🛍️
+                              </div>
+                            )}
                           </div>
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
@@ -198,6 +196,67 @@ export function StorePage() {
               ))}
             </div>
           )}
+
+          {/* ── Featured Videos ── */}
+          <div className="mt-12 pt-8 border-t border-white/15">
+            <div className="flex items-center gap-2.5 mb-6">
+              <span className="text-xl">🎬</span>
+              <div>
+                <h2 className="text-white font-heading font-bold text-lg md:text-xl">
+                  Featured Videos
+                </h2>
+                <p className="text-white/50 text-xs mt-0.5">
+                  Watch our grooming sessions and pet care tips
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+              {[
+                {
+                  id: "se8Gi12ymSk",
+                  title: "Professional Pet Grooming",
+                  desc: "See how we pamper your furry friends with expert care",
+                },
+                {
+                  id: "6jRCkFGbMRA",
+                  title: "Dog Grooming Tips",
+                  desc: "Essential grooming advice from our professionals",
+                },
+                {
+                  id: "oHg5SJYRHA0",
+                  title: "Pet Care Essentials",
+                  desc: "Learn the basics of keeping your pet happy and healthy",
+                },
+              ].map((video) => (
+                <div
+                  key={video.id}
+                  className="group bg-white/15 rounded-2xl overflow-hidden border border-white/20 hover:bg-white/25 transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="aspect-video overflow-hidden">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${video.id}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      loading="lazy"
+                      className="w-full h-full border-0"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-white font-semibold text-sm">
+                      {video.title}
+                    </h3>
+                    <p className="text-white/50 text-xs mt-1">{video.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-white/40 text-xs mt-4">
+              More videos coming soon — stay tuned!
+            </p>
+          </div>
         </div>
       </div>
     </div>

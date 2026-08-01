@@ -15,6 +15,8 @@ import type {
   FaqItem,
   BlogPost,
   StoreHighlight,
+  StoreCatalogProduct,
+  StoreCatalogCategory,
 } from "@/lib/content-service";
 
 type Tab =
@@ -31,7 +33,8 @@ type Tab =
   | "process"
   | "faq"
   | "blog"
-  | "store";
+  | "store"
+  | "store_catalog";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "hero", label: "Hero" },
@@ -45,6 +48,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "faq", label: "FAQ" },
   { key: "blog", label: "Blog" },
   { key: "store", label: "Store" },
+  { key: "store_catalog", label: "Store Catalog" },
   { key: "booking", label: "Booking" },
   { key: "page_backgrounds", label: "Backgrounds" },
   { key: "pricing", label: "Pricing & Policies" },
@@ -65,6 +69,7 @@ const SECTION_MAP: Record<Tab, SectionKey> = {
   faq: "faq",
   blog: "blog",
   store: "store",
+  store_catalog: "store_catalog",
 };
 
 export function ContentEditor() {
@@ -98,6 +103,12 @@ export function ContentEditor() {
   const [faqForm, setFaqForm] = useState({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
   const [blogForm, setBlogForm] = useState({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
   const [storeForm, setStoreForm] = useState({ heading: content.store.heading, subtitle: content.store.subtitle, highlights: [...content.store.highlights] });
+  const [storeCatalogForm, setStoreCatalogForm] = useState({
+    heading: content.storeCatalog.heading,
+    subtitle: content.storeCatalog.subtitle,
+    categories: [...content.storeCatalog.categories],
+    products: [...content.storeCatalog.products],
+  });
 
   useEffect(() => {
     setHeroForm({ ...content.hero });
@@ -124,6 +135,12 @@ export function ContentEditor() {
     setFaqForm({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
     setBlogForm({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
     setStoreForm({ heading: content.store.heading, subtitle: content.store.subtitle, highlights: [...content.store.highlights] });
+    setStoreCatalogForm({
+      heading: content.storeCatalog.heading,
+      subtitle: content.storeCatalog.subtitle,
+      categories: [...content.storeCatalog.categories],
+      products: [...content.storeCatalog.products],
+    });
   }, [content]);
 
   const handleSave = useCallback(async () => {
@@ -145,6 +162,7 @@ export function ContentEditor() {
         faq: faqForm,
         blog: blogForm,
         store: storeForm,
+        store_catalog: storeCatalogForm,
       };
       await updateSection(SECTION_MAP[activeTab], tabData[activeTab]);
       setSaved(true);
@@ -154,7 +172,7 @@ export function ContentEditor() {
     } finally {
       setSaving(false);
     }
-  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, socialProofForm, galleryForm, teamForm, processForm, faqForm, blogForm, storeForm, updateSection]);
+  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, socialProofForm, galleryForm, teamForm, processForm, faqForm, blogForm, storeForm, storeCatalogForm, updateSection]);
 
   if (loading) {
     return (
@@ -692,6 +710,73 @@ export function ContentEditor() {
             </button>
           </div>
         )}
+
+        {tab === "store_catalog" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={storeCatalogForm.heading} onChange={(v) => setStoreCatalogForm({ ...storeCatalogForm, heading: v })} />
+            <Field label="Subtitle" value={storeCatalogForm.subtitle} onChange={(v) => setStoreCatalogForm({ ...storeCatalogForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Categories</p>
+            {storeCatalogForm.categories.map((category, i) => (
+              <StoreCategoryEditor
+                key={category.id || i}
+                category={category}
+                index={i}
+                onChange={(updated) => {
+                  const categories = [...storeCatalogForm.categories];
+                  categories[i] = updated;
+                  setStoreCatalogForm({ ...storeCatalogForm, categories });
+                }}
+                onDelete={() => {
+                  const categories = storeCatalogForm.categories.filter((_, idx) => idx !== i);
+                  setStoreCatalogForm({ ...storeCatalogForm, categories });
+                }}
+              />
+            ))}
+            <button
+              onClick={() =>
+                setStoreCatalogForm({
+                  ...storeCatalogForm,
+                  categories: [...storeCatalogForm.categories, { id: `cat_${Date.now()}`, name: "", emoji: "" }],
+                })
+              }
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Category
+            </button>
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Products</p>
+            {storeCatalogForm.products.map((product, i) => (
+              <StoreProductEditor
+                key={product.id || i}
+                product={product}
+                index={i}
+                categories={storeCatalogForm.categories}
+                onChange={(updated) => {
+                  const products = [...storeCatalogForm.products];
+                  products[i] = updated;
+                  setStoreCatalogForm({ ...storeCatalogForm, products });
+                }}
+                onDelete={() => {
+                  const products = storeCatalogForm.products.filter((_, idx) => idx !== i);
+                  setStoreCatalogForm({ ...storeCatalogForm, products });
+                }}
+              />
+            ))}
+            <button
+              onClick={() =>
+                setStoreCatalogForm({
+                  ...storeCatalogForm,
+                  products: [
+                    ...storeCatalogForm.products,
+                    { id: `prod_${Date.now()}`, name: "", category: storeCatalogForm.categories[0]?.id ?? "", price: 0, image: "" },
+                  ],
+                })
+              }
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/10">
@@ -1098,6 +1183,89 @@ function ServicePriceEditor({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function StoreCategoryEditor({
+  category,
+  index,
+  onChange,
+  onDelete,
+}: {
+  category: StoreCatalogCategory;
+  index: number;
+  onChange: (c: StoreCatalogCategory) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Category {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="flex gap-2">
+        <input placeholder="Emoji" value={category.emoji} onChange={(e) => onChange({ ...category, emoji: e.target.value })} className="w-24 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        <input placeholder="Name (e.g., Clothes)" value={category.name} onChange={(e) => onChange({ ...category, name: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+      </div>
+    </div>
+  );
+}
+
+function StoreProductEditor({
+  product,
+  index,
+  categories,
+  onChange,
+  onDelete,
+}: {
+  product: StoreCatalogProduct;
+  index: number;
+  categories: StoreCatalogCategory[];
+  onChange: (p: StoreCatalogProduct) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Product {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <input placeholder="Name (e.g., Cozy Winter Jacket)" value={product.name} onChange={(e) => onChange({ ...product, name: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <select
+            value={product.category}
+            onChange={(e) => onChange({ ...product, category: e.target.value })}
+            className="w-44 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50"
+          >
+            {categories.length === 0 && <option value="">No categories yet</option>}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id} className="text-black">{c.name || c.id}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2 items-center">
+          <div className="w-28">
+            <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Price (₹)</label>
+            <NumInput value={product.price} onChange={(v) => onChange({ ...product, price: v })} step={10} />
+          </div>
+          <div className="flex-1">
+            <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Badge (optional)</label>
+            <input placeholder="e.g., New" value={product.badge ?? ""} onChange={(e) => onChange({ ...product, badge: e.target.value })} className="w-full px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs outline-none focus:border-white/50" />
+          </div>
+          <label className="flex items-center gap-2 text-white/60 text-xs cursor-pointer pt-4">
+            <input
+              type="checkbox"
+              checked={product.soldOut ?? false}
+              onChange={(e) => onChange({ ...product, soldOut: e.target.checked })}
+              className="accent-pink-400"
+            />
+            Sold out
+          </label>
+        </div>
+        <ImageDropzone label="Photo" value={product.image} onChange={(v) => onChange({ ...product, image: v })} />
+      </div>
     </div>
   );
 }

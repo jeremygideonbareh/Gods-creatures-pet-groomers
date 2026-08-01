@@ -23,6 +23,7 @@ import {
   faq,
   blog,
   store,
+  storeCatalog,
 } from "@/config/site-content";
 
 const DEFAULTS: SiteContent = {
@@ -41,6 +42,7 @@ const DEFAULTS: SiteContent = {
   faq: faq as unknown as SiteContent["faq"],
   blog: blog as unknown as SiteContent["blog"],
   store: store as unknown as SiteContent["store"],
+  storeCatalog: storeCatalog as unknown as SiteContent["storeCatalog"],
 };
 
 interface SiteContentState {
@@ -119,6 +121,7 @@ const SECTION_KEY_MAP: Record<SectionKey, keyof SiteContent> = {
   faq: "faq",
   blog: "blog",
   store: "store",
+  store_catalog: "storeCatalog",
 };
 
 export function useSiteContent() {
