@@ -8,15 +8,43 @@ import type {
   ServiceItem,
   Testimonial,
   PricingMenuContent,
+  SocialProofStat,
+  GalleryImage,
+  TeamMember,
+  ProcessStep,
+  FaqItem,
+  BlogPost,
+  StoreHighlight,
 } from "@/lib/content-service";
 
-type Tab = "hero" | "why_choose_us" | "services" | "reviews" | "booking" | "page_backgrounds" | "pricing";
+type Tab =
+  | "hero"
+  | "why_choose_us"
+  | "services"
+  | "reviews"
+  | "booking"
+  | "page_backgrounds"
+  | "pricing"
+  | "social_proof"
+  | "gallery"
+  | "team"
+  | "process"
+  | "faq"
+  | "blog"
+  | "store";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "hero", label: "Hero" },
   { key: "why_choose_us", label: "Why Choose Us" },
+  { key: "social_proof", label: "Social Proof" },
   { key: "services", label: "Services" },
+  { key: "gallery", label: "Gallery" },
   { key: "reviews", label: "Reviews" },
+  { key: "team", label: "Team" },
+  { key: "process", label: "Process" },
+  { key: "faq", label: "FAQ" },
+  { key: "blog", label: "Blog" },
+  { key: "store", label: "Store" },
   { key: "booking", label: "Booking" },
   { key: "page_backgrounds", label: "Backgrounds" },
   { key: "pricing", label: "Pricing & Policies" },
@@ -30,6 +58,13 @@ const SECTION_MAP: Record<Tab, SectionKey> = {
   booking: "booking",
   page_backgrounds: "page_backgrounds",
   pricing: "pricing_menu",
+  social_proof: "social_proof",
+  gallery: "gallery",
+  team: "team",
+  process: "process",
+  faq: "faq",
+  blog: "blog",
+  store: "store",
 };
 
 export function ContentEditor() {
@@ -40,21 +75,55 @@ export function ContentEditor() {
 
   // Editable local state per tab
   const [heroForm, setHeroForm] = useState({ ...content.hero });
-  const [whyForm, setWhyForm] = useState({ heading: content.whyChooseUs.heading, cards: [...content.whyChooseUs.cards] });
+  const [whyForm, setWhyForm] = useState({
+    heading: content.whyChooseUs.heading,
+    badge: content.whyChooseUs.badge ?? "",
+    story: content.whyChooseUs.story ?? "",
+    image: content.whyChooseUs.image ?? "",
+    ctaTitle: content.whyChooseUs.ctaTitle ?? "",
+    ctaText: content.whyChooseUs.ctaText ?? "",
+    ctaLabel: content.whyChooseUs.ctaLabel ?? "",
+    cards: [...content.whyChooseUs.cards],
+    stats: [...(content.whyChooseUs.stats ?? [])],
+  });
   const [servicesForm, setServicesForm] = useState({ heading: content.services.heading, subtitle: content.services.subtitle, items: [...content.services.items] });
   const [reviewsForm, setReviewsForm] = useState({ heading: content.reviews.heading, testimonials: [...content.reviews.testimonials], images: [...content.reviews.images] });
   const [bookingForm, setBookingForm] = useState({ ...content.booking });
   const [bgForm, setBgForm] = useState({ ...content.pageBackgrounds });
   const [pricingForm, setPricingForm] = useState(() => JSON.parse(JSON.stringify(content.pricingMenu)) as PricingMenuContent);
+  const [socialProofForm, setSocialProofForm] = useState({ stats: [...content.socialProof.stats] });
+  const [galleryForm, setGalleryForm] = useState({ heading: content.gallery.heading, subtitle: content.gallery.subtitle, images: [...content.gallery.images] });
+  const [teamForm, setTeamForm] = useState({ heading: content.team.heading, subtitle: content.team.subtitle, members: [...content.team.members] });
+  const [processForm, setProcessForm] = useState({ heading: content.process.heading, subtitle: content.process.subtitle, steps: [...content.process.steps] });
+  const [faqForm, setFaqForm] = useState({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
+  const [blogForm, setBlogForm] = useState({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
+  const [storeForm, setStoreForm] = useState({ heading: content.store.heading, subtitle: content.store.subtitle, highlights: [...content.store.highlights] });
 
   useEffect(() => {
     setHeroForm({ ...content.hero });
-    setWhyForm({ heading: content.whyChooseUs.heading, cards: [...content.whyChooseUs.cards] });
+    setWhyForm({
+      heading: content.whyChooseUs.heading,
+      badge: content.whyChooseUs.badge ?? "",
+      story: content.whyChooseUs.story ?? "",
+      image: content.whyChooseUs.image ?? "",
+      ctaTitle: content.whyChooseUs.ctaTitle ?? "",
+      ctaText: content.whyChooseUs.ctaText ?? "",
+      ctaLabel: content.whyChooseUs.ctaLabel ?? "",
+      cards: [...content.whyChooseUs.cards],
+      stats: [...(content.whyChooseUs.stats ?? [])],
+    });
     setServicesForm({ heading: content.services.heading, subtitle: content.services.subtitle, items: [...content.services.items] });
     setReviewsForm({ heading: content.reviews.heading, testimonials: [...content.reviews.testimonials], images: [...content.reviews.images] });
     setBookingForm({ ...content.booking });
     setBgForm({ ...content.pageBackgrounds });
     setPricingForm(JSON.parse(JSON.stringify(content.pricingMenu)));
+    setSocialProofForm({ stats: [...content.socialProof.stats] });
+    setGalleryForm({ heading: content.gallery.heading, subtitle: content.gallery.subtitle, images: [...content.gallery.images] });
+    setTeamForm({ heading: content.team.heading, subtitle: content.team.subtitle, members: [...content.team.members] });
+    setProcessForm({ heading: content.process.heading, subtitle: content.process.subtitle, steps: [...content.process.steps] });
+    setFaqForm({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
+    setBlogForm({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
+    setStoreForm({ heading: content.store.heading, subtitle: content.store.subtitle, highlights: [...content.store.highlights] });
   }, [content]);
 
   const handleSave = useCallback(async () => {
@@ -69,6 +138,13 @@ export function ContentEditor() {
         booking: bookingForm,
         page_backgrounds: bgForm,
         pricing: pricingForm as unknown as Record<string, unknown>,
+        social_proof: socialProofForm,
+        gallery: galleryForm,
+        team: teamForm,
+        process: processForm,
+        faq: faqForm,
+        blog: blogForm,
+        store: storeForm,
       };
       await updateSection(SECTION_MAP[activeTab], tabData[activeTab]);
       setSaved(true);
@@ -78,7 +154,7 @@ export function ContentEditor() {
     } finally {
       setSaving(false);
     }
-  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, updateSection]);
+  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, socialProofForm, galleryForm, teamForm, processForm, faqForm, blogForm, storeForm, updateSection]);
 
   if (loading) {
     return (
@@ -120,8 +196,16 @@ export function ContentEditor() {
         )}
 
         {tab === "why_choose_us" && (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             <Field label="Heading" value={whyForm.heading} onChange={(v) => setWhyForm({ ...whyForm, heading: v })} />
+            <Field label="Badge (eyebrow)" value={whyForm.badge} onChange={(v) => setWhyForm({ ...whyForm, badge: v })} />
+            <Field label="Story Paragraph" value={whyForm.story} onChange={(v) => setWhyForm({ ...whyForm, story: v })} textarea />
+            <ImageDropzone label="Center Image" value={whyForm.image} onChange={(v) => setWhyForm({ ...whyForm, image: v })} />
+            <div className="grid grid-cols-1 gap-3 pt-2 border-t border-white/10">
+              <Field label="CTA Title" value={whyForm.ctaTitle} onChange={(v) => setWhyForm({ ...whyForm, ctaTitle: v })} />
+              <Field label="CTA Text" value={whyForm.ctaText} onChange={(v) => setWhyForm({ ...whyForm, ctaText: v })} />
+              <Field label="CTA Button Label" value={whyForm.ctaLabel} onChange={(v) => setWhyForm({ ...whyForm, ctaLabel: v })} />
+            </div>
             <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Cards</p>
             {whyForm.cards.map((card, i) => (
               <CardEditor
@@ -144,6 +228,30 @@ export function ContentEditor() {
               className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
             >
               <Plus size={16} /> Add Card
+            </button>
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Stats</p>
+            {whyForm.stats.map((stat, i) => (
+              <StatEditor
+                key={i}
+                stat={stat}
+                index={i}
+                showIcon
+                onChange={(updated) => {
+                  const stats = [...whyForm.stats];
+                  stats[i] = { ...updated, icon: updated.icon ?? "" };
+                  setWhyForm({ ...whyForm, stats });
+                }}
+                onDelete={() => {
+                  const stats = whyForm.stats.filter((_, idx) => idx !== i);
+                  setWhyForm({ ...whyForm, stats });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setWhyForm({ ...whyForm, stats: [...whyForm.stats, { icon: "", value: 0, suffix: "+", label: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Stat
             </button>
           </div>
         )}
@@ -376,6 +484,214 @@ export function ContentEditor() {
             </div>
           </div>
         )}
+
+        {tab === "social_proof" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Stats</p>
+            {socialProofForm.stats.map((stat, i) => (
+              <StatEditor
+                key={i}
+                stat={stat}
+                index={i}
+                onChange={(updated) => {
+                  const stats = [...socialProofForm.stats];
+                  stats[i] = updated;
+                  setSocialProofForm({ ...socialProofForm, stats });
+                }}
+                onDelete={() => {
+                  const stats = socialProofForm.stats.filter((_, idx) => idx !== i);
+                  setSocialProofForm({ ...socialProofForm, stats });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setSocialProofForm({ ...socialProofForm, stats: [...socialProofForm.stats, { value: 0, suffix: "+", label: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Stat
+            </button>
+          </div>
+        )}
+
+        {tab === "gallery" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={galleryForm.heading} onChange={(v) => setGalleryForm({ ...galleryForm, heading: v })} />
+            <Field label="Subtitle" value={galleryForm.subtitle} onChange={(v) => setGalleryForm({ ...galleryForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Images</p>
+            {galleryForm.images.map((img, i) => (
+              <GalleryImageEditor
+                key={img.url || i}
+                image={img}
+                index={i}
+                onChange={(updated) => {
+                  const images = [...galleryForm.images];
+                  images[i] = updated;
+                  setGalleryForm({ ...galleryForm, images });
+                }}
+                onDelete={() => {
+                  const images = galleryForm.images.filter((_, idx) => idx !== i);
+                  setGalleryForm({ ...galleryForm, images });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setGalleryForm({ ...galleryForm, images: [...galleryForm.images, { url: "", alt: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Image
+            </button>
+          </div>
+        )}
+
+        {tab === "team" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={teamForm.heading} onChange={(v) => setTeamForm({ ...teamForm, heading: v })} />
+            <Field label="Subtitle" value={teamForm.subtitle} onChange={(v) => setTeamForm({ ...teamForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Members</p>
+            {teamForm.members.map((member, i) => (
+              <TeamMemberEditor
+                key={member.name || i}
+                member={member}
+                index={i}
+                onChange={(updated) => {
+                  const members = [...teamForm.members];
+                  members[i] = updated;
+                  setTeamForm({ ...teamForm, members });
+                }}
+                onDelete={() => {
+                  const members = teamForm.members.filter((_, idx) => idx !== i);
+                  setTeamForm({ ...teamForm, members });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setTeamForm({ ...teamForm, members: [...teamForm.members, { name: "", role: "", bio: "", emoji: "", image: "", mapLink: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Member
+            </button>
+          </div>
+        )}
+
+        {tab === "process" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={processForm.heading} onChange={(v) => setProcessForm({ ...processForm, heading: v })} />
+            <Field label="Subtitle" value={processForm.subtitle} onChange={(v) => setProcessForm({ ...processForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Steps</p>
+            {processForm.steps.map((step, i) => (
+              <ProcessStepEditor
+                key={step.step || i}
+                step={step}
+                index={i}
+                onChange={(updated) => {
+                  const steps = [...processForm.steps];
+                  steps[i] = updated;
+                  setProcessForm({ ...processForm, steps });
+                }}
+                onDelete={() => {
+                  const steps = processForm.steps.filter((_, idx) => idx !== i);
+                  setProcessForm({ ...processForm, steps });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setProcessForm({ ...processForm, steps: [...processForm.steps, { step: processForm.steps.length + 1, title: "", description: "", icon: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Step
+            </button>
+          </div>
+        )}
+
+        {tab === "faq" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={faqForm.heading} onChange={(v) => setFaqForm({ ...faqForm, heading: v })} />
+            <Field label="Subtitle" value={faqForm.subtitle} onChange={(v) => setFaqForm({ ...faqForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Items</p>
+            {faqForm.items.map((item, i) => (
+              <FaqItemEditor
+                key={item.q || i}
+                item={item}
+                index={i}
+                onChange={(updated) => {
+                  const items = [...faqForm.items];
+                  items[i] = updated;
+                  setFaqForm({ ...faqForm, items });
+                }}
+                onDelete={() => {
+                  const items = faqForm.items.filter((_, idx) => idx !== i);
+                  setFaqForm({ ...faqForm, items });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setFaqForm({ ...faqForm, items: [...faqForm.items, { q: "", a: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Question
+            </button>
+          </div>
+        )}
+
+        {tab === "blog" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={blogForm.heading} onChange={(v) => setBlogForm({ ...blogForm, heading: v })} />
+            <Field label="Subtitle" value={blogForm.subtitle} onChange={(v) => setBlogForm({ ...blogForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Posts</p>
+            {blogForm.posts.map((post, i) => (
+              <BlogPostEditor
+                key={post.title || i}
+                post={post}
+                index={i}
+                onChange={(updated) => {
+                  const posts = [...blogForm.posts];
+                  posts[i] = updated;
+                  setBlogForm({ ...blogForm, posts });
+                }}
+                onDelete={() => {
+                  const posts = blogForm.posts.filter((_, idx) => idx !== i);
+                  setBlogForm({ ...blogForm, posts });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setBlogForm({ ...blogForm, posts: [...blogForm.posts, { title: "", excerpt: "", date: "", category: "", image: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Post
+            </button>
+          </div>
+        )}
+
+        {tab === "store" && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <Field label="Heading" value={storeForm.heading} onChange={(v) => setStoreForm({ ...storeForm, heading: v })} />
+            <Field label="Subtitle" value={storeForm.subtitle} onChange={(v) => setStoreForm({ ...storeForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Highlights</p>
+            {storeForm.highlights.map((highlight, i) => (
+              <StoreHighlightEditor
+                key={i}
+                highlight={highlight}
+                index={i}
+                onChange={(updated) => {
+                  const highlights = [...storeForm.highlights];
+                  highlights[i] = updated;
+                  setStoreForm({ ...storeForm, highlights });
+                }}
+                onDelete={() => {
+                  const highlights = storeForm.highlights.filter((_, idx) => idx !== i);
+                  setStoreForm({ ...storeForm, highlights });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setStoreForm({ ...storeForm, highlights: [...storeForm.highlights, { emoji: "", label: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Highlight
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/10">
@@ -522,16 +838,225 @@ function TestimonialEditor({
   );
 }
 
-function NumInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function NumInput({ value, onChange, step = 50 }: { value: number; onChange: (v: number) => void; step?: number }) {
   return (
     <input
       type="number"
       min={0}
-      step={50}
+      step={step}
       value={value}
-      onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+      onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
       className="w-full px-2 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs text-center outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
     />
+  );
+}
+
+function StatEditor({
+  stat,
+  index,
+  onChange,
+  onDelete,
+  showIcon,
+}: {
+  stat: SocialProofStat & { icon?: string };
+  index: number;
+  onChange: (s: SocialProofStat & { icon?: string }) => void;
+  onDelete: () => void;
+  showIcon?: boolean;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Stat {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        {showIcon && (
+          <input placeholder="Icon name (PawPrint/Calendar/Users/Star)" value={stat.icon ?? ""} onChange={(e) => onChange({ ...stat, icon: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        )}
+        <div className="flex gap-2 items-center">
+          <div className="flex-1">
+            <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Value</label>
+            <NumInput value={stat.value} onChange={(v) => onChange({ ...stat, value: v })} step={0.1} />
+          </div>
+          <div className="w-20">
+            <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Suffix</label>
+            <input placeholder="+, %, ★" value={stat.suffix} onChange={(e) => onChange({ ...stat, suffix: e.target.value })} className="w-full px-2 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs text-center outline-none focus:border-white/50" />
+          </div>
+        </div>
+        <input placeholder="Label (e.g., Pets Groomed)" value={stat.label} onChange={(e) => onChange({ ...stat, label: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+      </div>
+    </div>
+  );
+}
+
+function GalleryImageEditor({
+  image,
+  index,
+  onChange,
+  onDelete,
+}: {
+  image: GalleryImage;
+  index: number;
+  onChange: (img: GalleryImage) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Image {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <ImageDropzone label="Image" value={image.url} onChange={(v) => onChange({ ...image, url: v })} />
+        <input placeholder="Alt text" value={image.alt} onChange={(e) => onChange({ ...image, alt: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+      </div>
+    </div>
+  );
+}
+
+function TeamMemberEditor({
+  member,
+  index,
+  onChange,
+  onDelete,
+}: {
+  member: TeamMember;
+  index: number;
+  onChange: (m: TeamMember) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Member {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <input placeholder="Name" value={member.name} onChange={(e) => onChange({ ...member, name: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Role" value={member.role} onChange={(e) => onChange({ ...member, role: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
+        <textarea placeholder="Bio" value={member.bio} onChange={(e) => onChange({ ...member, bio: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+        <div className="flex gap-2">
+          <input placeholder="Emoji" value={member.emoji} onChange={(e) => onChange({ ...member, emoji: e.target.value })} className="w-20 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Map link" value={member.mapLink} onChange={(e) => onChange({ ...member, mapLink: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
+        <ImageDropzone label="Photo" value={member.image} onChange={(v) => onChange({ ...member, image: v })} />
+      </div>
+    </div>
+  );
+}
+
+function ProcessStepEditor({
+  step,
+  index,
+  onChange,
+  onDelete,
+}: {
+  step: ProcessStep;
+  index: number;
+  onChange: (s: ProcessStep) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Step {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="w-20">
+            <label className="block text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Step #</label>
+            <NumInput value={step.step} onChange={(v) => onChange({ ...step, step: v })} step={1} />
+          </div>
+          <input placeholder="Icon (emoji)" value={step.icon} onChange={(e) => onChange({ ...step, icon: e.target.value })} className="w-24 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Title" value={step.title} onChange={(e) => onChange({ ...step, title: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
+        <textarea placeholder="Description" value={step.description} onChange={(e) => onChange({ ...step, description: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+      </div>
+    </div>
+  );
+}
+
+function FaqItemEditor({
+  item,
+  index,
+  onChange,
+  onDelete,
+}: {
+  item: FaqItem;
+  index: number;
+  onChange: (i: FaqItem) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Question {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <input placeholder="Question" value={item.q} onChange={(e) => onChange({ ...item, q: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        <textarea placeholder="Answer" value={item.a} onChange={(e) => onChange({ ...item, a: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+      </div>
+    </div>
+  );
+}
+
+function BlogPostEditor({
+  post,
+  index,
+  onChange,
+  onDelete,
+}: {
+  post: BlogPost;
+  index: number;
+  onChange: (p: BlogPost) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Post {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <input placeholder="Title" value={post.title} onChange={(e) => onChange({ ...post, title: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        <textarea placeholder="Excerpt" value={post.excerpt} onChange={(e) => onChange({ ...post, excerpt: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+        <div className="flex gap-2">
+          <input placeholder="Date" value={post.date} onChange={(e) => onChange({ ...post, date: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Category" value={post.category} onChange={(e) => onChange({ ...post, category: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
+        <ImageDropzone label="Cover Image" value={post.image} onChange={(v) => onChange({ ...post, image: v })} />
+      </div>
+    </div>
+  );
+}
+
+function StoreHighlightEditor({
+  highlight,
+  index,
+  onChange,
+  onDelete,
+}: {
+  highlight: StoreHighlight;
+  index: number;
+  onChange: (h: StoreHighlight) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Highlight {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="flex gap-2">
+        <input placeholder="Emoji" value={highlight.emoji} onChange={(e) => onChange({ ...highlight, emoji: e.target.value })} className="w-24 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        <input placeholder="Label" value={highlight.label} onChange={(e) => onChange({ ...highlight, label: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+      </div>
+    </div>
   );
 }
 

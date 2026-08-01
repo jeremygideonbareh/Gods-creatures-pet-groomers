@@ -34,6 +34,13 @@ export interface HeroContent {
 export interface WhyChooseUsContent {
   heading: string;
   cards: WhyChooseUsCard[];
+  badge?: string;
+  story?: string;
+  image?: string;
+  ctaTitle?: string;
+  ctaText?: string;
+  ctaLabel?: string;
+  stats?: { icon: string; value: number; suffix: string; label: string }[];
 }
 
 export interface ServicesContent {
@@ -125,6 +132,91 @@ export interface PricingMenuContent {
   weightCategories: PricingWeightCategories;
 }
 
+export interface SocialProofStat {
+  value: number;
+  suffix: string;
+  label: string;
+}
+
+export interface SocialProofContent {
+  stats: SocialProofStat[];
+}
+
+export interface GalleryImage {
+  url: string;
+  alt: string;
+}
+
+export interface GalleryContent {
+  heading: string;
+  subtitle: string;
+  images: GalleryImage[];
+}
+
+export interface TeamMember {
+  name: string;
+  role: string;
+  bio: string;
+  emoji: string;
+  image: string;
+  mapLink: string;
+}
+
+export interface TeamContent {
+  heading: string;
+  subtitle: string;
+  members: TeamMember[];
+}
+
+export interface ProcessStep {
+  step: number;
+  title: string;
+  description: string;
+  icon: string;
+}
+
+export interface ProcessContent {
+  heading: string;
+  subtitle: string;
+  steps: ProcessStep[];
+}
+
+export interface FaqItem {
+  q: string;
+  a: string;
+}
+
+export interface FaqContent {
+  heading: string;
+  subtitle: string;
+  items: FaqItem[];
+}
+
+export interface BlogPost {
+  title: string;
+  excerpt: string;
+  date: string;
+  category: string;
+  image: string;
+}
+
+export interface BlogContent {
+  heading: string;
+  subtitle: string;
+  posts: BlogPost[];
+}
+
+export interface StoreHighlight {
+  emoji: string;
+  label: string;
+}
+
+export interface StoreContent {
+  heading: string;
+  subtitle: string;
+  highlights: StoreHighlight[];
+}
+
 export interface SiteContent {
   hero: HeroContent;
   whyChooseUs: WhyChooseUsContent;
@@ -134,6 +226,13 @@ export interface SiteContent {
   pageBackgrounds: PageBackgroundsContent;
   designTokens: DesignTokensContent;
   pricingMenu: PricingMenuContent;
+  socialProof: SocialProofContent;
+  gallery: GalleryContent;
+  team: TeamContent;
+  process: ProcessContent;
+  faq: FaqContent;
+  blog: BlogContent;
+  store: StoreContent;
 }
 
 export type SectionKey =
@@ -144,7 +243,14 @@ export type SectionKey =
   | "booking"
   | "page_backgrounds"
   | "design_tokens"
-  | "pricing_menu";
+  | "pricing_menu"
+  | "social_proof"
+  | "gallery"
+  | "team"
+  | "process"
+  | "faq"
+  | "blog"
+  | "store";
 
 const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   hero: "hero",
@@ -155,6 +261,13 @@ const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   page_backgrounds: "pageBackgrounds",
   design_tokens: "designTokens",
   pricing_menu: "pricingMenu",
+  social_proof: "socialProof",
+  gallery: "gallery",
+  team: "team",
+  process: "process",
+  faq: "faq",
+  blog: "blog",
+  store: "store",
 };
 
 export { GET_SITE_CONTENT as GET_ALL_SITE_CONTENT };

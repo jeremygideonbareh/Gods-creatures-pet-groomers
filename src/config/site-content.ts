@@ -1,3 +1,13 @@
+import type {
+  SocialProofContent,
+  GalleryContent,
+  TeamContent,
+  ProcessContent,
+  FaqContent,
+  BlogContent,
+  StoreContent,
+} from "@/lib/content-service";
+
 const raw = import.meta.env.VITE_ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
 const adminEmailList = raw.split(",").map((s: string) => s.trim().toLowerCase());
 export const adminEmails = [...new Set([...adminEmailList, "cloudlyconfusing@gmail.com", "vivecablah@gmail.com"])];
@@ -45,7 +55,7 @@ export const pageBackgrounds = {
 } as const;
 
 export const whyChooseUs = {
-  heading: "Why Choose Us",
+  heading: "About Us",
   cards: [
     {
       icon: "🩺",
@@ -71,6 +81,20 @@ export const whyChooseUs = {
       description:
         "Premium shampoos, conditioners & treatments sourced from around the world for that extra touch of indulgence.",
     },
+  ],
+  badge: "OUR GROOMING PHILOSOPHY",
+  story:
+    "Luxury grooming by experienced professionals \u2014 only the finest for your pet.",
+  image:
+    "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=900&auto=format&fit=crop&q=60",
+  ctaTitle: "Ready to pamper your pet?",
+  ctaText: "Book a session and watch their tail wag brighter.",
+  ctaLabel: "Book a Session",
+  stats: [
+    { icon: "PawPrint", value: 500, suffix: "+", label: "Pets Groomed" },
+    { icon: "Calendar", value: 8, suffix: "+", label: "Years Experience" },
+    { icon: "Users", value: 98, suffix: "%", label: "Happy Clients" },
+    { icon: "Star", value: 4.4, suffix: "\u2605", label: "Avg. Rating" },
   ],
 } as const;
 
@@ -279,6 +303,96 @@ export const blogPosts = [
     image: "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=600&auto=format&fit=crop&q=60",
   },
 ] as const;
+
+// ========== CMS-DRIVEN SECTION DEFAULTS ==========
+
+export const socialProof: SocialProofContent = {
+  stats: [
+    { value: 500, suffix: "+", label: "Pets Groomed" },
+    { value: 8, suffix: "+", label: "Years Experience" },
+    { value: 98, suffix: "%", label: "Happy Clients" },
+    { value: 4.4, suffix: "\u2605", label: "Avg. Rating" },
+  ],
+};
+
+export const gallery: GalleryContent = {
+  heading: "Pet Gallery",
+  subtitle:
+    "A glimpse into the love and care we pour into every grooming session.",
+  images: [
+    {
+      url: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=600&auto=format&fit=crop&q=60",
+      alt: "Happy dog after grooming",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=600&auto=format&fit=crop&q=60",
+      alt: "Dog getting haircut",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1517423738875-5ce310acd3da?w=600&auto=format&fit=crop&q=60",
+      alt: "Puppy in bath",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop&q=60",
+      alt: "Dog with bow tie",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1544568100-847a948585b9?w=600&auto=format&fit=crop&q=60",
+      alt: "Happy puppy",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&auto=format&fit=crop&q=60",
+      alt: "Dog smiling",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&auto=format&fit=crop&q=60",
+      alt: "Dog dental care",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=600&auto=format&fit=crop&q=60",
+      alt: "Dog brush",
+    },
+  ],
+};
+
+export const team: TeamContent = {
+  heading: "Meet Our Team",
+  subtitle:
+    "Passionate professionals dedicated to your pet's happiness and well-being.",
+  members: [...teamMembers],
+};
+
+export const process: ProcessContent = {
+  heading: "How It Works",
+  subtitle:
+    "Getting your pet the grooming they deserve is as easy as one-two-three.",
+  steps: [...processSteps],
+};
+
+export const faq: FaqContent = {
+  heading: "Frequently Asked Questions",
+  subtitle:
+    "Everything you need to know before your visit. Still have questions? Give us a call!",
+  items: [...faqItems],
+};
+
+export const blog: BlogContent = {
+  heading: "Tips & Articles",
+  subtitle:
+    "Expert advice and insights to keep your pet happy, healthy, and looking their best.",
+  posts: [...blogPosts],
+};
+
+export const store: StoreContent = {
+  heading: "Pet Store",
+  subtitle:
+    "Coats, shampoos and wellness essentials for your furry friend \u2014 call to order and we'll have it ready for pickup.",
+  highlights: [
+    { emoji: "\U0001F6C1", label: "Coats & Shampoos" },
+    { emoji: "\u2728", label: "Wellness Essentials" },
+    { emoji: "\U0001F3BE", label: "Play & Treats" },
+  ],
+};
 
 /**
  * Opening hours → 2-hour online booking slots (D11).

@@ -16,6 +16,13 @@ import {
   bookingSection,
   pageBackgrounds,
   PRICING_MENU,
+  socialProof,
+  gallery,
+  team,
+  process,
+  faq,
+  blog,
+  store,
 } from "@/config/site-content";
 
 const DEFAULTS: SiteContent = {
@@ -27,6 +34,13 @@ const DEFAULTS: SiteContent = {
   pageBackgrounds: pageBackgrounds as unknown as SiteContent["pageBackgrounds"],
   designTokens: designTokens as unknown as SiteContent["designTokens"],
   pricingMenu: PRICING_MENU as unknown as SiteContent["pricingMenu"],
+  socialProof: socialProof as unknown as SiteContent["socialProof"],
+  gallery: gallery as unknown as SiteContent["gallery"],
+  team: team as unknown as SiteContent["team"],
+  process: process as unknown as SiteContent["process"],
+  faq: faq as unknown as SiteContent["faq"],
+  blog: blog as unknown as SiteContent["blog"],
+  store: store as unknown as SiteContent["store"],
 };
 
 interface SiteContentState {
@@ -98,6 +112,13 @@ const SECTION_KEY_MAP: Record<SectionKey, keyof SiteContent> = {
   page_backgrounds: "pageBackgrounds",
   design_tokens: "designTokens",
   pricing_menu: "pricingMenu",
+  social_proof: "socialProof",
+  gallery: "gallery",
+  team: "team",
+  process: "process",
+  faq: "faq",
+  blog: "blog",
+  store: "store",
 };
 
 export function useSiteContent() {
