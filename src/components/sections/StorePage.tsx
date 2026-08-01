@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { animate, stagger } from "animejs";
 import { animate as motionAnimate, useInView } from "motion/react";
 import { ArrowLeft, Phone, ShoppingBag } from "lucide-react";
-import { designTokens } from "@/config/site-content";
+import { designTokens, RUPEESIGN } from "@/config/site-content";
 import { storeProducts, STORE_PHONE, type StoreCategory } from "@/config/store-products";
 
 const BRAND_PINK = designTokens.brandPink;
@@ -168,7 +168,7 @@ export function StorePage() {
                           </div>
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
-                              <h3 className="text-white font-semibold text-sm">
+                              <h3 className="text-white font-semibold text-sm min-w-0 break-words">
                                 {product.name}
                               </h3>
                               {product.badge && (
@@ -178,7 +178,10 @@ export function StorePage() {
                               )}
                             </div>
                             <div className="mt-3 flex items-center justify-between">
-                              <p className="text-white font-bold text-lg">₹{product.price}</p>
+                              <p className="text-white font-bold text-lg tabular-nums">
+                                {RUPEESIGN}
+                                {product.price.toLocaleString("en-IN")}
+                              </p>
                               <a
                                 href={`tel:${STORE_PHONE}`}
                                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white font-semibold text-xs transition-transform hover:scale-105"
