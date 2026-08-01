@@ -103,6 +103,9 @@
 - Added a video teaser to the home page Store section.
 - Removed "The Boy Who Helps" placeholder from the hardcoded team members default configuration.
 - Updated Content Security Policy (CSP) in `index.html` to permit `frame-src` and `img-src` from YouTube domains.
+- Fixed literal unicode string bug in store highlights emojis (replaced with actual characters).
+- Adjusted Hero Section mobile alignment (added padding to prevent header overlap).
+- Removed the "Social Proof Bar" section entirely from the homepage flow.
 - Generated and pushed comprehensive documentation for the entire project.
 
 ## Migration History
