@@ -2,9 +2,28 @@ import { createHmac, timingSafeEqual, createPublicKey, createVerify } from "cryp
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
+const CASHFREE_API_URL = process.env.CASHFREE_API_URL || "https://sandbox.cashfree.com/pg";
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
+
+// Derive the Cashfree webhook notify_url from the GraphQL URL (handles both
+// `.hasura.` and `.graphql.` subdomain forms → `.functions.`), falling back to
+// the known production URL if derivation fails. Webhooks stay per-order so this
+// must work in sandbox AND live without source edits.
+const NOTIFY_URL_FALLBACK =
+  "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/cashfree-webhook";
+function deriveNotifyUrl(): string {
+  try {
+    const base = NHOST_GRAPHQL_URL!
+      .replace(".hasura.", ".functions.")
+      .replace(".graphql.", ".functions.")
+      .replace(/\/v1\/graphql\/?$/, "/v1");
+    if (base.includes(".functions.")) return `${base}/cashfree-webhook`;
+  } catch {
+    // fall through to fallback
+  }
+  return NOTIFY_URL_FALLBACK;
+}
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -248,8 +267,7 @@ export default async function handler(req: any, res: any) {
         // when notify_url is passed in the Create Order API for that payment
         // (dashboard NOTIFY_URL entry cannot be edited). Without this, a paid
         // booking stays pending_payment forever (failure mode F-B).
-        notify_url:
-          "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/cashfree-webhook",
+        notify_url: deriveNotifyUrl(),
       },
       order_tags: {
         booking_id: bookingId,
@@ -260,7 +278,7 @@ export default async function handler(req: any, res: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-version": "2025-01-01",
+        "x-api-version": "2026-01-01",
         "x-client-id": CASHFREE_APP_ID,
         "x-client-secret": CASHFREE_SECRET_KEY,
       },

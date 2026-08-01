@@ -1,6 +1,6 @@
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_API_URL = "https://sandbox.cashfree.com/pg";
+const CASHFREE_API_URL = process.env.CASHFREE_API_URL || "https://sandbox.cashfree.com/pg";
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
@@ -54,7 +54,7 @@ export default async function handler(req: any, res: any) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-api-version": "2025-01-01",
+        "x-api-version": "2026-01-01",
         "x-client-id": CASHFREE_APP_ID,
         "x-client-secret": CASHFREE_SECRET_KEY,
       },

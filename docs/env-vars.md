@@ -28,6 +28,8 @@ Environment variables are managed in three primary contexts:
 | `VITE_ADMIN_EMAIL` | .env (local), Cloudflare | Frontend | Comma-separated list of admin emails | Yes | `admin@godscreatures.com,cloudlyconfusing@gmail.com` |
 | `CASHFREE_APP_ID` | Nhost Dashboard | Nhost Functions | Cashfree App ID for payment API authentication | Yes (for Cashfree) | `CF12345678ABCD` |
 | `CASHFREE_SECRET_KEY` | Nhost Dashboard | Nhost Functions | Cashfree Secret Key for payment API authentication | Yes (for Cashfree) | `sk_test_xxxxxxxxxxxxxxxxxxxx` |
+| `CASHFREE_API_URL` | Nhost Dashboard | Nhost Functions | Cashfree PG base URL — `https://sandbox.cashfree.com/pg` (default) or `https://api.cashfree.com/pg` for live | Yes (for Cashfree) | `https://sandbox.cashfree.com/pg` |
+| `VITE_CASHFREE_MODE` | .env (local), Cloudflare | Frontend | Cashfree SDK mode — `sandbox` (default) or `production` | Yes (for Cashfree) | `sandbox` |
 
 ## Setup Instructions
 

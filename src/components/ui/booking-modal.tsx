@@ -355,8 +355,8 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
 
       const { payment_session_id, booking_id, cashfree_order_id } = await orderRes.json();
 
-      // Step B: Open Cashfree checkout
-      const cashfree = window.Cashfree({ mode: "sandbox" });
+      // Step B: Open Cashfree checkout (mode from env: sandbox default, production when set)
+      const cashfree = window.Cashfree({ mode: import.meta.env.VITE_CASHFREE_MODE || "sandbox" });
       const result = await cashfree.checkout({
         paymentSessionId: payment_session_id,
         redirectTarget: "_modal",
