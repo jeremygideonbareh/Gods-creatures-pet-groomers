@@ -17,7 +17,6 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
   const hero = content.hero;
   const overlayRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const scrollIndicatorRef = useRef<HTMLDivElement>(null);
   const particlesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,15 +48,6 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
       duration: 700,
       easing: "easeOutExpo",
     }, "-=500");
-
-    if (scrollIndicatorRef.current) {
-      tl.add(scrollIndicatorRef.current, {
-        opacity: [0, 1],
-        translateY: [-20, 0],
-        duration: 600,
-        easing: "easeOutExpo",
-      }, "-=300");
-    }
 
     // Floating paw print particles
     if (particlesRef.current) {
@@ -171,19 +161,6 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
         className="relative z-20 flex flex-col items-center justify-center h-full text-white p-6 md:p-12 lg:p-20"
       >
         <div className="max-w-5xl mx-auto text-center">
-          {/* Small badge */}
-          <div className="hero-line opacity-0 mb-4 md:mb-6">
-            <span className="inline-block px-4 py-1.5 rounded-full text-[10px] md:text-xs uppercase tracking-[0.25em] font-medium"
-              style={{
-                backgroundColor: `${BRAND_PINK}25`,
-                color: BRAND_PINK,
-                border: `1px solid ${BRAND_PINK}40`,
-              }}
-            >
-              ✦ Premium Pet Grooming Since 2018
-            </span>
-          </div>
-
           {/* Main Heading */}
           <h1 className="hero-line opacity-0 font-heading text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-bold leading-[1.05] tracking-tight drop-shadow-2xl">
             {hero.title.split(" ").map((word, i) => (
@@ -198,7 +175,7 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
           </h1>
 
           {/* Decorated divider */}
-          <div className="hero-line opacity-0 flex items-center justify-center gap-3 mt-6 mb-6">
+          <div className="hero-line opacity-0 flex items-center justify-center gap-3 mt-6 mb-10 md:mb-14">
             <div className="w-12 h-[1px]" style={{ backgroundColor: `${BRAND_PINK}60` }} />
             <span className="text-lg">✦</span>
             <div className="w-12 h-[1px]" style={{ backgroundColor: `${BRAND_PINK}60` }} />
@@ -210,7 +187,7 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
           </p>
 
           {/* CTA Buttons */}
-          <div className="hero-cta opacity-0 mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="hero-cta opacity-0 mt-12 md:mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={onBookClick}
               className="group relative px-10 py-4 rounded-full font-semibold text-base md:text-lg uppercase tracking-wider transition-all duration-300 overflow-hidden shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
@@ -234,25 +211,6 @@ export function HeroSection({ onBookClick, heroVideoRef }: HeroSectionProps) {
               <span>Learn More</span>
               <span className="group-hover:translate-y-0.5 transition-transform duration-300">↓</span>
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Scroll-down indicator */}
-      <div
-        ref={scrollIndicatorRef}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 opacity-0 cursor-pointer"
-        onClick={handleLearnMore}
-      >
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-medium">
-            Scroll
-          </span>
-          <div className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center p-1">
-            <div
-              className="w-1.5 h-1.5 rounded-full animate-scroll-indicator"
-              style={{ backgroundColor: BRAND_PINK }}
-            />
           </div>
         </div>
       </div>
