@@ -1014,20 +1014,19 @@ function TeamMemberEditor({
   return (
     <div className="bg-white/5 rounded-xl p-4 border border-white/10">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-white/50 text-xs">Member {index + 1}</span>
+        <span className="text-white/50 text-xs">Recommended Vet {index + 1}</span>
         <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
       </div>
       <div className="space-y-2">
         <div className="flex gap-2">
           <input placeholder="Name" value={member.name} onChange={(e) => onChange({ ...member, name: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
-          <input placeholder="Role" value={member.role} onChange={(e) => onChange({ ...member, role: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Role / Credentials" value={member.role} onChange={(e) => onChange({ ...member, role: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         </div>
-        <textarea placeholder="Bio" value={member.bio} onChange={(e) => onChange({ ...member, bio: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+        <textarea placeholder="Editorial Bio (Use \n\n for paragraphs)" value={member.bio} onChange={(e) => onChange({ ...member, bio: e.target.value })} rows={10} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
         <div className="flex gap-2">
-          <input placeholder="Emoji" value={member.emoji} onChange={(e) => onChange({ ...member, emoji: e.target.value })} className="w-20 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
-          <input placeholder="Map link" value={member.mapLink} onChange={(e) => onChange({ ...member, mapLink: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Emoji Icon" value={member.emoji} onChange={(e) => onChange({ ...member, emoji: e.target.value })} className="w-28 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Google Maps link (optional)" value={member.mapLink} onChange={(e) => onChange({ ...member, mapLink: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
         </div>
-        <ImageDropzone label="Photo" value={member.image} onChange={(v) => onChange({ ...member, image: v })} />
       </div>
     </div>
   );
