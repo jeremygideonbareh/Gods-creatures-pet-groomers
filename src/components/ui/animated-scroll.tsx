@@ -138,7 +138,7 @@ export default function ScrollAdventure() {
 
       {/* Section 2: Why Choose Us */}
       <section id="why-choose-us">
-        <WhyChooseUsSection />
+        <WhyChooseUsSection onBookClick={handleBookClick} />
       </section>
 
       {/* Social Proof Bar */}
@@ -146,7 +146,7 @@ export default function ScrollAdventure() {
 
       {/* Section 3: Services */}
       <section id="services">
-        <ServicesSection />
+        <ServicesSection onBookClick={handleBookClick} />
       </section>
 
       {/* Section 4: Gallery */}
