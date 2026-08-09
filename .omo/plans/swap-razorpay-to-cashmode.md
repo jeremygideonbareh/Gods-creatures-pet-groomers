@@ -36,7 +36,7 @@ Everything else (Nhost Dashboard env vars, GitHub repo secrets, Cashfree account
 
 ## 4. Execution step (single)
 
-- [ ] **1.** `.github/workflows/deploy.yml` — in the Build step `env:` block, replace:
+- [x] **1.** `.github/workflows/deploy.yml` — in the Build step `env:` block, replace:
   ```yaml
   VITE_RAZORPAY_KEY_ID: ${{ secrets.VITE_RAZORPAY_KEY_ID }}
   ```
@@ -75,6 +75,6 @@ Everything else (Nhost Dashboard env vars, GitHub repo secrets, Cashfree account
 
 ## 8. TODO checklist (executor ticks)
 
-- [ ] 1. Edit `deploy.yml` env block (swap Razorpay → CashSI)
-- [ ] 2. Re-read file to confirm valid YAML, no RAZORPAY tokens
-- [ ] 3. Report done (optional: suggest `.env`/`.env.example` cleanup)
+- [x] 1. Edit `deploy.yml` env block (swap Razorpay → CashSI)
+- [x] 2. Re-read file to confirm valid YAML, no RAZORPAY tokens
+- [x] 3. Report done (optional: suggest `.env`/`.env.example` cleanup)
