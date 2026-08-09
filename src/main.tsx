@@ -6,6 +6,8 @@ import { ErrorLink } from "@apollo/client/link/error";
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { ApolloProvider } from "@apollo/client/react";
 import { nhost, NHOST_GRAPHQL_URL, isSessionValid } from "@/lib/nhost";
+import { raiseSessionExpiry } from "@/lib/session-expiry-signal";
+import SessionExpiryGate from "@/components/SessionExpiryGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SessionErrorBoundary } from "@/components/SessionErrorBoundary";
 import { isAdmin } from "@/config/site-content";
@@ -16,15 +18,29 @@ const httpLink = createHttpLink({ uri: NHOST_GRAPHQL_URL });
 
 const authLink = setContext(async (_, { headers }) => {
   const session = nhost.getUserSession();
+  let token = session?.accessToken;
+  let hadExpiredSession = false;
 
-  // Check for expired session — silently clear auth headers if expired
+  // Expired access token is NOT a dead session — refresh it instead of signing out.
   if (session?.accessToken && !isSessionValid()) {
-    console.warn("Session token expired — clearing auth headers");
-    await nhost.auth.signOut({ all: true });
+    hadExpiredSession = true;
+    try {
+      const refreshed = await nhost.refreshSession(0); // 0 = force refresh now
+      token = refreshed?.accessToken ?? session.accessToken;
+    } catch (err) {
+      console.error("[auth] session refresh failed", err);
+      token = undefined;
+    }
+  }
+
+  // Refresh genuinely failed: raise the signal so SessionExpiryGate throws and the
+  // SessionErrorBoundary shows its full-screen "Session Expired" UI. NO signOut,
+  // NO auto-redirect (user-approved behavior).
+  if (hadExpiredSession && !token) {
+    raiseSessionExpiry();
     return { headers: { ...headers } };
   }
 
-  const token = session?.accessToken;
   const email = session?.user?.email ?? null;
   const role = isAdmin(email) ? "admin" : "user";
   return {
@@ -61,6 +77,7 @@ createRoot(rootEl).render(
   <StrictMode>
     <ErrorBoundary>
       <SessionErrorBoundary onSessionExpired={handleSessionExpired}>
+        <SessionExpiryGate />
         <ApolloProvider client={apolloClient}>
           <App />
         </ApolloProvider>

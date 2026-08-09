@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, PawPrint } from "lucide-react";
 import { nhost } from "@/lib/nhost";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, setSignOutIntentional } from "@/context/AuthContext";
 import AuthModal from "@/components/ui/AuthModal";
 import { designTokens } from "@/config/site-content";
 
@@ -15,9 +15,15 @@ export function UserMenu() {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await nhost.auth.signOut({ all: true });
-    setMenuOpen(false);
-    navigate("/");
+    setSignOutIntentional();
+    try {
+      await nhost.auth.signOut({ all: true });
+    } catch (e) {
+      console.warn("[signout] server revoke failed (token likely already invalid); continuing locally", e);
+    } finally {
+      setMenuOpen(false);
+      navigate("/");
+    }
   };
 
   if (!user) {

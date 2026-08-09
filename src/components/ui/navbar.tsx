@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, LogOut, Menu, X, PawPrint } from "lucide-react";
 import { nhost } from "@/lib/nhost";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, setSignOutIntentional } from "@/context/AuthContext";
 import { isAdmin, designTokens } from "@/config/site-content";
 import UserMenu from "@/components/ui/UserMenu";
 
@@ -22,8 +22,14 @@ export function Navbar({ scrolled, activeSection, navItems, onNavClick, onBookCl
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    await nhost.auth.signOut({ all: true });
-    navigate("/");
+    setSignOutIntentional();
+    try {
+      await nhost.auth.signOut({ all: true });
+    } catch (e) {
+      console.warn("[signout] server revoke failed (token likely already invalid); continuing locally", e);
+    } finally {
+      navigate("/");
+    }
   };
 
   return (
