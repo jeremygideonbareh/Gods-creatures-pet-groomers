@@ -50,7 +50,7 @@ export const GET_ADMIN_BOOKINGS = gql`
   query GetAdminBookings {
     bookings(
       where: {
-        status: { _in: ["confirmed", "payment_failed", "cancelled", "pending_verification"] }
+        status: { _in: ["pending_verification", "pending_payment", "confirmed", "payment_failed", "cancelled"] }
       }
       order_by: { created_at: desc }
     ) {
@@ -83,6 +83,29 @@ export const UPDATE_BOOKING_STATUS = gql`
     ) {
       id
       status
+    }
+  }
+`;
+
+export const GET_MY_BOOKINGS = gql`
+  query GetMyBookings {
+    bookings(order_by: { created_at: desc }) {
+      id
+      customer_name
+      service
+      preferred_date
+      preferred_time
+      advance_paid
+      total_price
+      status
+      created_at
+      notes
+      addons
+      transaction_id
+      pet {
+        name
+        breed
+      }
     }
   }
 `;

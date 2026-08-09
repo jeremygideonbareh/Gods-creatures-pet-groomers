@@ -1,41 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { ArrowLeft, Loader2, CheckCircle, Clock, AlertTriangle, FileText, X } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, AlertTriangle, FileText, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens, isAdmin, RUPEESIGN } from "@/config/site-content";
 import ContentEditor from "@/components/sections/ContentEditor";
 import { GET_ADMIN_BOOKINGS, UPDATE_BOOKING_STATUS } from "@/lib/graphql";
+import { statusBadge, canAdminCancel } from "@/lib/booking-status";
 
 const BRAND_PINK = designTokens.brandPink;
-
-const statusBadge: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending_verification: {
-    label: "Pending",
-    color: "bg-yellow-500/20 text-yellow-200",
-    icon: <Clock size={14} />,
-  },
-  confirmed: {
-    label: "Confirmed",
-    color: "bg-green-500/20 text-green-200",
-    icon: <CheckCircle size={14} />,
-  },
-  pending_payment: {
-    label: "Payment Pending",
-    color: "bg-blue-500/20 text-blue-200",
-    icon: <Clock size={14} />,
-  },
-  payment_failed: {
-    label: "Payment Failed",
-    color: "bg-red-500/20 text-red-200",
-    icon: <AlertTriangle size={14} />,
-  },
-  cancelled: {
-    label: "Cancelled",
-    color: "bg-gray-500/20 text-gray-200",
-    icon: <X size={14} />,
-  },
-};
 
 interface Booking {
   id: string;
@@ -61,6 +34,7 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const [adminTab, setAdminTab] = useState<"bookings" | "content">("bookings");
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const { data, loading, error } = useQuery<BookingsData>(GET_ADMIN_BOOKINGS, { skip: adminTab !== "bookings" });
   const [updateStatus] = useMutation(UPDATE_BOOKING_STATUS, {
     refetchQueries: [{ query: GET_ADMIN_BOOKINGS }],
@@ -96,6 +70,17 @@ export function AdminDashboard() {
       console.error("Failed to confirm booking:", err);
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    setCancellingId(id);
+    try {
+      await updateStatus({ variables: { id, status: "cancelled" } });
+    } catch (err) {
+      console.error("Failed to cancel booking:", err);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -202,6 +187,19 @@ export function AdminDashboard() {
                                 <><Loader2 size={14} className="animate-spin" /> Confirming</>
                               ) : (
                                 <><CheckCircle size={14} /> Confirm</>
+                              )}
+                            </button>
+                          )}
+                          {canAdminCancel(booking.status) && (
+                            <button
+                              onClick={() => handleCancel(booking.id)}
+                              disabled={cancellingId === booking.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 text-white font-semibold text-xs transition-transform hover:scale-105 hover:bg-white/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {cancellingId === booking.id ? (
+                                <><Loader2 size={14} className="animate-spin" /> Cancelling</>
+                              ) : (
+                                <><X size={14} /> Cancel</>
                               )}
                             </button>
                           )}

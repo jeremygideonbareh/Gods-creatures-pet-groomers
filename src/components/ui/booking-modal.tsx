@@ -8,24 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { GET_USER_PETS } from "@/lib/graphql";
 import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
 import type { PricingMenuContent } from "@/lib/content-service";
-
-declare global {
-  interface Window {
-    Cashfree: (config: { mode: string }) => {
-      checkout: (options: {
-        paymentSessionId: string;
-        redirectTarget: string;
-      }) => Promise<{
-        error?: boolean;
-        paymentDetails?: {
-          orderId: string;
-          paymentId: string;
-          paymentMessage: string;
-        };
-      }>;
-    };
-  }
-}
+import { loadCashfreeScript, useCashfreeCheckout } from "@/components/payment/CheckoutGate";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -238,24 +221,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   };
 
   const [paymentLoading, setPaymentLoading] = useState(false);
-
-  const loadCashfreeScript = useCallback((): Promise<void> => {
-    if (document.getElementById("cashfree-sdk")) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.id = "cashfree-sdk";
-      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      script.onload = () => {
-        resolve();
-      };
-      script.onerror = () => {
-        setErrorMessage("Failed to load Cashfree payment gateway.");
-        setSubmitStatus("error");
-        reject();
-      };
-      document.body.appendChild(script);
-    });
-  }, []);
+  const { startCheckout } = useCashfreeCheckout();
 
   useEffect(() => {
     if (isOpen && !document.getElementById("cashfree-sdk")) {
@@ -299,15 +265,6 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
       setErrorMessage("Please select a time slot.");
       setSubmitStatus("error");
       return;
-    }
-
-    if (!window.Cashfree) {
-      await loadCashfreeScript().catch(() => {});
-      if (!window.Cashfree) {
-        setErrorMessage("Cashfree payment gateway failed to load. Please refresh and try again.");
-        setSubmitStatus("error");
-        return;
-      }
     }
 
     setPaymentLoading(true);
@@ -355,45 +312,31 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
 
       const { payment_session_id, booking_id, cashfree_order_id } = await orderRes.json();
 
-      // Step B: Open Cashfree checkout (mode from env: sandbox default, production when set)
-      const cashfree = window.Cashfree({ mode: import.meta.env.VITE_CASHFREE_MODE || "sandbox" });
-      const result = await cashfree.checkout({
+      // Step B+C: shared Cashfree checkout + confirm flow (CheckoutGate hook)
+      const result = await startCheckout({
         paymentSessionId: payment_session_id,
-        redirectTarget: "_modal",
+        bookingId: booking_id,
+        orderId: cashfree_order_id,
       });
 
       setPaymentLoading(false);
 
-      if (result.error) {
-        // Payment cancelled or failed — booking stays as "pending_payment"
-        setErrorMessage("Payment was cancelled or failed. Your booking draft has been saved. Please try again.");
-        return;
-      }
-
-      // Step C: Confirm booking server-side via Cashfree API
-      const confirmRes = await fetch(`${NHOST_FUNCTIONS_URL}/confirm-booking`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          booking_id,
-          order_id: cashfree_order_id,
-          payment_id: result.paymentDetails?.paymentId,
-        }),
-      });
-
-      const confirmData = await confirmRes.json();
-
-      if (confirmData.success) {
+      if (result.status === "success") {
         // Receipt email is now sent server-side by confirm-booking — nothing to do here.
         setSubmitStatus("success");
         setTimeout(() => {
           onClose();
         }, 1500);
-      } else {
+      } else if (result.status === "cancelled") {
+        // Payment cancelled or failed — booking stays as "pending_payment"
+        setErrorMessage("Payment was cancelled or failed. Your booking draft has been saved. Please try again.");
+      } else if (result.status === "pending") {
         setErrorMessage(
           "Payment was received but booking confirmation is pending. " +
           "Your booking will be confirmed shortly. Please contact us if this persists."
         );
+      } else {
+        setErrorMessage(result.message);
       }
     } catch (err) {
       setPaymentLoading(false);

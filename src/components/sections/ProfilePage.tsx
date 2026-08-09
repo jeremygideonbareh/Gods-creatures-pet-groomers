@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Plus, PawPrint } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { designTokens } from "@/config/site-content";
 import { GET_USER_PETS, INSERT_PET } from "@/lib/graphql";
+import MyBookings from "@/components/MyBookings";
 
 const BRAND_PINK = designTokens.brandPink;
 
@@ -193,6 +194,8 @@ export function ProfilePage() {
             </div>
           )}
         </div>
+
+        <MyBookings />
       </div>
     </div>
   );
