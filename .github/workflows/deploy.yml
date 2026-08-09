@@ -29,4 +29,4 @@ jobs:
           VITE_NHOST_SUBDOMAIN: ${{ secrets.VITE_NHOST_SUBDOMAIN }}
           VITE_NHOST_REGION: ${{ secrets.VITE_NHOST_REGION }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
-          VITE_RAZORPAY_KEY_ID: ${{ secrets.VITE_RAZORPAY_KEY_ID }}
+          VITE_CASHFREE_MODE: ${{ secrets.VITE_CASHFREE_MODE }}
