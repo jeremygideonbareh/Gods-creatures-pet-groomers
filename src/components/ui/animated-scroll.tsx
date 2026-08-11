@@ -10,7 +10,7 @@ import WhyChooseUsSection from "@/components/sections/WhyChooseUsSection";
 import ServicesSection from "@/components/sections/ServicesSection";
 import { GallerySection } from "@/components/sections/GallerySection";
 import ReviewsSection from "@/components/sections/ReviewsSection";
-import { AboutSection } from "@/components/sections/AboutSection";
+import { TeamSection } from "@/components/sections/TeamSection";
 import { ProcessSection } from "@/components/sections/ProcessSection";
 import { FAQSection } from "@/components/sections/FAQSection";
 import { BlogSection } from "@/components/sections/BlogSection";
@@ -31,11 +31,11 @@ const COUNT_MY_PETS = gql`
 
 const NAV_ITEMS = [
   { id: "hero", label: "Home" },
-  { id: "why-choose-us", label: "Why Us" },
+  { id: "why-choose-us", label: "About" },
   { id: "services", label: "Services" },
   { id: "gallery", label: "Gallery" },
   { id: "reviews", label: "Reviews" },
-  { id: "team", label: "About" },
+  { id: "team", label: "Team" },
   { id: "store", label: "Store" },
   { id: "booking", label: "Book" },
 ];
@@ -157,7 +157,7 @@ export default function ScrollAdventure() {
       </section>
 
       {/* NEW: Team Section */}
-      <AboutSection />
+      <TeamSection />
 
       {/* NEW: Process Section */}
       <ProcessSection />

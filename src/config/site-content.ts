@@ -1,7 +1,7 @@
 import type {
   SocialProofContent,
   GalleryContent,
-  AboutContent,
+  TeamContent,
   ProcessContent,
   FaqContent,
   BlogContent,
@@ -206,6 +206,25 @@ export const bookingSection = {
 
 // ========== NEW CONTENT SECTIONS ==========
 
+export const teamMembers = [
+  {
+    name: "Dr. Kakoty",
+    role: "Senior Veterinary Partner · Animal Concern, Motinagar",
+    image: "",
+    bio: "As the senior-most private veterinarian in Shillong, Dr. Kakoty brings decades of unmatched intuition and traditional best practices to pet care. He is renowned for his extraordinary ability to diagnose underlying issues on a whim, relying on deep experience and observational symptoms before resorting to invasive tests. His foundational knowledge ensures that every grooming session under his guidance is safe, preventative, and rooted in true animal welfare.\n\nWhether it's spotting a hidden skin condition or advising on breed-specific hygiene, Dr. Kakoty's expertise forms the backbone of our wellness-first approach.",
+    emoji: "🩺",
+    mapLink: "https://www.google.com/maps/search/Animal+Concern+Motinagar+Shillong",
+  },
+  {
+    name: "Dr. Warjri",
+    role: "Veterinary Specialist & Consultant",
+    image: "",
+    bio: "Dr. Warjri is our trusted specialist, bridging the gap between modern veterinary science and practical, everyday pet care. Recommended for his meticulous attention to detail and compassionate handling, he ensures that our grooming standards meet strict medical guidelines.\n\nHe works closely with our team to recommend best practices for sensitive pets, hypoallergenic treatments, and anxiety reduction. His forward-thinking approach means your pet isn't just getting a haircut—they are receiving a comprehensive wellness check from a highly recommended expert.",
+    emoji: "🔬",
+    mapLink: "",
+  },
+] as const;
+
 export const processSteps = [
   {
     step: 1,
@@ -329,13 +348,11 @@ export const gallery: GalleryContent = {
   ],
 };
 
-export const about: AboutContent = {
-  heading: "Meet the Owner",
-  subtitle: "",
-  ownerName: "",
-  ownerRole: "",
-  ownerBio: "",
-  ownerImage: "",
+export const team: TeamContent = {
+  heading: "Our Recommended Vets",
+  subtitle:
+    "The trusted medical experts who guide our wellness-first grooming practices.",
+  members: [...teamMembers],
 };
 
 export const process: ProcessContent = {

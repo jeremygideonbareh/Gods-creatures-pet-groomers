@@ -10,6 +10,7 @@ import type {
   PricingMenuContent,
   SocialProofStat,
   GalleryImage,
+  TeamMember,
   ProcessStep,
   FaqItem,
   BlogPost,
@@ -42,7 +43,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "services", label: "Services" },
   { key: "gallery", label: "Gallery" },
   { key: "reviews", label: "Reviews" },
-  { key: "team", label: "About" },
+  { key: "team", label: "Team" },
   { key: "process", label: "Process" },
   { key: "faq", label: "FAQ" },
   { key: "blog", label: "Blog" },
@@ -97,7 +98,7 @@ export function ContentEditor() {
   const [pricingForm, setPricingForm] = useState(() => JSON.parse(JSON.stringify(content.pricingMenu)) as PricingMenuContent);
   const [socialProofForm, setSocialProofForm] = useState({ stats: [...content.socialProof.stats] });
   const [galleryForm, setGalleryForm] = useState({ heading: content.gallery.heading, subtitle: content.gallery.subtitle, images: [...content.gallery.images] });
-  const [aboutForm, setAboutForm] = useState({ heading: content.about.heading, subtitle: content.about.subtitle, ownerName: content.about.ownerName, ownerRole: content.about.ownerRole, ownerBio: content.about.ownerBio, ownerImage: content.about.ownerImage });
+  const [teamForm, setTeamForm] = useState({ heading: content.team.heading, subtitle: content.team.subtitle, members: [...content.team.members] });
   const [processForm, setProcessForm] = useState({ heading: content.process.heading, subtitle: content.process.subtitle, steps: [...content.process.steps] });
   const [faqForm, setFaqForm] = useState({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
   const [blogForm, setBlogForm] = useState({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
@@ -129,7 +130,7 @@ export function ContentEditor() {
     setPricingForm(JSON.parse(JSON.stringify(content.pricingMenu)));
     setSocialProofForm({ stats: [...content.socialProof.stats] });
     setGalleryForm({ heading: content.gallery.heading, subtitle: content.gallery.subtitle, images: [...content.gallery.images] });
-    setAboutForm({ heading: content.about.heading, subtitle: content.about.subtitle, ownerName: content.about.ownerName, ownerRole: content.about.ownerRole, ownerBio: content.about.ownerBio, ownerImage: content.about.ownerImage });
+    setTeamForm({ heading: content.team.heading, subtitle: content.team.subtitle, members: [...content.team.members] });
     setProcessForm({ heading: content.process.heading, subtitle: content.process.subtitle, steps: [...content.process.steps] });
     setFaqForm({ heading: content.faq.heading, subtitle: content.faq.subtitle, items: [...content.faq.items] });
     setBlogForm({ heading: content.blog.heading, subtitle: content.blog.subtitle, posts: [...content.blog.posts] });
@@ -156,7 +157,7 @@ export function ContentEditor() {
         pricing: pricingForm as unknown as Record<string, unknown>,
         social_proof: socialProofForm,
         gallery: galleryForm,
-        team: aboutForm,
+        team: teamForm,
         process: processForm,
         faq: faqForm,
         blog: blogForm,
@@ -171,7 +172,7 @@ export function ContentEditor() {
     } finally {
       setSaving(false);
     }
-  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, socialProofForm, galleryForm, aboutForm, processForm, faqForm, blogForm, storeForm, storeCatalogForm, updateSection]);
+  }, [activeTab, heroForm, whyForm, servicesForm, reviewsForm, bookingForm, bgForm, pricingForm, socialProofForm, galleryForm, teamForm, processForm, faqForm, blogForm, storeForm, storeCatalogForm, updateSection]);
 
   if (loading) {
     return (
@@ -562,13 +563,31 @@ export function ContentEditor() {
 
         {tab === "team" && (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-            <Field label="Heading" value={aboutForm.heading} onChange={(v) => setAboutForm({ ...aboutForm, heading: v })} />
-            <Field label="Subtitle" value={aboutForm.subtitle} onChange={(v) => setAboutForm({ ...aboutForm, subtitle: v })} />
-            <Field label="Owner Name" value={aboutForm.ownerName} onChange={(v) => setAboutForm({ ...aboutForm, ownerName: v })} />
-            <Field label="Owner Role" value={aboutForm.ownerRole} onChange={(v) => setAboutForm({ ...aboutForm, ownerRole: v })} />
-            <Field label="About Me" value={aboutForm.ownerBio} onChange={(v) => setAboutForm({ ...aboutForm, ownerBio: v })} textarea />
-            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Owner Photo</p>
-            <ImageDropzone label="Owner Photo" value={aboutForm.ownerImage} onChange={(v) => setAboutForm({ ...aboutForm, ownerImage: v })} />
+            <Field label="Heading" value={teamForm.heading} onChange={(v) => setTeamForm({ ...teamForm, heading: v })} />
+            <Field label="Subtitle" value={teamForm.subtitle} onChange={(v) => setTeamForm({ ...teamForm, subtitle: v })} />
+            <p className="text-white/60 text-xs uppercase tracking-wider font-semibold pt-2">Members</p>
+            {teamForm.members.map((member, i) => (
+              <TeamMemberEditor
+                key={member.name || i}
+                member={member}
+                index={i}
+                onChange={(updated) => {
+                  const members = [...teamForm.members];
+                  members[i] = updated;
+                  setTeamForm({ ...teamForm, members });
+                }}
+                onDelete={() => {
+                  const members = teamForm.members.filter((_, idx) => idx !== i);
+                  setTeamForm({ ...teamForm, members });
+                }}
+              />
+            ))}
+            <button
+              onClick={() => setTeamForm({ ...teamForm, members: [...teamForm.members, { name: "", role: "", bio: "", emoji: "", image: "", mapLink: "" }] })}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+            >
+              <Plus size={16} /> Add Member
+            </button>
           </div>
         )}
 
@@ -976,6 +995,38 @@ function GalleryImageEditor({
       <div className="space-y-2">
         <ImageDropzone label="Image" value={image.url} onChange={(v) => onChange({ ...image, url: v })} />
         <input placeholder="Alt text" value={image.alt} onChange={(e) => onChange({ ...image, alt: e.target.value })} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+      </div>
+    </div>
+  );
+}
+
+function TeamMemberEditor({
+  member,
+  index,
+  onChange,
+  onDelete,
+}: {
+  member: TeamMember;
+  index: number;
+  onChange: (m: TeamMember) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-white/50 text-xs">Recommended Vet {index + 1}</span>
+        <button onClick={onDelete} className="text-red-300 hover:text-red-200"><Trash2 size={14} /></button>
+      </div>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <input placeholder="Name" value={member.name} onChange={(e) => onChange({ ...member, name: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Role / Credentials" value={member.role} onChange={(e) => onChange({ ...member, role: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
+        <textarea placeholder="Editorial Bio (Use \n\n for paragraphs)" value={member.bio} onChange={(e) => onChange({ ...member, bio: e.target.value })} rows={10} className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50 resize-none" />
+        <div className="flex gap-2">
+          <input placeholder="Emoji Icon" value={member.emoji} onChange={(e) => onChange({ ...member, emoji: e.target.value })} className="w-28 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+          <input placeholder="Google Maps link (optional)" value={member.mapLink} onChange={(e) => onChange({ ...member, mapLink: e.target.value })} className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-white/50" />
+        </div>
       </div>
     </div>
   );

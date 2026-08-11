@@ -153,13 +153,19 @@ export interface GalleryContent {
   images: GalleryImage[];
 }
 
-export interface AboutContent {
+export interface TeamMember {
+  name: string;
+  role: string;
+  bio: string;
+  emoji: string;
+  image: string;
+  mapLink: string;
+}
+
+export interface TeamContent {
   heading: string;
   subtitle: string;
-  ownerName: string;
-  ownerRole: string;
-  ownerBio: string;
-  ownerImage: string;
+  members: TeamMember[];
 }
 
 export interface ProcessStep {
@@ -245,7 +251,7 @@ export interface SiteContent {
   pricingMenu: PricingMenuContent;
   socialProof: SocialProofContent;
   gallery: GalleryContent;
-  about: AboutContent;
+  team: TeamContent;
   process: ProcessContent;
   faq: FaqContent;
   blog: BlogContent;
@@ -282,7 +288,7 @@ const SECTION_MAP: Record<SectionKey, keyof SiteContent> = {
   pricing_menu: "pricingMenu",
   social_proof: "socialProof",
   gallery: "gallery",
-  team: "about",
+  team: "team",
   process: "process",
   faq: "faq",
   blog: "blog",
