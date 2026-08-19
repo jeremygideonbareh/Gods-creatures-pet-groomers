@@ -71,6 +71,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [manualPayment, setManualPayment] = useState(false);
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
@@ -136,6 +137,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       setStep("info");
       setSubmitStatus("idle");
       setErrorMessage("");
+      setManualPayment(false);
       setSelectedPackageId(null);
       setSelectedAddOns([]);
       setSelectedPetId("");
@@ -310,7 +312,19 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
         throw new Error(errBody.error || "Failed to create booking");
       }
 
-      const { payment_session_id, booking_id, cashfree_order_id } = await orderRes.json();
+      const { payment_session_id, booking_id, cashfree_order_id, payment_mode } = await orderRes.json();
+
+      // Manual payment mode: skip the Cashfree checkout — the booking is already
+      // created as pending_verification and the customer sends payment proof on
+      // WhatsApp. Show the success panel with payment instructions instead.
+      if (payment_mode === "manual") {
+        setManualPayment(true);
+        setPaymentLoading(false);
+        setSubmitStatus("success");
+        // Do NOT auto-close — the customer needs to read the payment instructions
+        // and tap the WhatsApp button to send proof of payment.
+        return;
+      }
 
       // Step B+C: shared Cashfree checkout + confirm flow (CheckoutGate hook)
       const result = await startCheckout({
@@ -398,6 +412,23 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
                   <p className="text-white/80">
                     {booking.successMessage}
                   </p>
+                  {manualPayment && (
+                    <>
+                      <div className="bg-white/20 rounded-xl p-4 mt-4 text-left">
+                        <p className="text-white font-semibold text-sm">{booking.advancePaymentTitle}</p>
+                        <p className="text-white/80 text-sm mt-1">{booking.advancePaymentDetail}</p>
+                      </div>
+                      <p className="text-white/80 text-sm mt-3">{booking.whatsappConfirmMessage}</p>
+                      <a
+                        href={`https://wa.me/${booking.whatsappNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-full bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors"
+                      >
+                        Send Proof on WhatsApp
+                      </a>
+                    </>
+                  )}
                 </motion.div>
               ) : step === "info" ? (
                 <motion.div
