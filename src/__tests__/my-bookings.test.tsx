@@ -15,6 +15,17 @@ vi.mock("@/context/AuthContext", () => ({
   }),
 }));
 
+vi.mock("@/context/SiteContentContext", () => ({
+  useSiteContent: () => ({
+    content: {
+      booking: {
+        whatsappNumber: "910000000000",
+        whatsappConfirmMessage: "Please send your payment screenshot",
+      },
+    },
+  }),
+}));
+
 vi.mock("@apollo/client/react", () => ({
   useQuery: () => ({
     data: { bookings: mockState.bookings },
@@ -84,5 +95,14 @@ describe("MyBookings", () => {
     mockState.bookings = [];
     render(<MyBookings />);
     expect(screen.getByText(/No bookings yet/)).toBeTruthy();
+  });
+
+  it("renders the WhatsApp payment-proof link only on pending_verification bookings", () => {
+    render(<MyBookings />);
+    const links = screen.getAllByRole("link", { name: /Send payment proof on WhatsApp/ });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "https://wa.me/910000000000");
+    expect(links[0]).toHaveAttribute("target", "_blank");
+    expect(links[0]).toHaveAttribute("rel", "noopener noreferrer");
   });
 });

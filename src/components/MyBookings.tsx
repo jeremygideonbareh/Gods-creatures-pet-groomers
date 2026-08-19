@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { Loader2, RefreshCw, XCircle, CalendarDays } from "lucide-react";
+import { Loader2, RefreshCw, XCircle, CalendarDays, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { RUPEESIGN } from "@/config/site-content";
 import { GET_MY_BOOKINGS, UPDATE_BOOKING_STATUS } from "@/lib/graphql";
 import { BookingStatusBadge, canRetry, canUserCancel } from "@/lib/booking-status";
 import { useCashfreeCheckout } from "@/components/payment/CheckoutGate";
 import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 interface MyBooking {
   id: string;
@@ -37,6 +38,8 @@ export function MyBookings() {
     refetchQueries: [{ query: GET_MY_BOOKINGS }],
   });
   const { startCheckout } = useCashfreeCheckout();
+  const { content } = useSiteContent();
+  const siteBooking = content.booking;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
@@ -155,6 +158,16 @@ export function MyBookings() {
                       {RUPEESIGN}{booking.advance_paid?.toString() ?? "500"} booking fee • Total{" "}
                       {RUPEESIGN}{(booking.total_price ?? 0).toLocaleString("en-IN")}
                     </p>
+                    {booking.status === "pending_verification" && (
+                      <a
+                        href={`https://wa.me/${siteBooking.whatsappNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mt-2 text-green-300 hover:text-green-200 text-xs font-medium transition-colors"
+                      >
+                        <MessageCircle size={12} /> Send payment proof on WhatsApp
+                      </a>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     {canRetry(booking.status) && (
