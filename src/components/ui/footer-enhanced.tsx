@@ -54,11 +54,13 @@ export function EnhancedFooter() {
               {[
                 { icon: MessageCircle, href: "#", label: "Instagram" },
                 { icon: MessageCircle, href: "#", label: "Facebook" },
-                { icon: MessageCircle, href: "#", label: "WhatsApp" },
+                { icon: MessageCircle, href: `https://wa.me/${booking.whatsappNumber}`, label: "WhatsApp" },
               ].map((social) => (
                 <a
                   key={social.label}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
                   style={{ backgroundColor: `${BRAND_PINK}20` }}
                   aria-label={social.label}
