@@ -21,6 +21,7 @@ vi.mock("@/context/SiteContentContext", () => ({
       booking: {
         whatsappNumber: "910000000000",
         whatsappConfirmMessage: "Please send your payment screenshot",
+        upiId: "9089196235@axisbank",
       },
     },
   }),

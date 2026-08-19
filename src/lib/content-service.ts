@@ -76,6 +76,7 @@ export interface BookingContent {
   formSubtitle: string;
   advancePaymentTitle: string;
   advancePaymentDetail: string;
+  upiId: string;
   upiTooltip: string;
   upiPlaceholder: string;
   submitLabel: string;

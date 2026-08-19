@@ -193,6 +193,7 @@ export const bookingSection = {
   advancePaymentTitle: `Advance Payment (${RUPEESIGN}500)`,
   advancePaymentDetail:
     `A ${RUPEESIGN}500 booking fee is required (adjusted in your final bill). GPay to: 9089196235@axisbank`,
+  upiId: "9089196235@axisbank",
   upiTooltip:
     "GPay UPI: 9089196235@axisbank",
   upiPlaceholder: "GPay UPI Reference No. / Transaction ID *",

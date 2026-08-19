@@ -380,6 +380,7 @@ export function ContentEditor() {
             <Field label="Form Subtitle" value={bookingForm.formSubtitle} onChange={(v) => setBookingForm({ ...bookingForm, formSubtitle: v })} />
             <Field label="Advance Payment Title" value={bookingForm.advancePaymentTitle} onChange={(v) => setBookingForm({ ...bookingForm, advancePaymentTitle: v })} />
             <Field label="Advance Payment Detail" value={bookingForm.advancePaymentDetail} onChange={(v) => setBookingForm({ ...bookingForm, advancePaymentDetail: v })} />
+            <Field label="UPI ID (e.g. 9089196235@axisbank)" value={bookingForm.upiId} onChange={(v) => setBookingForm({ ...bookingForm, upiId: v })} />
             <Field label="UPI Tooltip" value={bookingForm.upiTooltip} onChange={(v) => setBookingForm({ ...bookingForm, upiTooltip: v })} />
             <Field label="UPI Placeholder" value={bookingForm.upiPlaceholder} onChange={(v) => setBookingForm({ ...bookingForm, upiPlaceholder: v })} />
             <Field label="Submit Label" value={bookingForm.submitLabel} onChange={(v) => setBookingForm({ ...bookingForm, submitLabel: v })} />

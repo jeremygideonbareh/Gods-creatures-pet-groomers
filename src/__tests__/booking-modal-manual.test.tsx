@@ -21,6 +21,7 @@ const { bookingContent, pricingMenu, startCheckoutMock } = vi.hoisted(() => ({
     advancePaymentDetail: "Pay 500 via UPI to confirm your slot",
     whatsappConfirmMessage: "Send your payment screenshot on WhatsApp",
     whatsappNumber: "918798897732",
+    upiId: "9089196235@axisbank",
   },
   pricingMenu: {
     basicServices: [
