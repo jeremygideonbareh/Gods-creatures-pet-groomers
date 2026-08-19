@@ -9,6 +9,7 @@ import { GET_USER_PETS } from "@/lib/graphql";
 import { nhost, NHOST_FUNCTIONS_URL } from "@/lib/nhost";
 import type { PricingMenuContent } from "@/lib/content-service";
 import { loadCashfreeScript, useCashfreeCheckout } from "@/components/payment/CheckoutGate";
+import { UpiQrCode } from "./upi-qr-code";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -417,6 +418,9 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
                       <div className="bg-white/20 rounded-xl p-4 mt-4 text-left">
                         <p className="text-white font-semibold text-sm">{booking.advancePaymentTitle}</p>
                         <p className="text-white/80 text-sm mt-1">{booking.advancePaymentDetail}</p>
+                        <div className="mt-3 flex justify-center">
+                          <UpiQrCode upiId={booking.upiId} amount={500} payeeName="Gods Creatures" />
+                        </div>
                       </div>
                       <p className="text-white/80 text-sm mt-3">{booking.whatsappConfirmMessage}</p>
                       <a
@@ -837,7 +841,7 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
                           <span>{paymentLoading ? "Opening Payment..." : booking.submittingLabel}</span>
                         </>
                       ) : (
-                        <span>Book</span>
+                        <span>Book an Appointment</span>
                       )}
                     </button>
                   </form>

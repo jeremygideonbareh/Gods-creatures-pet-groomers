@@ -3,6 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import BookingModal from "@/components/ui/booking-modal";
 
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,mock-qr") },
+}));
+
 const { bookingContent, pricingMenu, startCheckoutMock } = vi.hoisted(() => ({
   bookingContent: {
     modalTitle: "Book a Session",
@@ -108,7 +112,7 @@ describe("BookingModal manual payment mode", () => {
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "09:00" }));
-    fireEvent.click(screen.getByRole("button", { name: "Book" }));
+    fireEvent.click(screen.getByRole("button", { name: "Book an Appointment" }));
   }
 
   it("shows WhatsApp payment instructions instead of launching Cashfree when payment_mode is manual", async () => {
@@ -122,6 +126,11 @@ describe("BookingModal manual payment mode", () => {
     expect(screen.getByText(bookingContent.advancePaymentTitle)).toBeTruthy();
     expect(screen.getByText(bookingContent.advancePaymentDetail)).toBeTruthy();
     expect(screen.getByText(bookingContent.whatsappConfirmMessage)).toBeTruthy();
+
+    // QR code is shown in the success panel
+    await waitFor(() => {
+      expect(screen.getByAltText("Scan to pay via UPI")).toBeTruthy();
+    });
 
     const waLink = screen.getByRole("link", { name: "Send Proof on WhatsApp" });
     expect(waLink).toHaveAttribute("href", `https://wa.me/${bookingContent.whatsappNumber}`);
