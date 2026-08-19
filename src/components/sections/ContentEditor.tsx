@@ -387,6 +387,8 @@ export function ContentEditor() {
             <Field label="Success Emoji" value={bookingForm.successEmoji} onChange={(v) => setBookingForm({ ...bookingForm, successEmoji: v })} />
             <Field label="Success Title" value={bookingForm.successTitle} onChange={(v) => setBookingForm({ ...bookingForm, successTitle: v })} />
             <Field label="Success Message" value={bookingForm.successMessage} onChange={(v) => setBookingForm({ ...bookingForm, successMessage: v })} textarea />
+            <Field label="WhatsApp Number (with country code, e.g. 918798897732)" value={bookingForm.whatsappNumber} onChange={(v) => setBookingForm({ ...bookingForm, whatsappNumber: v })} />
+            <Field label="WhatsApp Confirm Message" value={bookingForm.whatsappConfirmMessage} onChange={(v) => setBookingForm({ ...bookingForm, whatsappConfirmMessage: v })} textarea />
             <div className="grid grid-cols-2 gap-3">
               <Field label="CTA Icon (emoji)" value={bookingForm.ctaIcon} onChange={(v) => setBookingForm({ ...bookingForm, ctaIcon: v })} />
               <Field label="Location Icon" value={bookingForm.locationIcon} onChange={(v) => setBookingForm({ ...bookingForm, locationIcon: v })} />
