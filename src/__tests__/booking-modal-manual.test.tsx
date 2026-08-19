@@ -107,7 +107,7 @@ describe("BookingModal manual payment mode", () => {
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "09:00" }));
-    fireEvent.click(screen.getByRole("button", { name: /Pay .*500.*Cashfree/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Book" }));
   }
 
   it("shows WhatsApp payment instructions instead of launching Cashfree when payment_mode is manual", async () => {

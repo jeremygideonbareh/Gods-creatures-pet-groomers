@@ -837,7 +837,7 @@ if (!phone || !/^\+?\d{7,15}$/.test(phone.replace(/[\s-]/g, ""))) {
                           <span>{paymentLoading ? "Opening Payment..." : booking.submittingLabel}</span>
                         </>
                       ) : (
-                        <>💳 Pay {RUPEESIGN}500 via Cashfree</>
+                        <span>Book</span>
                       )}
                     </button>
                   </form>
