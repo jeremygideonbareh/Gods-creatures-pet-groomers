@@ -202,6 +202,9 @@ export const bookingSection = {
   successTitle: "Woohoo!",
   successMessage:
     "Your request has been sent. We'll get back to you with a confirmed slot!",
+  whatsappNumber: "918798897732",
+  whatsappConfirmMessage:
+    "Send the payment screenshot to our WhatsApp to confirm your slot.",
 } as const;
 
 // ========== NEW CONTENT SECTIONS ==========

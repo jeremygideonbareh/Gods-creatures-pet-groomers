@@ -83,6 +83,8 @@ export interface BookingContent {
   successEmoji: string;
   successTitle: string;
   successMessage: string;
+  whatsappNumber: string;
+  whatsappConfirmMessage: string;
 }
 
 export interface PageBackgroundsContent {
