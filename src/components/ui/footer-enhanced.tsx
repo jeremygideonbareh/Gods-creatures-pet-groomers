@@ -49,11 +49,11 @@ export function EnhancedFooter() {
             <p className="text-white/50 text-sm leading-relaxed mb-4">
               Luxury pet grooming salon in Malki, Shillong — where every tail wags brighter.
             </p>
-            {/* Social links */}
+            {/* Social links — only channels we actually have. Instagram and
+                Facebook were placeholders pointing at "#", so they are omitted
+                until real profile URLs exist. */}
             <div className="flex items-center gap-3">
               {[
-                { icon: MessageCircle, href: "#", label: "Instagram" },
-                { icon: MessageCircle, href: "#", label: "Facebook" },
                 { icon: MessageCircle, href: `https://wa.me/${booking.whatsappNumber}`, label: "WhatsApp" },
               ].map((social) => (
                 <a
@@ -77,13 +77,23 @@ export function EnhancedFooter() {
               Quick Links
             </h4>
             <ul className="space-y-3">
-              {["Services", "Gallery", "Testimonials", "Book Now", "Contact"].map((link) => (
-                <li key={link}>
+              {/* Hrefs are declared explicitly rather than derived from the
+                  label: slugifying gave #testimonials, #book-now and #contact,
+                  none of which are real section ids (they are #reviews and
+                  #booking), so three of the five links scrolled nowhere. */}
+              {[
+                { label: "Services", href: "#services" },
+                { label: "Gallery", href: "#gallery" },
+                { label: "Testimonials", href: "#reviews" },
+                { label: "Book Now", href: "#booking" },
+                { label: "Contact", href: "#booking" },
+              ].map((link) => (
+                <li key={link.label}>
                   <a
-                    href={`#${link.toLowerCase().replace(/\s+/g, "-")}`}
+                    href={link.href}
                     className="text-white/50 text-sm hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
                   >
-                    {link}
+                    {link.label}
                   </a>
                 </li>
               ))}

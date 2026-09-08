@@ -6,23 +6,38 @@ const CASHFREE_API_URL = process.env.CASHFREE_API_URL || "https://sandbox.cashfr
 const NHOST_GRAPHQL_URL = process.env.NHOST_GRAPHQL_URL;
 const NHOST_ADMIN_SECRET = process.env.NHOST_ADMIN_SECRET;
 
+// Payment mode gate: "manual" (default) skips Cashfree entirely — the booking is
+// created as pending_verification and the admin confirms manually after seeing
+// the customer's WhatsApp payment proof. "cashfree" restores the original
+// gateway flow. Flip this env var in Nhost Dashboard to switch modes — no code
+// changes needed.
+const PAYMENT_MODE = (process.env.PAYMENT_MODE || "manual") as "manual" | "cashfree";
+
 // Derive the Cashfree webhook notify_url from the GraphQL URL (handles both
 // `.hasura.` and `.graphql.` subdomain forms → `.functions.`), falling back to
 // the known production URL if derivation fails. Webhooks stay per-order so this
 // must work in sandbox AND live without source edits.
-const NOTIFY_URL_FALLBACK =
-  "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/cashfree-webhook";
-function deriveNotifyUrl(): string {
+const FUNCTIONS_BASE_FALLBACK =
+  "https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1";
+const NOTIFY_URL_FALLBACK = `${FUNCTIONS_BASE_FALLBACK}/cashfree-webhook`;
+
+// Shared by the webhook URL and the manual-mode booking notification.
+function deriveFunctionsBase(): string {
   try {
     const base = NHOST_GRAPHQL_URL!
       .replace(".hasura.", ".functions.")
       .replace(".graphql.", ".functions.")
       .replace(/\/v1\/graphql\/?$/, "/v1");
-    if (base.includes(".functions.")) return `${base}/cashfree-webhook`;
+    if (base.includes(".functions.")) return base;
   } catch {
     // fall through to fallback
   }
-  return NOTIFY_URL_FALLBACK;
+  return FUNCTIONS_BASE_FALLBACK;
+}
+
+function deriveNotifyUrl(): string {
+  const base = deriveFunctionsBase();
+  return base === FUNCTIONS_BASE_FALLBACK ? NOTIFY_URL_FALLBACK : `${base}/cashfree-webhook`;
 }
 
 const CORS_HEADERS = {
@@ -125,8 +140,8 @@ export default async function handler(req: any, res: any) {
     return res.status(405).set(CORS_HEADERS).json({ error: "Method not allowed" });
   }
 
-  // Check required env vars
-  if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+  // Check required env vars (Cashfree creds only required in cashfree mode)
+  if (PAYMENT_MODE === "cashfree" && (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY)) {
     console.error("CASHFREE_APP_ID or CASHFREE_SECRET_KEY is not set");
     return res.status(500).set(CORS_HEADERS).json({ error: "Cashfree not configured" });
   }
@@ -192,6 +207,10 @@ export default async function handler(req: any, res: any) {
       });
     }
 
+    // Hoisted so the manual-mode notification below can reference the same id
+    // that was written to the row.
+    const transactionId = `${PAYMENT_MODE === "manual" ? "manual" : "pending"}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
     // Step 2: Insert booking via GraphQL admin secret
     const insertMutation = {
       query: `
@@ -215,8 +234,8 @@ export default async function handler(req: any, res: any) {
           advance_paid: 500,
           // Unique placeholder: live DB requires transaction_id <> '' (check_valid_transaction_id)
           // and UNIQUE (unique_transaction_id). Replaced with the real payment id by confirm-booking.
-          transaction_id: `pending_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-          status: "pending_payment",
+          transaction_id: transactionId,
+          status: PAYMENT_MODE === "manual" ? "pending_verification" : "pending_payment",
         },
       },
     };
@@ -248,6 +267,46 @@ export default async function handler(req: any, res: any) {
     }
 
     const bookingId = newBooking.id;
+
+    // Manual payment mode: no Cashfree order — the booking is created as
+    // pending_verification and the admin confirms manually after seeing the
+    // customer's WhatsApp payment proof.
+    if (PAYMENT_MODE === "manual") {
+      console.log("Manual booking created:", bookingId, "(PAYMENT_MODE=manual, no Cashfree order)");
+
+      // Notify by email. In manual mode the frontend never reaches the Cashfree
+      // checkout, so confirm-booking — which is what used to trigger the receipt
+      // — is never called. Without this the salon gets no notification at all
+      // that a booking came in. Non-fatal: a mail failure must not lose the
+      // booking, which is already committed above.
+      try {
+        const emailRes = await fetch(`${deriveFunctionsBase()}/send-booking-receipt`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_name: body.customer_name,
+            email: body.customer_email,
+            service: service,
+            preferred_date: preferredDate,
+            total_price: body.total_price || 0,
+            addons: body.addons || [],
+            transaction_id: transactionId,
+            advance_paid: 500,
+          }),
+        });
+        if (!emailRes.ok) {
+          console.error("Booking notification not sent:", emailRes.status, await emailRes.text());
+        }
+      } catch (emailErr) {
+        console.error("Booking notification failed (non-fatal):", emailErr);
+      }
+
+      return res.set(CORS_HEADERS).json({
+        booking_id: bookingId,
+        payment_mode: "manual",
+        status: "pending_verification",
+      });
+    }
 
     // Step 3: Create Cashfree order with booking_id in order_tags
     const orderId = `bkg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -296,12 +355,12 @@ export default async function handler(req: any, res: any) {
     }
 
     const cashfreeData = await cashfreeRes.json();
-    console.log("Cashfree order created:", cashfreeData.order_id, "for booking:", bookingId);
 
     return res.set(CORS_HEADERS).json({
       payment_session_id: cashfreeData.payment_session_id,
       booking_id: bookingId,
       cashfree_order_id: orderId,
+      payment_mode: "cashfree",
     });
   } catch (err) {
     console.error("create-booking-order error:", err);

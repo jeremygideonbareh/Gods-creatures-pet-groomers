@@ -253,13 +253,21 @@ export default async function handler(req: any, res: any) {
   try {
     const emailHtml = buildHtmlEmail(booking);
 
+    // The receipt is addressed to the customer ("your grooming request is
+    // confirmed"), but it used to be sent only to TO_EMAIL, so the customer
+    // never actually received it. Send it to the customer and copy the salon.
+    const recipients = [booking.email];
+    const bcc = TO_EMAIL && TO_EMAIL !== booking.email ? [TO_EMAIL] : undefined;
+
     console.log("Attempting to send email via Resend...");
     console.log("  from:", FROM_EMAIL);
-    console.log("  to:", TO_EMAIL);
+    console.log("  to:", recipients.join(", "));
+    console.log("  bcc:", bcc ? bcc.join(", ") : "(none)");
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: TO_EMAIL,
+      to: recipients,
+      ...(bcc ? { bcc } : {}),
       subject: `🐾 Booking Received — ${escapeHtml(booking.customer_name)}, your grooming request is confirmed!`,
       html: emailHtml,
     });
