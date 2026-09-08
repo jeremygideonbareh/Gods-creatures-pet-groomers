@@ -1,0 +1,54 @@
+name: Nhost Keep-Alive
+
+# Nhost free-tier projects sleep after a period of inactivity. Waking one
+# leaves a window where its DNS has not propagated yet, which surfaces in the
+# browser as ERR_NAME_NOT_RESOLVED and gets cached as a negative lookup.
+# A cheap periodic query keeps the project awake so that never happens.
+
+on:
+  schedule:
+    # 06:00 UTC every 2nd day — well inside the inactivity window.
+    - cron: '0 6 */2 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Ping Nhost GraphQL
+        env:
+          SUBDOMAIN: ${{ secrets.VITE_NHOST_SUBDOMAIN }}
+          REGION: ${{ secrets.VITE_NHOST_REGION }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUBDOMAIN:-}" ] || [ -z "${REGION:-}" ]; then
+            echo "::error::VITE_NHOST_SUBDOMAIN / VITE_NHOST_REGION secrets are not set."
+            exit 1
+          fi
+
+          URL="https://${SUBDOMAIN}.graphql.${REGION}.nhost.run/v1"
+
+          # A sleeping project can take a while to wake, so retry with backoff
+          # rather than failing the run on the first cold request.
+          for attempt in 1 2 3 4 5; do
+            echo "Attempt ${attempt}..."
+            code=$(curl -s -o body.txt -w '%{http_code}' \
+              --max-time 60 \
+              -X POST "$URL" \
+              -H 'Content-Type: application/json' \
+              -d '{"query":"{ __typename }"}' ) || code=000
+
+            if [ "$code" = "200" ] && grep -q 'query_root' body.txt; then
+              echo "Project is awake (HTTP 200)."
+              exit 0
+            fi
+
+            echo "Not ready yet (HTTP ${code}). Response: $(head -c 200 body.txt)"
+            sleep $(( attempt * 20 ))
+          done
+
+          echo "::error::Nhost did not respond successfully after 5 attempts."
+          exit 1
