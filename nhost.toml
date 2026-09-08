@@ -3,6 +3,12 @@ metadata_directory = "metadata"
 migrations_directory = "hasura/migrations"
 seeds_directory = "hasura/seeds"
 
+# Points at the directory that is actually deployed. It previously said
+# "nhost-functions", a stale duplicate that had drifted behind functions/ —
+# retry-booking-payment exists only in functions/ and responds in production,
+# which is how we know functions/ is the live one. The duplicate silently
+# swallowed at least one change (the PAYMENT_MODE gate) that was edited there
+# and never shipped, so it has been removed.
 [functions]
-path = "nhost-functions"
+path = "functions"
 
