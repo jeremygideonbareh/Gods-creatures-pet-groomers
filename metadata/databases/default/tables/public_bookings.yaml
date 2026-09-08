@@ -29,4 +29,20 @@ select_permissions:
         user_id:
           _eq: X-Hasura-User-Id
       allow_aggregations: true
+event_triggers:
+  # Emails the customer (and the salon) when a booking is confirmed. Hasura
+  # cannot filter an event trigger on a column's value, so this fires on every
+  # status change and send-booking-receipt decides: it only mails on a
+  # transition INTO "confirmed", and skips everything else.
+  - name: booking_status_email
+    definition:
+      enable_manual: false
+      update:
+        columns:
+          - status
+    retry_conf:
+      num_retries: 2
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: https://ukuqslqvwovrukooziwf.functions.ap-south-1.nhost.run/v1/send-booking-receipt
 
