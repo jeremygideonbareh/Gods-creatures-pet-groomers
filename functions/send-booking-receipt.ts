@@ -60,7 +60,31 @@ const REQUIRED_BOOKING_FIELDS: (keyof BookingData)[] = [
   "advance_paid",
 ];
 
-function buildHtmlEmail(data: BookingData): string {
+/**
+ * "received"  — sent when a booking is created; payment is still to be verified.
+ * "confirmed" — sent when the salon confirms it; the appointment is now booked.
+ */
+type EmailKind = "received" | "confirmed";
+
+const COPY: Record<EmailKind, { title: string; heading: string; body: (name: string) => string; subject: (name: string) => string }> = {
+  received: {
+    title: "Booking Received",
+    heading: "Booking Received! 🎉",
+    body: (name) =>
+      `Hello <strong style="color:#fff;">${name}</strong>,<br />your booking request has been received and is being reviewed.`,
+    subject: (name) => `🐾 Booking Received — ${name}, we've got your grooming request!`,
+  },
+  confirmed: {
+    title: "Booking Confirmed",
+    heading: "Booking Confirmed! ✅",
+    body: (name) =>
+      `Hello <strong style="color:#fff;">${name}</strong>,<br />your appointment is confirmed — we'll see you then! Please arrive a few minutes early.`,
+    subject: (name) => `🐾 Booking Confirmed — ${name}, your appointment is set!`,
+  },
+};
+
+function buildHtmlEmail(data: BookingData, kind: EmailKind = "received"): string {
+  const copy = COPY[kind];
   const addonsList = data.addons && data.addons.length > 0
     ? data.addons.map((a) => `<li>${escapeHtml(a)}</li>`).join("")
     : "<li>None selected</li>";
@@ -71,7 +95,7 @@ function buildHtmlEmail(data: BookingData): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Received</title>
+  <title>${copy.title}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f5e6e6;font-family:'Quicksand','Inter',sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#d0999a;padding:0;">
@@ -94,11 +118,10 @@ function buildHtmlEmail(data: BookingData): string {
                 <tr>
                   <td style="padding:28px 24px;">
                     <h2 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#fff;">
-                      Booking Received! 🎉
+                      ${copy.heading}
                     </h2>
                     <p style="margin:0 0 20px;font-size:14px;color:rgba(255,255,255,0.8);line-height:1.5;">
-                      Hello <strong style="color:#fff;">${escapeHtml(data.customer_name)}</strong>,<br />
-                      your booking request has been received and is being reviewed.
+                      ${copy.body(escapeHtml(data.customer_name))}
                     </p>
 
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.1);border-radius:16px;padding:16px;">
@@ -218,10 +241,34 @@ export default async function handler(req: any, res: any) {
 
   // --- Payload extraction: support both Hasura Event Trigger & direct API ---
   let booking: BookingData | null = null;
+  let kind: EmailKind = "received";
 
   if (req.body?.event?.data?.new) {
     console.log("Payload format: Hasura Event Trigger");
     booking = req.body.event.data.new as BookingData;
+
+    const op = req.body.event.op;
+    const oldRow = req.body.event.data.old as { status?: string } | null;
+    const newStatus = (booking as unknown as { status?: string }).status;
+
+    if (op === "UPDATE") {
+      // Only a transition INTO "confirmed" is worth an email. Hasura event
+      // triggers cannot filter on column values, so the gate lives here —
+      // otherwise every status change (including cancellations) would mail
+      // the customer, and re-confirming would mail them twice.
+      if (newStatus !== "confirmed" || oldRow?.status === "confirmed") {
+        console.log(`Skipping: status ${oldRow?.status} -> ${newStatus} is not a new confirmation`);
+        return res.set(CORS_HEADERS).json({ message: "No email needed for this change", skipped: true });
+      }
+      kind = "confirmed";
+    } else if (newStatus === "confirmed") {
+      // A row created already-confirmed still warrants the confirmation copy.
+      kind = "confirmed";
+    }
+  } else if (req.body?.kind === "confirmed" && req.body?.customer_name) {
+    console.log("Payload format: Direct API call (confirmation)");
+    booking = req.body as BookingData;
+    kind = "confirmed";
   } else if (req.body?.customer_name) {
     console.log("Payload format: Direct API call");
     booking = req.body as BookingData;
@@ -251,7 +298,7 @@ export default async function handler(req: any, res: any) {
   const resend = new Resend(RESEND_API_KEY);
 
   try {
-    const emailHtml = buildHtmlEmail(booking);
+    const emailHtml = buildHtmlEmail(booking, kind);
 
     // The receipt is addressed to the customer ("your grooming request is
     // confirmed"), but it used to be sent only to TO_EMAIL, so the customer
@@ -268,7 +315,7 @@ export default async function handler(req: any, res: any) {
       from: FROM_EMAIL,
       to: recipients,
       ...(bcc ? { bcc } : {}),
-      subject: `🐾 Booking Received — ${escapeHtml(booking.customer_name)}, your grooming request is confirmed!`,
+      subject: COPY[kind].subject(escapeHtml(booking.customer_name)),
       html: emailHtml,
     });
 
