@@ -303,41 +303,56 @@ export default async function handler(req: any, res: any) {
     // The receipt is addressed to the customer ("your grooming request is
     // confirmed"), but it used to be sent only to TO_EMAIL, so the customer
     // never actually received it. Send it to the customer and copy the salon.
-    const recipients = [booking.email];
-    const bcc = TO_EMAIL && TO_EMAIL !== booking.email ? [TO_EMAIL] : undefined;
+    const subject = COPY[kind].subject(escapeHtml(booking.customer_name));
 
-    console.log("Attempting to send email via Resend...");
-    console.log("  from:", FROM_EMAIL);
-    console.log("  to:", recipients.join(", "));
-    console.log("  bcc:", bcc ? bcc.join(", ") : "(none)");
-
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: recipients,
-      ...(bcc ? { bcc } : {}),
-      subject: COPY[kind].subject(escapeHtml(booking.customer_name)),
-      html: emailHtml,
-    });
-
-    if (error) {
-      console.error("Resend API returned an error:", JSON.stringify(error));
-      // Check for specific Resend errors
-      if (
-        error.message?.includes("domain") ||
-        error.message?.includes("sender") ||
-        error.message?.includes("from")
-      ) {
-        return res.status(500).set(CORS_HEADERS).json({
-          error: "Email sender not verified",
-          message: `The sender email "${FROM_EMAIL}" is not verified in Resend. Verify it at https://resend.com/domains or set the RESEND_FROM_EMAIL env var.`,
-          details: error,
-        });
+    /**
+     * The salon copy and the customer copy are sent as SEPARATE messages on
+     * purpose. Until a domain is verified, Resend only accepts the account
+     * owner's own address as a recipient, so a single message addressed to the
+     * customer (with the salon bcc'd) fails outright and NOBODY is told about
+     * the booking. Sending them independently means a restriction on the
+     * customer's address can never suppress the salon's notification.
+     */
+    async function sendTo(to: string, label: string) {
+      const { data, error } = await resend.emails.send({ from: FROM_EMAIL, to: [to], subject, html: emailHtml });
+      if (error) {
+        console.error(`Resend error sending ${label} copy to ${to}:`, JSON.stringify(error));
+        return { ok: false as const, error };
       }
-      return res.status(500).set(CORS_HEADERS).json({ error: error.message, details: error });
+      console.log(`Sent ${label} copy to ${to}, id=${data?.id}`);
+      return { ok: true as const, id: data?.id };
     }
 
-    console.log("Email sent successfully. Resend response data:", JSON.stringify(data));
-    return res.set(CORS_HEADERS).json({ message: "Email sent", id: data?.id });
+    console.log("Sending via Resend. from:", FROM_EMAIL, "| kind:", kind);
+
+    const salon = TO_EMAIL ? await sendTo(TO_EMAIL, "salon") : { ok: false as const, error: { message: "TO_EMAIL not set" } };
+    const customer =
+      booking.email && booking.email !== TO_EMAIL
+        ? await sendTo(booking.email, "customer")
+        : { ok: salon.ok, id: (salon as { id?: string }).id };
+
+    // Succeed if either copy landed; only a total failure is a 500, so one
+    // blocked recipient does not fail the whole booking notification.
+    if (!salon.ok && !customer.ok) {
+      const err = (customer as { error?: { message?: string } }).error ?? (salon as { error?: { message?: string } }).error;
+      const msg = err?.message ?? "Unknown Resend error";
+      if (/domain|sender|from|testing emails/i.test(msg)) {
+        return res.status(500).set(CORS_HEADERS).json({
+          error: "Email sender not verified",
+          message: `Resend rejected both recipients from "${FROM_EMAIL}". Verify your domain at https://resend.com/domains and set RESEND_FROM_EMAIL to an address on it.`,
+          details: err,
+        });
+      }
+      return res.status(500).set(CORS_HEADERS).json({ error: msg, details: err });
+    }
+
+    return res.set(CORS_HEADERS).json({
+      message: "Email sent",
+      kind,
+      salonNotified: salon.ok,
+      customerNotified: customer.ok,
+      ...(customer.ok ? {} : { customerError: (customer as { error?: { message?: string } }).error?.message }),
+    });
   } catch (err) {
     console.error("Exception in send-booking-receipt:", err);
     return res.status(500).set(CORS_HEADERS).json({
