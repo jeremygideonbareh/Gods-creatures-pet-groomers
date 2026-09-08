@@ -33,17 +33,30 @@ const CREATE_PET = gql`
   }
 `;
 
+type AuthMode = "signin" | "signup" | "reset" | "newPassword";
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthSuccess?: () => void;
+  /**
+   * Opens the modal directly in a given mode. Used for "newPassword" when the
+   * user arrives from a password-reset email.
+   */
+  initialMode?: AuthMode;
+  /** Surfaced when a reset link was invalid or expired. */
+  initialError?: string;
 }
 
 const BRAND_PINK = designTokens.brandPink;
 
-export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
+/** Where Nhost should send the user after it verifies a reset ticket. */
+const RESET_REDIRECT_URL =
+  typeof window !== "undefined" ? window.location.origin : "https://godscreaturespet.in";
+
+export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode, initialError }: AuthModalProps) {
   const { user } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [mode, setMode] = useState<AuthMode>(initialMode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -71,8 +84,30 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
     try {
       if (mode === "reset") {
-        await nhost.auth.sendPasswordResetEmail({ email });
+        // Without an explicit redirectTo, Nhost falls back to the project's
+        // configured client URL, which pointed at a stale preview deployment —
+        // so the link bounced users somewhere that could not complete a reset.
+        await nhost.auth.sendPasswordResetEmail({
+          email,
+          options: { redirectTo: RESET_REDIRECT_URL },
+        });
         setSuccess("If this email is registered, a password reset link has been sent.");
+        setLoading(false);
+        return;
+      }
+
+      if (mode === "newPassword") {
+        if (password.length < 8) {
+          setError("Please choose a password of at least 8 characters.");
+          setLoading(false);
+          return;
+        }
+        await nhost.auth.changeUserPassword({ newPassword: password });
+        // changeUserPassword revokes every session, including this one, so the
+        // user must sign in again with the new password.
+        setSuccess("Password updated. You can now sign in with your new password.");
+        setPassword("");
+        setMode("signin");
         setLoading(false);
         return;
       }
@@ -141,6 +176,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     }
   };
 
+  // Adopt the caller's mode/error each time the modal opens, so arriving from
+  // a password-reset link lands straight on the "choose a new password" step.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialMode) setMode(initialMode);
+    if (initialError) setError(initialError);
+  }, [isOpen, initialMode, initialError]);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -190,29 +233,41 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             </button>
 
             <h2 className="text-2xl font-bold text-white text-center mb-2">
-              {mode === "signin" ? "🐾 Welcome Back" : mode === "signup" ? "🐾 Join Us" : "🐾 Reset Password"}
+              {mode === "signin"
+                ? "🐾 Welcome Back"
+                : mode === "signup"
+                  ? "🐾 Join Us"
+                  : mode === "newPassword"
+                    ? "🐾 Choose a New Password"
+                    : "🐾 Reset Password"}
             </h2>
             <p className="text-white/80 text-center mb-6">
               {mode === "signin"
                 ? "Sign in to manage your pets and bookings."
                 : mode === "signup"
                   ? "Create an account and tell us about your pet!"
-                  : "Enter your email and we'll send a reset link."}
+                  : mode === "newPassword"
+                    ? "Enter a new password for your account."
+                    : "Enter your email and we'll send a reset link."}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="auth-email" className="sr-only">Email</label>
-                <input
-                  id="auth-email"
-                  type="email"
-                  placeholder="Email address"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                   className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-brand-pink/60"
-                />
-              </div>
+              {/* In newPassword mode the user is already identified by the
+                  session established from the reset link, so no email needed. */}
+              {mode !== "newPassword" && (
+                <div>
+                  <label htmlFor="auth-email" className="sr-only">Email</label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    placeholder="Email address"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                     className="w-full px-4 py-2.5 rounded-xl bg-white/15 border border-white/25 text-white placeholder-white/50 outline-none focus:border-brand-pink/60"
+                  />
+                </div>
+              )}
               {mode !== "reset" && (
                 <div className="relative">
                   <label htmlFor="auth-password" className="sr-only">Password</label>
@@ -397,16 +452,39 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    <span>{mode === "signin" ? "Signing in..." : mode === "signup" ? "Creating account..." : "Sending..."}</span>
+                    <span>
+                      {mode === "signin"
+                        ? "Signing in..."
+                        : mode === "signup"
+                          ? "Creating account..."
+                          : mode === "newPassword"
+                            ? "Updating password..."
+                            : "Sending..."}
+                    </span>
                   </>
                 ) : (
-                  <>{mode === "signin" ? "📥 Sign In" : mode === "signup" ? "✨ Sign Up" : "✉️ Send Reset Link"}</>
+                  <>
+                    {mode === "signin"
+                      ? "📥 Sign In"
+                      : mode === "signup"
+                        ? "✨ Sign Up"
+                        : mode === "newPassword"
+                          ? "🔒 Set New Password"
+                          : "✉️ Send Reset Link"}
+                  </>
                 )}
               </button>
             </form>
 
             <p className="text-white/60 text-xs text-center mt-4">
-              {mode === "reset" ? (
+              {mode === "newPassword" ? (
+                <button
+                  onClick={() => { setMode("signin"); setError(""); setSuccess(""); }}
+                  className="text-white underline hover:no-underline"
+                >
+                  Cancel
+                </button>
+              ) : mode === "reset" ? (
                 <button
                   onClick={() => { setMode("signin"); setError(""); setSuccess(""); }}
                   className="text-white underline hover:no-underline"

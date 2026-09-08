@@ -19,6 +19,7 @@ import BookingSection from "@/components/sections/BookingSection";
 import { EnhancedFooter } from "@/components/ui/footer-enhanced";
 import BookingModal from "@/components/ui/booking-modal";
 import AuthModal from "@/components/ui/AuthModal";
+import { consumePasswordResetFromUrl } from "@/lib/password-reset";
 import AddPetModal from "@/components/ui/AddPetModal";
 
 const COUNT_MY_PETS = gql`
@@ -44,6 +45,29 @@ export default function ScrollAdventure() {
   const { user } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<"signin" | "newPassword">("signin");
+  const [authInitialError, setAuthInitialError] = useState("");
+
+  // A password-reset email sends the user to Nhost's /verify endpoint, which
+  // redirects back here with a refresh token. Exchange it for a session and
+  // open the modal on the "choose a new password" step. Previously nothing
+  // consumed this, so the link simply dropped the user on the homepage.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const landing = await consumePasswordResetFromUrl();
+      if (cancelled || landing.status === "none") return;
+      if (landing.status === "ready") {
+        setAuthInitialMode("newPassword");
+        setAuthInitialError("");
+      } else {
+        setAuthInitialMode("signin");
+        setAuthInitialError(landing.message ?? "That reset link is no longer valid.");
+      }
+      setAuthOpen(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [showPetForm, setShowPetForm] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
@@ -182,7 +206,14 @@ export default function ScrollAdventure() {
       {/* Modals — EXACTLY AS BEFORE, unchanged */}
       <AuthModal
         isOpen={authOpen}
-        onClose={() => { setAuthOpen(false); bookingIntentRef.current = false; }}
+        initialMode={authInitialMode}
+        initialError={authInitialError}
+        onClose={() => {
+          setAuthOpen(false);
+          bookingIntentRef.current = false;
+          setAuthInitialMode("signin");
+          setAuthInitialError("");
+        }}
         onAuthSuccess={handleAuthSuccess}
       />
 
