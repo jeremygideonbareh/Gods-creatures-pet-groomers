@@ -1222,7 +1222,7 @@ Check that:
 - [ ] **Step 5: Apply Hasura metadata**
 
 ```bash
-$env:HASURA_GRAPHQL_ADMIN_SECRET="admin12345"
+$env:HASURA_GRAPHQL_ADMIN_SECRET="<set in Nhost Dashboard: Settings - Secrets>"
 & "C:\Users\cloud\AppData\Local\Temp\hasura.exe" metadata apply --project hasura
 ```
 

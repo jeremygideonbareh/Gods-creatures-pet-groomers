@@ -22,7 +22,7 @@ Environment variables are managed in three primary contexts:
 | `RESEND_API_KEY` | Nhost Dashboard | Nhost Functions | API key for Resend email service | Yes | `re_123456789` |
 | `RESEND_FROM_EMAIL` | Nhost Dashboard | Nhost Functions | Verified sender email address in Resend | Yes | `onboarding@resend.dev` |
 | `NHOST_GRAPHQL_URL` | Nhost Dashboard (auto) | Nhost Functions | Hasura GraphQL endpoint for internal mutations | Yes | `https://{subdomain}.hasura.{region}.nhost.run/v1/graphql` |
-| `HASURA_GRAPHQL_ADMIN_SECRET` | Nhost Dashboard | Nhost Functions | Admin secret for authorized Hasura operations | Yes | `admin12345` |
+| `HASURA_GRAPHQL_ADMIN_SECRET` | Nhost Dashboard | Nhost Functions | Admin secret for authorized Hasura operations | Yes | `<set in Nhost Dashboard: Settings - Secrets>` |
 | `VITE_NHOST_SUBDOMAIN` | .env (local), Cloudflare | Frontend | Nhost project subdomain | Yes | `ukuqslqvwovrukooziwf` |
 | `VITE_NHOST_REGION` | .env (local), Cloudflare | Frontend | Nhost project region | Yes | `ap-south-1` |
 | `VITE_ADMIN_EMAIL` | .env (local), Cloudflare | Frontend | Comma-separated list of admin emails | Yes | `admin@godscreatures.com,cloudlyconfusing@gmail.com` |

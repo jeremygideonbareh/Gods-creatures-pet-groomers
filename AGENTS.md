@@ -31,7 +31,7 @@
 - **Updated `main.tsx` x-hasura-role logic** to also use `adminEmails.includes(email)`
 - Deployed to Cloudflare Pages with wrangler (after fixing API token + account ID issues)
 - Added `account_id` to root `wrangler.toml`
-- Ran `hasura metadata apply` multiple times with admin secret `admin12345`
+- Ran `hasura metadata apply` multiple times with admin secret `<set in Nhost Dashboard: Settings - Secrets>`
 - Ran `hasura metadata export` after each customization to sync local files
 - All changes committed and pushed to GitHub `main`
 - Hard-refreshed Nhost Dashboard Auth → Users page — loads with zero errors
@@ -61,7 +61,7 @@
 
 ## Critical Context
 - Hasura engine: `https://ukuqslqvwovrukooziwf.hasura.ap-south-1.nhost.run`
-- Admin secret: `admin12345` (set as `$env:HASURA_GRAPHQL_ADMIN_SECRET`)
+- Admin secret: `<set in Nhost Dashboard: Settings - Secrets>` (set as `$env:HASURA_GRAPHQL_ADMIN_SECRET`)
 - Hasura CLI: `%TEMP%\hasura.exe` v2.42.0 — run from `react-app/hasura/` to avoid long-path truncation bugs
 - Nhost Dashboard `auth` schema tracking state: fully tracked with custom names, root fields, column configs, and camelCase relationships
 - SQL RLS was disabled: `ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;` (and pets, site_content) — Hasura role permissions (`x-hasura-role` header) are the gatekeeper instead

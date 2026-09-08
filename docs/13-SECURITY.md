@@ -90,7 +90,7 @@ Meta tag in index.html:
 | RAZORPAY_KEY_SECRET | Nhost Dashboard | Server-side only |
 | CASHFREE_SECRET_KEY | Nhost Dashboard | Server-side only |
 | RESEND_API_KEY | Nhost Dashboard | Server-side only |
-| HASURA_GRAPHQL_ADMIN_SECRET | Nhost Dashboard | admin12345 |
+| HASURA_GRAPHQL_ADMIN_SECRET | Nhost Dashboard | <set in Nhost Dashboard: Settings - Secrets> |
 
 ## Known Security Gaps
 | Gap | Risk Level | Description | Mitigation |

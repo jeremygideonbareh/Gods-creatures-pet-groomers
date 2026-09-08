@@ -83,7 +83,7 @@ account_id = "6450bfe26bbac5dbfa679d5af793705d"
 ### Applying Metadata
 ```bash
 cd react-app/hasura
-$env:HASURA_GRAPHQL_ADMIN_SECRET="admin12345"
+$env:HASURA_GRAPHQL_ADMIN_SECRET="<set in Nhost Dashboard: Settings - Secrets>"
 hasura metadata apply
 hasura metadata export
 ```

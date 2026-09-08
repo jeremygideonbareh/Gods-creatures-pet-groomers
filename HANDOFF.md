@@ -1171,7 +1171,7 @@ npm run preview      # Serve built dist/ locally for testing
 $env:CLOUDFLARE_API_TOKEN="your-token"; npx wrangler pages deploy
 
 # Hasura metadata apply/export (run from react-app/hasura/)
-$env:HASURA_GRAPHQL_ADMIN_SECRET="admin12345"
+$env:HASURA_GRAPHQL_ADMIN_SECRET="<set in Nhost Dashboard: Settings - Secrets>"
 hasura metadata apply
 hasura metadata export
 ```
